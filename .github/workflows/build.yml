@@ -22,78 +22,80 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  linux:
-    name: Linux
-    # The oldest supported Ubuntu LTS: the binary needs the glibc it was built
-    # against, so building here lets it, the AppImage and the deb/rpm run on
-    # glibc 2.35 and newer.
-    runs-on: ubuntu-22.04
-    timeout-minutes: 90
-    # webrtc-sys compiles its C++ against the hermetic libc++ inside the libwebrtc
-    # artifact, which needs a clang as new as that libc++ (clang 21 today, see
-    # check_clang_version in vendor/webrtc-sys/build.rs). The distro clang is older
-    # (18 on ubuntu-24.04), so setup-linux installs clang 21 and these point every
-    # compile and the final link at it.
-    env:
-      CC: clang-21
-      CXX: clang++-21
-      CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: clang-21
-    steps:
-      - uses: actions/checkout@v6
+  # Fork: only the Windows x64 build runs for now. The Linux, Windows ARM64, macOS and
+  # release jobs stay below, commented out; uncomment them to build those again.
+#   linux:
+#     name: Linux
+#     # The oldest supported Ubuntu LTS: the binary needs the glibc it was built
+#     # against, so building here lets it, the AppImage and the deb/rpm run on
+#     # glibc 2.35 and newer.
+#     runs-on: ubuntu-22.04
+#     timeout-minutes: 90
+#     # webrtc-sys compiles its C++ against the hermetic libc++ inside the libwebrtc
+#     # artifact, which needs a clang as new as that libc++ (clang 21 today, see
+#     # check_clang_version in vendor/webrtc-sys/build.rs). The distro clang is older
+#     # (18 on ubuntu-24.04), so setup-linux installs clang 21 and these point every
+#     # compile and the final link at it.
+#     env:
+#       CC: clang-21
+#       CXX: clang++-21
+#       CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: clang-21
+#     steps:
+#       - uses: actions/checkout@v6
 
-      - uses: ./.github/actions/setup-linux
+#       - uses: ./.github/actions/setup-linux
 
-      - uses: dtolnay/rust-toolchain@stable
+#       - uses: dtolnay/rust-toolchain@stable
 
-      # Its own key: build scripts cached on a newer Ubuntu would need a newer glibc.
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: build-ubuntu-22.04
+#       # Its own key: build scripts cached on a newer Ubuntu would need a newer glibc.
+#       - uses: Swatinem/rust-cache@v2
+#         with:
+#           key: build-ubuntu-22.04
 
-      - name: Build
-        run: cargo build -p app --release
+#       - name: Build
+#         run: cargo build -p app --release
 
-      # nfpm builds the deb and rpm, zsync the AppImage's .zsync; desktop-file-utils
-      # and appstream validate the metadata. AppImage tooling is downloaded by
-      # package.sh at pinned digests.
-      - name: Install packaging tools
-        env:
-          NFPM_VERSION: 2.48.0
-          NFPM_SHA256: 787af76e172dd5fc7cedf4d7c5a090a2f62be9001557a4db1103e270f90ddefd
-        run: |
-          sudo apt-get install --no-install-recommends -y zsync desktop-file-utils appstream
-          curl -fsSL -o "$RUNNER_TEMP/nfpm.deb" \
-            "https://github.com/goreleaser/nfpm/releases/download/v$NFPM_VERSION/nfpm_${NFPM_VERSION}_amd64.deb"
-          echo "$NFPM_SHA256  $RUNNER_TEMP/nfpm.deb" | sha256sum -c -
-          sudo dpkg -i "$RUNNER_TEMP/nfpm.deb"
+#       # nfpm builds the deb and rpm, zsync the AppImage's .zsync; desktop-file-utils
+#       # and appstream validate the metadata. AppImage tooling is downloaded by
+#       # package.sh at pinned digests.
+#       - name: Install packaging tools
+#         env:
+#           NFPM_VERSION: 2.48.0
+#           NFPM_SHA256: 787af76e172dd5fc7cedf4d7c5a090a2f62be9001557a4db1103e270f90ddefd
+#         run: |
+#           sudo apt-get install --no-install-recommends -y zsync desktop-file-utils appstream
+#           curl -fsSL -o "$RUNNER_TEMP/nfpm.deb" \
+#             "https://github.com/goreleaser/nfpm/releases/download/v$NFPM_VERSION/nfpm_${NFPM_VERSION}_amd64.deb"
+#           echo "$NFPM_SHA256  $RUNNER_TEMP/nfpm.deb" | sha256sum -c -
+#           sudo dpkg -i "$RUNNER_TEMP/nfpm.deb"
 
-      # A tag build carries the tag's version (v0.5.0-rc.1 -> 0.5.0~rc.1 in the deb).
-      - name: Package
-        env:
-          RUSTY_TEAMS_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-        run: packaging/linux/package.sh --skip-build --formats "appimage deb rpm"
+#       # A tag build carries the tag's version (v0.5.0-rc.1 -> 0.5.0~rc.1 in the deb).
+#       - name: Package
+#         env:
+#           RUSTY_TEAMS_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+#         run: packaging/linux/package.sh --skip-build --formats "appimage deb rpm"
 
-      # The Flatpak repackages a tarball built only for it; the release keeps its own tarball.
-      - name: Flatpak
-        env:
-          RUSTY_TEAMS_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-        run: |
-          # 22.04's flatpak-builder 1.2 still calls appstream-compose, which the 26.08 SDK dropped.
-          sudo add-apt-repository -y ppa:flatpak/stable
-          sudo apt-get install --no-install-recommends -y flatpak flatpak-builder
-          DIST="$RUNNER_TEMP/flatpak" packaging/linux/package.sh --skip-build --formats tar
-          packaging/linux/flatpak-bundle.sh --no-test "$RUNNER_TEMP"/flatpak/rusty-teams-*-linux-x86_64.tar.gz
+#       # The Flatpak repackages a tarball built only for it; the release keeps its own tarball.
+#       - name: Flatpak
+#         env:
+#           RUSTY_TEAMS_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+#         run: |
+#           # 22.04's flatpak-builder 1.2 still calls appstream-compose, which the 26.08 SDK dropped.
+#           sudo add-apt-repository -y ppa:flatpak/stable
+#           sudo apt-get install --no-install-recommends -y flatpak flatpak-builder
+#           DIST="$RUNNER_TEMP/flatpak" packaging/linux/package.sh --skip-build --formats tar
+#           packaging/linux/flatpak-bundle.sh --no-test "$RUNNER_TEMP"/flatpak/rusty-teams-*-linux-x86_64.tar.gz
 
-      # The runner is x86_64; the artifact name carries the architecture.
-      - uses: actions/upload-artifact@v7
-        with:
-          name: teams-linux-amd64
-          path: target/release/teams
+#       # The runner is x86_64; the artifact name carries the architecture.
+#       - uses: actions/upload-artifact@v7
+#         with:
+#           name: teams-linux-amd64
+#           path: target/release/teams
 
-      - uses: actions/upload-artifact@v7
-        with:
-          name: teams-linux-packages
-          path: dist/release/*
+#       - uses: actions/upload-artifact@v7
+#         with:
+#           name: teams-linux-packages
+#           path: dist/release/*
 
   windows:
     name: Windows
@@ -124,97 +126,97 @@ jobs:
           name: teams-windows-amd64
           path: target/release/teams.exe
 
-  windows-arm:
-    name: Windows ARM64
-    runs-on: windows-11-arm
-    timeout-minutes: 90
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v6
+#   windows-arm:
+#     name: Windows ARM64
+#     runs-on: windows-11-arm
+#     timeout-minutes: 90
+#     defaults:
+#       run:
+#         shell: bash
+#     steps:
+#       - uses: actions/checkout@v6
 
-      - uses: dtolnay/rust-toolchain@stable
+#       - uses: dtolnay/rust-toolchain@stable
 
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: build-windows-arm
+#       - uses: Swatinem/rust-cache@v2
+#         with:
+#           key: build-windows-arm
 
-      # After the toolchain: staging runs `cargo metadata` for aarch64.
-      - uses: ./.github/actions/setup-windows
+#       # After the toolchain: staging runs `cargo metadata` for aarch64.
+#       - uses: ./.github/actions/setup-windows
 
-      - name: Build
-        run: cargo build -p app --release --config "patch.crates-io.gpui-pre-windows.path=\"$GPUI_PRE_WINDOWS_PATCHED\""
+#       - name: Build
+#         run: cargo build -p app --release --config "patch.crates-io.gpui-pre-windows.path=\"$GPUI_PRE_WINDOWS_PATCHED\""
 
-      - uses: actions/upload-artifact@v7
-        with:
-          name: teams-windows-arm64
-          path: target/release/teams.exe
+#       - uses: actions/upload-artifact@v7
+#         with:
+#           name: teams-windows-arm64
+#           path: target/release/teams.exe
 
-  macos:
-    name: macOS
-    runs-on: macos-latest
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v6
+#   macos:
+#     name: macOS
+#     runs-on: macos-latest
+#     timeout-minutes: 90
+#     steps:
+#       - uses: actions/checkout@v6
 
-      - uses: dtolnay/rust-toolchain@stable
+#       - uses: dtolnay/rust-toolchain@stable
 
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: build
+#       - uses: Swatinem/rust-cache@v2
+#         with:
+#           key: build
 
-      # scripts/build-macos.sh builds the arm64 and x86_64 slices, lipos them into
-      # one universal binary and wraps it in a .app with the icon (README "Quick
-      # start"); it installs the x86_64 rustup target itself and needs Xcode CLT only.
-      - name: Build
-        run: scripts/build-macos.sh crates/app teams
+#       # scripts/build-macos.sh builds the arm64 and x86_64 slices, lipos them into
+#       # one universal binary and wraps it in a .app with the icon (README "Quick
+#       # start"); it installs the x86_64 rustup target itself and needs Xcode CLT only.
+#       - name: Build
+#         run: scripts/build-macos.sh crates/app teams
 
-      - uses: actions/upload-artifact@v7
-        with:
-          name: teams-macos
-          path: target/universal/release/teams-macos.zip
+#       - uses: actions/upload-artifact@v7
+#         with:
+#           name: teams-macos
+#           path: target/universal/release/teams-macos.zip
 
-  release:
-    name: Release
-    needs: [linux, windows, windows-arm, macos]
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          path: dist
+#   release:
+#     name: Release
+#     needs: [linux, windows, windows-arm, macos]
+#     if: startsWith(github.ref, 'refs/tags/v')
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: write
+#     steps:
+#       - uses: actions/download-artifact@v8
+#         with:
+#           path: dist
 
-      # Artifacts drop the executable bit, the tarball restores it.
-      # Asset names use the version without the leading v (rusty-teams-0.5.0-…).
-      - name: Package
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          ver="${TAG#v}"
-          mkdir release
-          chmod +x dist/teams-linux-amd64/teams
-          tar -czf "release/rusty-teams-$ver-linux-amd64.tar.gz" -C dist/teams-linux-amd64 teams
-          # The bare binary is what the Linux self-update downloads (release_feed.rs).
-          cp dist/teams-linux-amd64/teams "release/rusty-teams-$ver-linux-amd64"
-          cp dist/teams-windows-amd64/teams.exe "release/rusty-teams-$ver-windows-amd64.exe"
-          cp dist/teams-windows-arm64/teams.exe "release/rusty-teams-$ver-windows-arm64.exe"
-          cp dist/teams-macos/teams-macos.zip "release/rusty-teams-$ver-macos-universal.zip"
-          # deb, rpm, Flatpak, AppImage and its .zsync, named rusty-teams-<version>-linux-x86_64.*;
-          # the AppImage's update information looks for that .zsync name.
-          cp dist/teams-linux-packages/* release/
-          shopt -s nullglob
-          flatpaks=(release/*.flatpak)
-          if [[ ${#flatpaks[@]} -eq 0 ]]; then
-            echo "Flatpak bundle missing from teams-linux-packages — refusing to publish" >&2
-            exit 1
-          fi
+#       # Artifacts drop the executable bit, the tarball restores it.
+#       # Asset names use the version without the leading v (rusty-teams-0.5.0-…).
+#       - name: Package
+#         env:
+#           TAG: ${{ github.ref_name }}
+#         run: |
+#           set -euo pipefail
+#           ver="${TAG#v}"
+#           mkdir release
+#           chmod +x dist/teams-linux-amd64/teams
+#           tar -czf "release/rusty-teams-$ver-linux-amd64.tar.gz" -C dist/teams-linux-amd64 teams
+#           # The bare binary is what the Linux self-update downloads (release_feed.rs).
+#           cp dist/teams-linux-amd64/teams "release/rusty-teams-$ver-linux-amd64"
+#           cp dist/teams-windows-amd64/teams.exe "release/rusty-teams-$ver-windows-amd64.exe"
+#           cp dist/teams-windows-arm64/teams.exe "release/rusty-teams-$ver-windows-arm64.exe"
+#           cp dist/teams-macos/teams-macos.zip "release/rusty-teams-$ver-macos-universal.zip"
+#           # deb, rpm, Flatpak, AppImage and its .zsync, named rusty-teams-<version>-linux-x86_64.*;
+#           # the AppImage's update information looks for that .zsync name.
+#           cp dist/teams-linux-packages/* release/
+#           shopt -s nullglob
+#           flatpaks=(release/*.flatpak)
+#           if [[ ${#flatpaks[@]} -eq 0 ]]; then
+#             echo "Flatpak bundle missing from teams-linux-packages — refusing to publish" >&2
+#             exit 1
+#           fi
 
-      - uses: softprops/action-gh-release@v3
-        with:
-          files: release/*
-          generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
+#       - uses: softprops/action-gh-release@v3
+#         with:
+#           files: release/*
+#           generate_release_notes: true
+#           prerelease: ${{ contains(github.ref_name, '-') }}
