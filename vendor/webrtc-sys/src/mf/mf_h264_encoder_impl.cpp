@@ -5,7 +5,9 @@
 #include <oleauto.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
+#include <thread>
 
 #include "api/video/i420_buffer.h"
 #include "modules/video_coding/include/video_codec_interface.h"
@@ -16,6 +18,15 @@
 namespace webrtc {
 
 namespace {
+
+// GetEvent(0) blocks until an event arrives, forever if a hardware MFT stalls: poll instead.
+constexpr std::chrono::milliseconds kAsyncEventWait(500);
+constexpr std::chrono::milliseconds kAsyncEventPoll(1);
+
+// NV12 has one chroma sample per 2x2 block; the buffer below assumes even sizes.
+bool IsEvenSize(uint32_t width, uint32_t height) {
+  return width % 2 == 0 && height % 2 == 0;
+}
 
 using Microsoft::WRL::ComPtr;
 
@@ -237,6 +248,9 @@ int32_t MFH264EncoderImpl::InitEncode(const VideoCodec* inst,
   if (!inst || inst->codecType != kVideoCodecH264 || inst->width < 2 ||
       inst->height < 2) {
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
+  }
+  if (!IsEvenSize(inst->width, inst->height)) {
+    return WEBRTC_VIDEO_CODEC_FALLBACK_SOFTWARE;
   }
 
   Release();
@@ -465,9 +479,19 @@ bool MFH264EncoderImpl::DrainSyncOutput() {
 }
 
 bool MFH264EncoderImpl::PumpAsyncUntilInputNeeded() {
-  for (int attempts = 0; attempts < 32 && async_need_input_ <= 0; ++attempts) {
+  const auto deadline = std::chrono::steady_clock::now() + kAsyncEventWait;
+  while (async_need_input_ <= 0) {
+    if (std::chrono::steady_clock::now() >= deadline) {
+      RTC_LOG(LS_WARNING) << "MFH264: no input request from the MFT in time, "
+                             "falling back to software";
+      return false;
+    }
     ComPtr<IMFMediaEvent> event;
-    HRESULT hr = event_gen_->GetEvent(0, &event);
+    HRESULT hr = event_gen_->GetEvent(MF_EVENT_FLAG_NO_WAIT, &event);
+    if (hr == MF_E_NO_EVENTS_AVAILABLE) {
+      std::this_thread::sleep_for(kAsyncEventPoll);
+      continue;
+    }
     if (FAILED(hr) || !event) {
       return false;
     }
@@ -532,6 +556,9 @@ int32_t MFH264EncoderImpl::Encode(
     // Resolution changed dynamically: re-init MFT or fall back cleanly.
     width_ = static_cast<uint32_t>(i420->width());
     height_ = static_cast<uint32_t>(i420->height());
+    if (!IsEvenSize(width_, height_)) {
+      return WEBRTC_VIDEO_CODEC_FALLBACK_SOFTWARE;
+    }
     mft_.Reset();
     codec_api_.Reset();
     event_gen_.Reset();
