@@ -50,7 +50,7 @@ use crate::settings::{SettingsDialog, SettingsDialogEvent};
 use crate::settings_section::SettingsSection;
 use crate::sidebar_model::Step;
 use crate::theme;
-use crate::updater::{self, IdleInputs, UpdateStatus};
+use crate::updater::{self, UpdateStatus};
 use crate::user_activity::{self, UserInput};
 use app_ui_kit::layout::{ISLAND_GAP, SIDEBAR_WIDTH};
 use app_ui_kit::render::hooks::RenderHooks;
@@ -518,7 +518,7 @@ impl AppShell {
             loop {
                 cx.background_executor().timer(updater::POLL_INTERVAL).await;
                 if this
-                    .update_in(cx, |this, window, cx| this.poll_update(window, cx))
+                    .update_in(cx, |this, _, cx| this.poll_update(cx))
                     .is_err()
                 {
                     break;
@@ -535,7 +535,7 @@ impl AppShell {
     }
 
     #[cfg_attr(not(any(windows, target_os = "linux")), allow(dead_code))]
-    fn poll_update(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn poll_update(&mut self, cx: &mut Context<Self>) {
         if matches!(
             self.update,
             UpdateStatus::Failed(_) | UpdateStatus::Installing
@@ -554,17 +554,7 @@ impl AppShell {
             cx.background_spawn(async move { updater::prescan(&update_exe) })
                 .detach();
         }
-        let conversation = self.conversation.read(cx);
-        let idle = updater::is_idle(IdleInputs {
-            window_active: window.is_window_active(),
-            composer_empty: conversation.composer_is_empty(cx),
-            send_in_flight: conversation.send_in_flight(),
-            in_call: self.state.read(cx).call.is_some(),
-        });
-        // On Linux only the user restarts: the update dialog or the title bar button.
-        if idle && cfg!(not(target_os = "linux")) {
-            self.restart_into_update(cx);
-        }
+        // Only the user installs an update: the update dialog or the title bar button.
         cx.notify();
     }
 
