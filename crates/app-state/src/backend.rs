@@ -190,8 +190,8 @@ async fn supervise(
     tokio::spawn(org_list(home.clone(), guest_tenant.clone(), events.clone()));
     // Calls stay on the home tenant's registration, like rings for the home org while a guest org is open.
     let (session, home_drive) = match &guest_tenant {
-        Some(tenant) => (home.in_tenant(tenant), Some(home)),
-        None => (home, None),
+        Some(tenant) => (home.in_tenant(tenant), Some(home.clone())),
+        None => (home.clone(), None),
     };
     let build = || {
         let graph = Graph::new(session.clone());
@@ -232,11 +232,8 @@ async fn supervise(
         link,
         live_retry,
     ));
-    tokio::spawn(calendar_loop(
-        session.clone(),
-        store.clone(),
-        events.clone(),
-    ));
+    // A guest has no mailbox in the org it visits, so Outlook is read from the home tenant.
+    tokio::spawn(calendar_loop(home, store.clone(), events.clone()));
     tokio::spawn(pins_loop(session, events.clone()));
     tokio::spawn(presence_resubscribe_loop(engine.clone()));
     refresh_loop(engine, events, nudges).await;
