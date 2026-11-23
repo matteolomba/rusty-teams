@@ -2615,7 +2615,7 @@ impl Composer {
                             .child(
                                 div()
                                     .truncate()
-                                    .text_size(px(13.5))
+                                    .text_size(theme::text_label())
                                     .text_color(theme::text())
                                     .child(name),
                             )
@@ -2623,7 +2623,7 @@ impl Composer {
                                 column.child(
                                     div()
                                         .truncate()
-                                        .text_size(px(12.))
+                                        .text_size(theme::text_small())
                                         .text_color(theme::text_muted())
                                         .child(subtitle),
                                 )
@@ -2873,7 +2873,7 @@ impl Composer {
                 .mt(px(6.))
                 .gap(px(6.))
                 .items_center()
-                .text_size(px(12.))
+                .text_size(theme::text_small())
                 .text_color(theme::text_muted())
                 .child("Formatted from Markdown")
                 .child(
@@ -2882,7 +2882,7 @@ impl Composer {
                         .py(px(2.))
                         .rounded(px(4.))
                         .bg(theme::surface_raised())
-                        .text_size(px(11.))
+                        .text_size(theme::text_caption())
                         .text_color(theme::text())
                         .child("Ctrl+Z"),
                 )
@@ -2915,7 +2915,7 @@ impl Composer {
                         .child(
                             div()
                                 .truncate()
-                                .text_size(px(12.))
+                                .text_size(theme::text_small())
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .text_color(theme::accent_text())
                                 .child(match edit.scheduled {
@@ -2929,7 +2929,7 @@ impl Composer {
                         .child(
                             div()
                                 .truncate()
-                                .text_size(px(12.))
+                                .text_size(theme::text_small())
                                 .text_color(theme::text_muted())
                                 .child(edit.excerpt.clone()),
                         ),
@@ -2971,7 +2971,7 @@ impl Composer {
                         .child(
                             div()
                                 .truncate()
-                                .text_size(px(12.))
+                                .text_size(theme::text_small())
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .text_color(theme::accent_text())
                                 .child(format!("Replying to {}", reply.author)),
@@ -2979,7 +2979,7 @@ impl Composer {
                         .child(
                             div()
                                 .truncate()
-                                .text_size(px(12.))
+                                .text_size(theme::text_small())
                                 .text_color(theme::text_muted())
                                 .child(reply.excerpt.clone()),
                         ),
@@ -3206,7 +3206,7 @@ impl Render for Composer {
             div()
                 .w_full()
                 .mb(px(6.))
-                .text_size(px(12.))
+                .text_size(theme::text_small())
                 .text_color(theme::amber())
                 .child(notice.to_owned())
         });
