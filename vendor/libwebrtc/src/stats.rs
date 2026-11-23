@@ -17,6 +17,21 @@ use std::collections::HashMap;
 use serde::Deserialize;
 
 use crate::data_channel::DataChannelState;
+use crate::{RtcError, RtcErrorType};
+
+/// Parses the stats report WebRTC hands to a C++ callback. Runs inside that callback, so it must
+/// not panic: a report that is not a JSON list is an error, and entries this crate does not model
+/// (WebRTC adds stats types over time) are skipped.
+pub fn parse_stats(json: &str) -> Result<Vec<RtcStats>, RtcError> {
+    if json.is_empty() {
+        return Ok(Vec::new());
+    }
+    let entries: Vec<serde_json::Value> = serde_json::from_str(json).map_err(|error| RtcError {
+        error_type: RtcErrorType::Internal,
+        message: format!("stats report: {error}"),
+    })?;
+    Ok(entries.into_iter().filter_map(|entry| serde_json::from_value(entry).ok()).collect())
+}
 
 /// Values from https://www.w3.org/TR/webrtc-stats/ (NOTE: Some of the structs are not in the SPEC
 /// but inside libwebrtc)
