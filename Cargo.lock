@@ -1101,6 +1101,7 @@ version = "0.5.0"
 dependencies = [
  "directories",
  "futures-util",
+ "log",
  "serde",
  "serde_json",
  "session",
