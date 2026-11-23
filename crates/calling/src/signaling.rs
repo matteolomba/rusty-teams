@@ -58,7 +58,6 @@ const CALL_LINK_NAMES: [&str; 5] = [
     "redirection",
     "end",
 ];
-const AUDIO_MODALITIES: [&str; 1] = ["Audio"];
 pub(crate) const MEETING_MESSAGE_ID: &str = "0";
 const RAISE_HANDS: &str = "raiseHands";
 const CANCEL_CODE: i64 = 487;
@@ -1325,7 +1324,7 @@ pub fn escalation_answer_body(
 ) -> Value {
     json!({
         "mediaAnswer": {
-            "callModalities": AUDIO_MODALITIES,
+            "callModalities": crate::hold::accepted_modalities(false),
             "sender": from.wire(),
             "links": {"mediaAcknowledgement": callbacks.call("mediaAcknowledgement")},
             "clientContentForMediaController": media_controller_links(callbacks),
@@ -2088,6 +2087,11 @@ mod tests {
                 .as_str()
                 .unwrap()
                 .ends_with("/call/mediaAcknowledgement/")
+        );
+        // The web client answers the mixer with the viewer modality too.
+        assert_eq!(
+            answer["mediaAnswer"]["callModalities"],
+            json!(["Audio", "ScreenViewer"])
         );
     }
 
