@@ -1,3 +1,4 @@
+use app_base::updater::UpdateMode;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::{
     button::Button,
@@ -10,9 +11,9 @@ use gpui_kit::*;
 use teams_core::{ChatSettingChange, TranslationBehavior};
 
 use super::account::{UP_ARROW, account_select};
-use super::rows::{Choice, caption, control_row, select, toggle_row};
+use super::rows::{Choice, caption, control_row, select, text_button, toggle_row};
 use crate::app_state::AppState;
-use crate::i18n::tr;
+use crate::i18n::{tr, tr_args};
 use crate::notify::NotificationCenter;
 use crate::notify::rules::Settings;
 use crate::theme;
@@ -100,7 +101,7 @@ pub fn render(center: &Entity<NotificationCenter>, app: &Entity<AppState>, cx: &
             ))
         })
         .children(external_browser_rows(app, cx))
-        .children(install_rows(cx))
+        .children(update_rows(app, cx))
         .child(caption(tr("settings.caption.compose_box")))
         .child(account_select(
             app,
@@ -129,7 +130,7 @@ fn settings_toggle(
     })
 }
 
-/// Linux only: the application menu install, the install question and updates.
+/// Linux only: the application menu install and the install question.
 fn install_rows(cx: &App) -> Vec<AnyElement> {
     #[cfg(not(target_os = "linux"))]
     {
@@ -138,22 +139,11 @@ fn install_rows(cx: &App) -> Vec<AnyElement> {
     }
     #[cfg(target_os = "linux")]
     {
-        use std::collections::HashMap;
-
-        use super::rows::{control_row, text_button};
-        use crate::i18n::tr_args;
-        use crate::linux_install::{self, Installation};
-
-        let with = |key: &str, name: &str, value: String| {
-            let mut args = HashMap::new();
-            args.insert(name.to_owned(), value);
-            tr_args(key, &args)
-        };
         let folder = linux_install::install_folder();
         let installation = linux_install::installation();
         let detail = match installation {
-            Installation::Running => with("install.installed_detail", "folder", folder),
-            Installation::OtherCopy => with("install.other_copy_detail", "folder", folder),
+            Installation::Running => tr_with("install.installed_detail", "folder", folder),
+            Installation::OtherCopy => tr_with("install.other_copy_detail", "folder", folder),
             Installation::NotInstalled => tr("install.not_installed_detail"),
         };
         let mut buttons = h_flex().gap(px(8.)).flex_none();
@@ -189,34 +179,159 @@ fn install_rows(cx: &App) -> Vec<AnyElement> {
                 .into_any_element(),
             );
         }
-        let automatic = crate::linux_update::enabled(cx);
-        rows.push(
-            toggle_row(
-                "settings-auto-updates",
-                tr("install.auto_updates"),
-                tr("install.auto_updates_detail"),
-                theme::text_muted(),
-                automatic,
-            )
-            .on_click(move |_, _, cx| crate::linux_update::set_enabled(!automatic, cx))
-            .into_any_element(),
-        );
-        let version = linux_install::running_release().to_owned();
-        let updates_detail = if linux_install::updatable_release().is_some() {
-            with("install.updates_detail", "version", version)
-        } else {
-            with("install.updates_detail_not_installed", "version", version)
-        };
-        rows.push(
-            control_row(
-                tr("install.updates_title"),
-                updates_detail,
-                text_button("settings-check-updates", tr("install.check_now"))
-                    .on_click(|_, _, cx| crate::linux_update::check(true, cx)),
-            )
-            .into_any_element(),
-        );
         rows
+    }
+}
+
+fn tr_with(key: &str, name: &str, value: impl Into<String>) -> String {
+    let mut args = std::collections::HashMap::new();
+    args.insert(name.to_owned(), value.into());
+    tr_args(key, &args)
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+fn update_mode_label(mode: UpdateMode) -> String {
+    match mode {
+        UpdateMode::Off => tr("install.update_mode_off"),
+        UpdateMode::Manual => tr("install.update_mode_manual"),
+        UpdateMode::Automatic => tr("install.update_mode_automatic"),
+        UpdateMode::ReleasePage => tr("install.update_mode_release_page"),
+    }
+}
+
+/// Updates section shown on Windows and Linux. Only `off` disables the check button;
+/// `release-page` keeps it active but it opens the fork instead of downloading.
+#[cfg(any(windows, target_os = "linux"))]
+fn update_rows(app: &Entity<AppState>, cx: &App) -> Vec<AnyElement> {
+    let mode = crate::updater::load_update_mode(&app.read(cx).store);
+    let choices = UpdateMode::ALL
+        .into_iter()
+        .map(|choice| {
+            let choice_app = app.clone();
+            Choice::new(update_mode_label(choice), choice == mode, move |cx| {
+                if let Err(error) =
+                    crate::updater::save_update_mode(&choice_app.read(cx).store, choice)
+                {
+                    app_base::diagnostics::record(format!("update mode not saved: {error}"));
+                }
+                cx.refresh_windows();
+            })
+        })
+        .collect();
+    #[cfg(target_os = "linux")]
+    let version = crate::linux_install::running_release().to_owned();
+    #[cfg(windows)]
+    let version = app_base::version::running_release_tag().to_owned();
+    #[cfg(target_os = "linux")]
+    let detail = if crate::linux_install::updatable_release().is_some() {
+        tr_with("install.updates_detail", "version", version)
+    } else {
+        tr_with("install.updates_detail_not_installed", "version", version)
+    };
+    #[cfg(windows)]
+    let detail = tr_with("install.updates_detail", "version", version);
+    let button_label = if mode == UpdateMode::ReleasePage {
+        tr("install.open_releases")
+    } else {
+        tr("install.check_now")
+    };
+    let check = text_button("settings-check-updates", button_label)
+        .when(mode == UpdateMode::Off, |button| {
+            button.opacity(DISABLED_OPACITY)
+        })
+        .when(mode != UpdateMode::Off, |button| {
+            let check_app = app.clone();
+            button.on_click(move |_, _, cx| check_now(&check_app, cx))
+        });
+    vec![
+        caption(tr("settings.caption.updates")).into_any_element(),
+        control_row(
+            tr("settings.general.update_mode"),
+            tr("settings.general.update_mode_detail"),
+            select(
+                "settings-update-mode",
+                update_mode_label(mode),
+                false,
+                choices,
+            ),
+        )
+        .into_any_element(),
+        control_row(tr("install.updates_title"), detail, check).into_any_element(),
+    ]
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
+fn update_rows(app: &Entity<AppState>, cx: &App) -> Vec<AnyElement> {
+    let _ = (app, cx);
+    Vec::new()
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+fn check_now(app: &Entity<AppState>, cx: &mut App) {
+    let mode = crate::updater::load_update_mode(&app.read(cx).store);
+    if mode == UpdateMode::ReleasePage {
+        open_release_page(cx);
+        return;
+    }
+    if !mode.downloads() {
+        return;
+    }
+    #[cfg(target_os = "linux")]
+    crate::linux_update::check(true, cx);
+    #[cfg(windows)]
+    {
+        let Some(running_tag) = app_base::version::release_tag() else {
+            notice(tr("install.updates_release_only"), cx);
+            return;
+        };
+        let Some(paths) = crate::updater::current_paths() else {
+            return;
+        };
+        let fetch = app_base::release_feed::fetch_update(running_tag, paths, cx);
+        cx.spawn(async move |cx| match fetch.await {
+            Ok(Some(tag)) => {
+                log::info!("release {tag} scaricata per il prossimo riavvio");
+                cx.update(|cx| notice(tr("install.update_downloaded"), cx));
+            }
+            Ok(None) => cx.update(|cx| notice(tr("install.up_to_date"), cx)),
+            Err(error) => {
+                cx.update(|cx| notice(tr_with("install.update_failed", "detail", error), cx))
+            }
+        })
+        .detach();
+    }
+}
+
+/// `release-page` mode only looks up the newest tag and opens its page: no download.
+#[cfg(any(windows, target_os = "linux"))]
+fn open_release_page(cx: &mut App) {
+    let running_tag = app_base::version::running_release_tag();
+    let find = app_base::release_feed::find_update(running_tag, cx);
+    cx.spawn(async move |cx| match find.await {
+        Ok(update) => {
+            let url = release_page_for(update.as_ref().map(|update| update.tag.as_str()));
+            cx.update(|cx| cx.open_url(&url));
+        }
+        Err(error) => cx.update(|cx| notice(tr_with("install.update_failed", "detail", error), cx)),
+    })
+    .detach();
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+fn release_page_for(tag: Option<&str>) -> String {
+    match tag {
+        Some(tag) => app_base::release_feed::release_page_url(tag),
+        None => app_base::release_feed::RELEASES_PAGE_URL.to_owned(),
+    }
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+fn notice(text: String, cx: &mut App) {
+    if let Some(handle) = cx.try_global::<crate::app_state::AppHandle>() {
+        handle
+            .0
+            .clone()
+            .update(cx, |state, cx| state.raise_notice(text, None, cx));
     }
 }
 
@@ -517,4 +632,40 @@ fn add_language_button(choices: Vec<Choice>) -> impl IntoElement {
                 },
             )
         })
+}
+
+#[cfg(all(test, any(windows, target_os = "linux")))]
+mod tests {
+    use super::release_page_for;
+
+    #[test]
+    fn release_page_uses_the_found_tag() {
+        assert_eq!(
+            release_page_for(Some("v0.7.0-rc.1")),
+            "https://github.com/matteolomba/rusty-teams/releases/tag/v0.7.0-rc.1"
+        );
+        assert_eq!(
+            release_page_for(None),
+            "https://github.com/matteolomba/rusty-teams/releases"
+        );
+    }
+
+    #[test]
+    fn update_mode_labels_are_localized() {
+        use app_base::ui_locale::apply_locale;
+        use app_base::updater::UpdateMode;
+
+        use super::update_mode_label;
+        use crate::i18n::locale_test_lock;
+
+        let _guard = locale_test_lock();
+        apply_locale("it");
+        assert!(update_mode_label(UpdateMode::Manual).contains("Manual"));
+        assert!(update_mode_label(UpdateMode::ReleasePage).contains("nessun download"));
+        apply_locale("de");
+        assert!(update_mode_label(UpdateMode::Automatic).contains("Automatisch"));
+        apply_locale("en");
+        assert!(update_mode_label(UpdateMode::Off).contains("never check"));
+        apply_locale("en");
+    }
 }

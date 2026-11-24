@@ -20,3 +20,10 @@ pub fn set_release_tag(tag: &'static str) {
 pub fn release_tag() -> Option<&'static str> {
     RELEASE_TAG.get().copied()
 }
+
+/// The release tag this build represents. CI tag builds report their tag; local builds
+/// report the workspace version. Unlike `build_version()` (commit + timestamp) this is
+/// comparable with release asset tags.
+pub fn running_release_tag() -> &'static str {
+    release_tag().unwrap_or(concat!("v", env!("CARGO_PKG_VERSION")))
+}

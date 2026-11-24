@@ -177,46 +177,31 @@ jobs:
 #           name: teams-macos
 #           path: target/universal/release/teams-macos.zip
 
-#   release:
-#     name: Release
-#     needs: [linux, windows, windows-arm, macos]
-#     if: startsWith(github.ref, 'refs/tags/v')
-#     runs-on: ubuntu-latest
-#     permissions:
-#       contents: write
-#     steps:
-#       - uses: actions/download-artifact@v8
-#         with:
-#           path: dist
+  release-windows:
+    name: Release (Windows)
+    needs: [windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Only the Windows x64 binary is built in this fork; other platforms stay commented out.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: teams-windows-amd64
+          path: dist
 
-#       # Artifacts drop the executable bit, the tarball restores it.
-#       # Asset names use the version without the leading v (rusty-teams-0.5.0-…).
-#       - name: Package
-#         env:
-#           TAG: ${{ github.ref_name }}
-#         run: |
-#           set -euo pipefail
-#           ver="${TAG#v}"
-#           mkdir release
-#           chmod +x dist/teams-linux-amd64/teams
-#           tar -czf "release/rusty-teams-$ver-linux-amd64.tar.gz" -C dist/teams-linux-amd64 teams
-#           # The bare binary is what the Linux self-update downloads (release_feed.rs).
-#           cp dist/teams-linux-amd64/teams "release/rusty-teams-$ver-linux-amd64"
-#           cp dist/teams-windows-amd64/teams.exe "release/rusty-teams-$ver-windows-amd64.exe"
-#           cp dist/teams-windows-arm64/teams.exe "release/rusty-teams-$ver-windows-arm64.exe"
-#           cp dist/teams-macos/teams-macos.zip "release/rusty-teams-$ver-macos-universal.zip"
-#           # deb, rpm, Flatpak, AppImage and its .zsync, named rusty-teams-<version>-linux-x86_64.*;
-#           # the AppImage's update information looks for that .zsync name.
-#           cp dist/teams-linux-packages/* release/
-#           shopt -s nullglob
-#           flatpaks=(release/*.flatpak)
-#           if [[ ${#flatpaks[@]} -eq 0 ]]; then
-#             echo "Flatpak bundle missing from teams-linux-packages — refusing to publish" >&2
-#             exit 1
-#           fi
+      # The name matches the asset the fork's release feed looks for (release_feed.rs).
+      - name: Package
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          ver="${TAG#v}"
+          cp dist/teams.exe "rusty-teams-$ver-windows-amd64.exe"
 
-#       - uses: softprops/action-gh-release@v3
-#         with:
-#           files: release/*
-#           generate_release_notes: true
-#           prerelease: ${{ contains(github.ref_name, '-') }}
+      - uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
+        with:
+          files: rusty-teams-*-windows-amd64.exe
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

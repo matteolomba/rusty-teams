@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- Modalità aggiornamenti configurabile in Impostazioni > Generale: `Off`, `Manual` (predefinita), `Automatic`, `Release page`. Il feed punta al fork e rifiuta asset upstream.
+
+### Fixed
+- Confronto del tag staged con la versione rilasciata, non con il build id; caricamento calendario e indici colore refactorizzati senza cambiare comportamento.
+
 ## [0.7.0-rc.1] - 2026-11-24
 
 ### Added

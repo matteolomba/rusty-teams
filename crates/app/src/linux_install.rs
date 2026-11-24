@@ -190,7 +190,7 @@ pub fn set_asks_on_start(ask: bool, cx: &mut App) {
 /// The release this build counts as: its tag in CI release builds, the workspace
 /// version (kept equal to the latest release) in a local build.
 pub fn running_release() -> &'static str {
-    app_base::version::release_tag().unwrap_or(concat!("v", env!("CARGO_PKG_VERSION")))
+    app_base::version::running_release_tag()
 }
 
 /// The release to update from, when this process is the installed copy.

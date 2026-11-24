@@ -17,9 +17,22 @@ use crate::updater::UpdatePaths;
 
 pub const FIRST_CHECK_DELAY: Duration = Duration::from_secs(60);
 pub const CHECK_INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
-const RELEASES_URL: &str =
-    "https://api.github.com/repos/danieldaeschle/rusty-teams/releases?per_page=10";
-/// The release asset this platform installs, and the magic bytes it must start with.
+pub const REPOSITORY: &str = "matteolomba/rusty-teams";
+pub const RELEASES_URL: &str =
+    "https://api.github.com/repos/matteolomba/rusty-teams/releases?per_page=10";
+pub const RELEASES_PAGE_URL: &str = "https://github.com/matteolomba/rusty-teams/releases";
+pub const RELEASE_TAG_URL: &str = "https://github.com/matteolomba/rusty-teams/releases/tag/";
+/// Only assets hosted by this fork may be downloaded; upstream executables are ignored.
+pub const RELEASE_DOWNLOAD_URL: &str =
+    "https://github.com/matteolomba/rusty-teams/releases/download/";
+
+/// Where the release page of `tag` can be opened without downloading anything.
+pub fn release_page_url(tag: &str) -> String {
+    format!("{RELEASE_TAG_URL}{tag}")
+}
+
+/// The release asset this platform installs.
+#[cfg(test)]
 fn asset_suffix_for(os: &str, arch: &str) -> &'static str {
     match (os, arch) {
         ("windows", "aarch64") => "-windows-arm64.exe",
@@ -33,16 +46,16 @@ fn asset_suffix_for(os: &str, arch: &str) -> &'static str {
 const ASSET_SUFFIX: &str = "-windows-arm64.exe";
 #[cfg(all(windows, not(target_arch = "aarch64")))]
 const ASSET_SUFFIX: &str = "-windows-amd64.exe";
-#[cfg(windows)]
-const EXECUTABLE_MAGIC: &[u8] = b"MZ";
 #[cfg(target_os = "linux")]
 const ASSET_SUFFIX: &str = "-linux-amd64";
+#[cfg(not(any(windows, target_os = "linux")))]
+const ASSET_SUFFIX: &str = "-unsupported";
+#[cfg(windows)]
+const EXECUTABLE_MAGIC: &[u8] = b"MZ";
 #[cfg(target_os = "linux")]
 const EXECUTABLE_MAGIC: &[u8] = b"\x7fELF";
 /// macOS and any other target still compile. The suffix matches no release asset,
 /// so the feed stays idle. macOS updates by replacing the `.app`, not a Mach-O in place.
-#[cfg(not(any(windows, target_os = "linux")))]
-const ASSET_SUFFIX: &str = "-unsupported";
 #[cfg(not(any(windows, target_os = "linux")))]
 const EXECUTABLE_MAGIC: &[u8] = b"\0unsupported";
 const PARTIAL_SUFFIX: &str = ".partial";
@@ -145,10 +158,10 @@ pub fn newest_update<'a>(
         .filter(|release| !release.draft && (follows_pre_releases || !release.prerelease))
         .filter_map(|release| {
             let version = parse_version(&release.tag_name).filter(|version| *version > running)?;
-            let asset = release
-                .assets
-                .iter()
-                .find(|asset| asset.name.ends_with(ASSET_SUFFIX))?;
+            let asset = release.assets.iter().find(|asset| {
+                asset.name.ends_with(ASSET_SUFFIX)
+                    && asset.browser_download_url.starts_with(RELEASE_DOWNLOAD_URL)
+            })?;
             Some((version, release, asset))
         })
         .max_by(|left, right| left.0.cmp(&right.0))
@@ -327,7 +340,7 @@ mod tests {
             prerelease,
             assets: vec![ReleaseAsset {
                 name: asset_name(tag),
-                browser_download_url: format!("https://example.test/{tag}.exe"),
+                browser_download_url: format!("{RELEASE_DOWNLOAD_URL}{tag}/{tag}.exe"),
                 size: EXECUTABLE_MAGIC.len() as u64,
                 digest: None,
             }],
@@ -457,5 +470,50 @@ mod tests {
         assert!(already_staged(&paths, "v0.2.0"));
         assert!(!already_staged(&paths, "v0.3.0"));
         assert!(!partial_path(&paths.update_exe).exists());
+    }
+
+    #[test]
+    fn the_feed_and_release_page_point_at_the_fork() {
+        assert!(RELEASES_URL.contains("repos/matteolomba/rusty-teams/"));
+        assert!(!RELEASES_URL.contains("danieldaeschle"));
+        assert_eq!(
+            RELEASES_PAGE_URL,
+            "https://github.com/matteolomba/rusty-teams/releases"
+        );
+        assert_eq!(
+            release_page_url("v0.7.0-rc.1"),
+            "https://github.com/matteolomba/rusty-teams/releases/tag/v0.7.0-rc.1"
+        );
+    }
+
+    #[test]
+    fn only_assets_hosted_by_the_fork_are_selected() {
+        let fork = release("v0.7.0-rc.1", true);
+        let mut upstream = release("v0.7.1-rc.1", true);
+        upstream.assets[0].browser_download_url = upstream.assets[0].browser_download_url.replace(
+            RELEASE_DOWNLOAD_URL,
+            "https://github.com/danieldaeschle/rusty-teams/releases/download/",
+        );
+        let releases = [upstream.clone(), fork];
+        let (found, asset) = newest_update("v0.7.0-rc.0", &releases).unwrap();
+        assert_eq!(found.tag_name, "v0.7.0-rc.1");
+        assert_eq!(
+            asset.browser_download_url,
+            format!("{RELEASE_DOWNLOAD_URL}v0.7.0-rc.1/v0.7.0-rc.1.exe")
+        );
+        assert!(newest_update("v0.7.0-rc.1", std::slice::from_ref(&upstream)).is_none());
+    }
+
+    #[test]
+    fn staging_keeps_the_release_tag() {
+        let directory = tempfile::tempdir().unwrap();
+        let paths = UpdatePaths::beside(&directory.path().join("teams"));
+        stage(&paths, "v0.7.0-rc.1", EXECUTABLE_MAGIC).unwrap();
+        assert_eq!(
+            fs::read_to_string(&paths.version_file).unwrap(),
+            "v0.7.0-rc.1"
+        );
+        assert!(already_staged(&paths, "v0.7.0-rc.1"));
+        assert!(!already_staged(&paths, "v0.7.1-rc.1"));
     }
 }

@@ -7,6 +7,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
+use store::Store;
 
 pub const POLL_INTERVAL: Duration = Duration::from_secs(15);
 
@@ -26,6 +27,96 @@ const CLEANUP_ATTEMPTS: u32 = 30;
 const CLEANUP_INTERVAL: Duration = Duration::from_secs(1);
 const QUIT_GRACE: Duration = Duration::from_secs(3);
 const PREVIOUS_EXIT_TIMEOUT: Duration = Duration::from_secs(30);
+
+pub const UPDATE_MODE_KEY: &str = "updates.mode";
+const LEGACY_LINUX_UPDATES_KEY: &str = "linux.updates.enabled";
+
+/// How this installation deals with releases from the fork's feed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum UpdateMode {
+    Off,
+    #[default]
+    Manual,
+    Automatic,
+    ReleasePage,
+}
+
+impl UpdateMode {
+    pub const ALL: [Self; 4] = [Self::Off, Self::Manual, Self::Automatic, Self::ReleasePage];
+
+    /// Strict parsing: only the four stored spellings are accepted.
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "off" => Some(Self::Off),
+            "manual" => Some(Self::Manual),
+            "automatic" => Some(Self::Automatic),
+            "release-page" => Some(Self::ReleasePage),
+            _ => None,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::Manual => "manual",
+            Self::Automatic => "automatic",
+            Self::ReleasePage => "release-page",
+        }
+    }
+
+    /// Whether this mode may check the feed and download an executable.
+    pub fn downloads(self) -> bool {
+        matches!(self, Self::Manual | Self::Automatic)
+    }
+
+    /// Whether this mode runs a periodic release check.
+    pub fn polls(self) -> bool {
+        self == Self::Automatic
+    }
+}
+
+/// Loads the mode from the shared store, migrating the old Linux-only toggle once.
+pub fn load_update_mode(store: &Store) -> UpdateMode {
+    match store.meta(UPDATE_MODE_KEY) {
+        Ok(Some(raw)) => UpdateMode::parse(&raw).unwrap_or_else(|| {
+            log::warn!("modalità aggiornamenti non valida {raw:?}; uso manuale");
+            UpdateMode::Manual
+        }),
+        Ok(None) => {
+            let mode = match store.meta(LEGACY_LINUX_UPDATES_KEY) {
+                Ok(Some(raw)) if raw.trim() == "0" => UpdateMode::Off,
+                Ok(Some(_)) => UpdateMode::Automatic,
+                Ok(None) => UpdateMode::Manual,
+                Err(error) => {
+                    log::warn!(
+                        "impossibile leggere la vecchia impostazione aggiornamenti: {error}"
+                    );
+                    UpdateMode::Manual
+                }
+            };
+            if let Err(error) = save_update_mode(store, mode) {
+                log::warn!("impossibile salvare la modalità aggiornamenti: {error}");
+            }
+            if let Err(error) = store.delete_meta(LEGACY_LINUX_UPDATES_KEY) {
+                log::warn!("impossibile rimuovere la vecchia impostazione aggiornamenti: {error}");
+            }
+            mode
+        }
+        Err(error) => {
+            log::warn!("impossibile leggere la modalità aggiornamenti: {error}");
+            UpdateMode::Manual
+        }
+    }
+}
+
+pub fn save_update_mode(store: &Store, mode: UpdateMode) -> Result<(), String> {
+    store
+        .set_meta(UPDATE_MODE_KEY, mode.as_str())
+        .map_err(|error| error.to_string())?;
+    store
+        .delete_meta(LEGACY_LINUX_UPDATES_KEY)
+        .map_err(|error| error.to_string())
+}
 
 pub fn running_version() -> &'static str {
     crate::version::build_version()
@@ -168,7 +259,7 @@ pub fn roll_back(files: &dyn FileSystem, completed: &[FileOperation]) {
 pub fn check(paths: &UpdatePaths) -> bool {
     let published = std::fs::read_to_string(&paths.version_file).ok();
     update_is_ready(
-        running_version(),
+        crate::version::running_release_tag(),
         published.as_deref(),
         paths.update_exe.exists(),
     )
@@ -422,5 +513,57 @@ mod tests {
     #[test]
     fn running_version_is_set() {
         assert!(!running_version().is_empty());
+    }
+
+    #[test]
+    fn update_mode_parsing_is_strict() {
+        assert_eq!(UpdateMode::default(), UpdateMode::Manual);
+        for mode in UpdateMode::ALL {
+            assert_eq!(UpdateMode::parse(mode.as_str()), Some(mode));
+        }
+        assert_eq!(UpdateMode::parse("Off"), None);
+        assert_eq!(UpdateMode::parse("release_page"), None);
+        assert_eq!(UpdateMode::parse("auto"), None);
+        assert!(UpdateMode::Manual.downloads());
+        assert!(UpdateMode::Automatic.downloads());
+        assert!(!UpdateMode::Off.downloads());
+        assert!(!UpdateMode::ReleasePage.downloads());
+        assert!(UpdateMode::Automatic.polls());
+        assert!(!UpdateMode::Manual.polls());
+    }
+
+    #[test]
+    fn legacy_linux_toggle_migrates_to_a_mode() {
+        for (legacy, expected) in [("0", UpdateMode::Off), ("1", UpdateMode::Automatic)] {
+            let store = Store::open_in_memory().unwrap();
+            store.set_meta("linux.updates.enabled", legacy).unwrap();
+            assert_eq!(load_update_mode(&store), expected);
+            assert_eq!(
+                store.meta(UPDATE_MODE_KEY).unwrap().as_deref(),
+                Some(expected.as_str())
+            );
+            assert_eq!(store.meta("linux.updates.enabled").unwrap(), None);
+        }
+    }
+
+    #[test]
+    fn a_new_profile_defaults_to_manual_and_rejects_unknown_modes() {
+        let store = Store::open_in_memory().unwrap();
+        assert_eq!(load_update_mode(&store), UpdateMode::Manual);
+        store
+            .set_meta(UPDATE_MODE_KEY, "automatic-download")
+            .unwrap();
+        assert_eq!(load_update_mode(&store), UpdateMode::Manual);
+        save_update_mode(&store, UpdateMode::ReleasePage).unwrap();
+        assert_eq!(load_update_mode(&store), UpdateMode::ReleasePage);
+    }
+
+    #[test]
+    fn a_staged_release_is_compared_with_the_running_release_tag() {
+        let directory = tempfile::tempdir().unwrap();
+        let paths = install(directory.path());
+        assert!(check(&paths));
+        fs::write(&paths.version_file, crate::version::running_release_tag()).unwrap();
+        assert!(!check(&paths));
     }
 }

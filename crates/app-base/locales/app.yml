@@ -314,6 +314,10 @@ settings:
       en: SYSTEM
       de: SYSTEM
       it: SISTEMA
+    updates:
+      en: UPDATES
+      de: UPDATES
+      it: AGGIORNAMENTI
     browser:
       en: BROWSER
       de: BROWSER
@@ -640,6 +644,14 @@ settings:
       en: Auto-start Teams
       de: Teams automatisch starten
       it: Avvia Teams automaticamente
+    update_mode:
+      en: Update mode
+      de: Updatemodus
+      it: Modalità aggiornamenti
+    update_mode_detail:
+      en: Choose whether Rusty Teams checks for updates, asks, or only links to releases
+      de: Wählen Sie, ob Rusty Teams nach Updates sucht, fragt oder nur auf Releases verweist
+      it: Scelga se Rusty Teams cerca aggiornamenti, chiede o rimanda solo alle release
     agents_mcp:
       en: Enable Agents and MCP
       de: Agenten und MCP aktivieren
@@ -1214,9 +1226,9 @@ install:
     de: Updates
     it: Aggiornamenti
   updates_detail:
-    en: "%{version}, updates from GitHub releases"
-    de: "%{version}, Updates über GitHub-Releases"
-    it: "%{version}, aggiornamenti dalle release di GitHub"
+    en: "%{version}, updates from this fork's GitHub releases"
+    de: "%{version}, Updates über die GitHub-Releases dieses Forks"
+    it: "%{version}, aggiornamenti dalle release GitHub di questo fork"
   updates_detail_not_installed:
     en: "%{version}. Install Rusty Teams above to get updates"
     de: "%{version}. Installiere Rusty Teams oben, um Updates zu erhalten"
@@ -1229,18 +1241,38 @@ install:
     en: Check now
     de: Jetzt prüfen
     it: Controlla ora
+  open_releases:
+    en: Open releases
+    de: Releases öffnen
+    it: Apri release
+  update_downloaded:
+    en: Release downloaded. Restart Rusty Teams to install it.
+    de: Release heruntergeladen. Starten Sie Rusty Teams neu, um sie zu installieren.
+    it: Release scaricata. Riavvii Rusty Teams per installarla.
+  updates_release_only:
+    en: Updates are only available in a tagged release build
+    de: Updates sind nur in einer getaggten Release-Version verfügbar
+    it: Gli aggiornamenti sono disponibili solo nelle build di release con tag
   update_checking:
     en: Checking for updates...
     de: Suche nach Updates...
     it: Ricerca aggiornamenti...
-  auto_updates:
-    en: Automatic updates
-    de: Automatische Updates
-    it: Aggiornamenti automatici
-  auto_updates_detail:
-    en: Look for new releases and ask before installing
-    de: Nach neuen Releases suchen und vor der Installation fragen
-    it: Cerca nuove release e chiede prima di installare
+  update_mode_off:
+    en: "Off — never check or download"
+    de: "Aus — nie prüfen oder herunterladen"
+    it: "Disattivato — nessun controllo o download"
+  update_mode_manual:
+    en: "Manual — check only when asked"
+    de: "Manuell — nur auf Anfrage prüfen"
+    it: "Manuale — controlla solo su richiesta"
+  update_mode_automatic:
+    en: "Automatic — check periodically"
+    de: "Automatisch — regelmässig prüfen"
+    it: "Automatico — controlla periodicamente"
+  update_mode_release_page:
+    en: "Release page — never download"
+    de: "Release-Seite — niemals herunterladen"
+    it: "Pagina release — nessun download"
   update_available_title:
     en: Update available
     de: Update verfügbar

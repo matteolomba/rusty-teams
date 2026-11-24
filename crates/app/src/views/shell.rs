@@ -513,6 +513,8 @@ impl AppShell {
                 });
             });
         }
+        // Local-only poll: it notices an already staged binary; release checks and
+        // downloads are driven by the selected mode instead.
         #[cfg(any(windows, target_os = "linux"))]
         cx.spawn_in(window, async move |this, cx| {
             loop {
@@ -526,10 +528,19 @@ impl AppShell {
             }
         })
         .detach();
-        // Linux asks before downloading (`linux_update`); Windows downloads quietly.
+        // Linux asks before downloading (`linux_update`); Windows downloads quietly
+        // only when the user chose automatic updates.
         #[cfg(windows)]
-        if let Some(running_tag) = app_base::version::release_tag() {
-            watch_releases(running_tag, cx);
+        {
+            let automatic = cx
+                .try_global::<crate::app_state::AppHandle>()
+                .is_some_and(|handle| {
+                    updater::load_update_mode(&handle.0.read(cx).store)
+                        == updater::UpdateMode::Automatic
+                });
+            if automatic && let Some(running_tag) = app_base::version::release_tag() {
+                watch_releases(running_tag, cx);
+            }
         }
         shell
     }

@@ -1,7 +1,7 @@
-//! Linux self-update, always with consent: a newer GitHub release is offered in a
+//! Linux self-update, always with consent: a newer release from the fork is offered in a
 //! dialog; "Update" downloads it with progress and "Restart now" swaps the binary
-//! and relaunches. Nothing restarts without a click. Settings > General turns the
-//! periodic check off; "Check now" works either way.
+//! and relaunches. Nothing restarts without a click. Settings > General selects the
+//! update mode; "Check now" follows it without ever downloading in `off`/`release-page`.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -17,9 +17,8 @@ use gpui_kit::*;
 use crate::app_state::AppHandle;
 use crate::i18n::{tr, tr_args};
 use crate::theme;
-use crate::updater;
+use crate::updater::{self, UpdateMode};
 
-const ENABLED_META_KEY: &str = "linux.updates.enabled";
 /// How often an offer waits for a main window closed into the tray to come back.
 const WINDOW_WAIT: Duration = Duration::from_secs(30);
 /// How often the progress dialog redraws while downloading.
@@ -65,19 +64,9 @@ fn with_store<R>(cx: &App, read: impl FnOnce(&store::Store) -> R) -> Option<R> {
         .map(|handle| read(&handle.0.read(cx).store))
 }
 
-/// The periodic check; on by default.
-pub fn enabled(cx: &App) -> bool {
-    with_store(cx, |store| {
-        store.meta(ENABLED_META_KEY).ok().flatten().as_deref() != Some("0")
-    })
-    .unwrap_or(true)
-}
-
-pub fn set_enabled(enabled: bool, cx: &mut App) {
-    with_store(cx, |store| {
-        let _ = store.set_meta(ENABLED_META_KEY, if enabled { "1" } else { "0" });
-    });
-    cx.refresh_windows();
+/// The persisted mode; without a store (e.g. a demo session) no update work runs.
+fn current_mode(cx: &App) -> UpdateMode {
+    with_store(cx, updater::load_update_mode).unwrap_or(UpdateMode::Off)
 }
 
 fn declined(cx: &App) -> Option<String> {
@@ -131,8 +120,13 @@ fn ensure_state(cx: &mut App) {
     }
 }
 
-/// Starts the periodic check. Only the installed copy of a release build updates.
+/// Starts update handling. `off` and `release-page` do nothing; `manual` only picks up
+/// a staged update from a previous run, while `automatic` also polls the feed.
 pub fn start(cx: &mut App) {
+    let mode = current_mode(cx);
+    if !mode.downloads() {
+        return;
+    }
     if crate::linux_install::updatable_release().is_none() {
         return;
     }
@@ -143,13 +137,16 @@ pub fn start(cx: &mut App) {
         set_stage(Stage::Ready(tag), cx);
         show_when_window_is_open(cx);
     }
+    if !mode.polls() {
+        return;
+    }
     cx.spawn(async move |cx| {
         cx.background_executor()
             .timer(release_feed::FIRST_CHECK_DELAY)
             .await;
         loop {
             let waiting = cx.update(|cx| matches!(stage(cx), Stage::Ready(_)));
-            if !waiting && cx.update(|cx| enabled(cx)) {
+            if !waiting && cx.update(|cx| current_mode(cx).polls()) {
                 cx.update(|cx| check(false, cx));
             }
             cx.background_executor()
@@ -170,6 +167,9 @@ pub fn check(manual: bool, cx: &mut App) {
         return;
     };
     ensure_state(cx);
+    if !current_mode(cx).downloads() {
+        return;
+    }
     match stage(cx) {
         Stage::Downloading { .. } | Stage::Ready(_) => {
             open_dialog(cx);
@@ -221,6 +221,9 @@ fn show_when_window_is_open(cx: &mut App) {
 }
 
 fn download(update: AvailableUpdate, cx: &mut App) {
+    if !current_mode(cx).downloads() {
+        return;
+    }
     let Some(paths) = updater::current_paths() else {
         return;
     };
