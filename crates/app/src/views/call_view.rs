@@ -868,7 +868,9 @@ fn sharing_banner(app: &Entity<AppState>, model: &CallModel, wanted: bool) -> Op
                         .build(window, cx)
                     })
                     .on_click(move |_, _, cx| {
-                        sound_app.update(cx, |state, cx| state.set_call_share_sound(!wanted, cx))
+                        sound_app.update(cx, |state, cx| {
+                            state.set_call_share_sound(!sound_active, cx)
+                        })
                     }),
             )
             .child(
