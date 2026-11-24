@@ -75,6 +75,12 @@ namespace {
 constexpr char kBackendParameter[] = "x-livekit-video-encoder-backend";
 constexpr char kPreferredHwEncoderEnv[] = "LIVEKIT_PREFERRED_HW_ENCODER";
 
+// VAAPI is opt-in: on Intel iHD (Meteor Lake) the first frame can segfault in
+// vaRenderPicture and kill the app. The factory stays registered so explicit
+// per-publication Vaapi selection keeps working; this flag gates only whether
+// VAAPI may be picked as an automatic default.
+std::atomic<bool> g_vaapi_automatic_default{false};
+
 enum class PreferredHwEncoder {
   kNvenc,
   kVaapi,
@@ -181,8 +187,20 @@ bool BackendMatches(VideoEncoderBackend requested, VideoEncoderBackend actual) {
            IsSpecificHardwareBackend(actual)));
 }
 
+bool IsVaapiAutomaticDefault() {
+  return g_vaapi_automatic_default.load(std::memory_order_relaxed);
+}
+
 bool IsAutomaticFallbackBackend(VideoEncoderBackend backend) {
-  return backend != VideoEncoderBackend::PreEncoded;
+  if (backend == VideoEncoderBackend::PreEncoded) {
+    return false;
+  }
+  // Explicit Vaapi requests take the BackendMatches path instead; they must
+  // keep working even when VAAPI is not an automatic default.
+  if (backend == VideoEncoderBackend::Vaapi && !IsVaapiAutomaticDefault()) {
+    return false;
+  }
+  return true;
 }
 
 bool EqualsIgnoreAsciiCase(std::string_view a, std::string_view b) {
@@ -269,6 +287,11 @@ void AddVaapiFactory(
     std::vector<VideoEncoderBackendFactory>& factories,
     bool preferred) {
 #if defined(USE_VAAPI_VIDEO_CODEC)
+  // Opt-in only: on Intel iHD (Meteor Lake) the first frame segfaults inside
+  // vaRenderPicture and takes the whole app down; software H.264 is safe.
+  // Stay registered for explicit per-publication Vaapi selection; only the
+  // automatic default follows `preferred`.
+  g_vaapi_automatic_default.store(preferred, std::memory_order_relaxed);
   if (webrtc::VAAPIVideoEncoderFactory::IsSupported()) {
     AddBackendFactory(
         factories,
@@ -441,6 +464,10 @@ VideoEncoderFactory::InternalFactory::GetImplementations() const {
   std::vector<webrtc::SdpVideoFormat> formats;
   for (const auto& backend_factory : factories_) {
     if (backend_factory.backend == VideoEncoderBackend::PreEncoded) {
+      continue;
+    }
+    if (backend_factory.backend == VideoEncoderBackend::Vaapi &&
+        !IsVaapiAutomaticDefault()) {
       continue;
     }
     for (const auto& format : backend_factory.factory->GetImplementations()) {
