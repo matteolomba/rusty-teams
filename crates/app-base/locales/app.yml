@@ -3,2192 +3,2910 @@ common:
   cancel:
     en: Cancel
     de: Abbrechen
+    it: Annulla
   save:
     en: Save
     de: Speichern
+    it: Salva
   close:
     en: Close
     de: Schliessen
+    it: Chiudi
   delete:
     en: Delete
     de: Löschen
+    it: Elimina
   ok:
     en: OK
     de: OK
+    it: OK
   add:
     en: Add
     de: Hinzufügen
+    it: Aggiungi
   remove:
     en: Remove
     de: Entfernen
+    it: Rimuovi
   join:
     en: Join
     de: Beitreten
+    it: Partecipa
   leave:
     en: Leave
     de: Verlassen
+    it: Abbandona
   retry:
     en: Retry
     de: Erneut versuchen
+    it: Riprova
   invite:
     en: Invite
     de: Einladen
+    it: Invita
   admit:
     en: Admit
     de: Zulassen
+    it: Ammetti
   deny:
     en: Deny
     de: Ablehnen
+    it: Nega
   stop:
     en: Stop
     de: Stoppen
+    it: Interrompi
   resume:
     en: Resume
     de: Fortsetzen
+    it: Riprendi
   done:
     en: Done
     de: Fertig
+    it: Fatto
   send:
     en: Send
     de: Senden
+    it: Invia
   sending:
     en: Sending...
     de: Wird gesendet...
+    it: Invio in corso...
   you:
     en: You
     de: Sie
+    it: Tu
   create:
     en: Create
     de: Erstellen
+    it: Crea
   attach:
     en: Attach
     de: Anhängen
+    it: Allega
   chat:
     en: Chat
     de: Chat
+    it: Chat
   call:
     en: Call
     de: Anruf
+    it: Chiamata
   settings:
     en: Settings
     de: Einstellungen
+    it: Impostazioni
   open:
     en: Open
     de: Öffnen
+    it: Apri
   quit:
     en: Quit
     de: Beenden
+    it: Esci
 notice:
   generic_detail:
     en: "Something went wrong: %{detail}"
     de: "Etwas ist schiefgelaufen: %{detail}"
+    it: "Si è verificato un errore: %{detail}"
 settings:
   search:
     no_results:
       en: No settings found
       de: Keine Einstellungen gefunden
+      it: Nessuna impostazione trovata
   nav:
     general:
       en: General
       de: Allgemein
+      it: Generale
     notifications:
       en: Notifications and activity
       de: Benachrichtigungen und Aktivität
+      it: Notifiche e attività
     appearance:
       en: Appearance and accessibility
       de: Darstellung und Barrierefreiheit
+      it: Aspetto e accessibilità
     chats:
       en: Chats and channels
       de: Chats und Kanäle
+      it: Chat e canali
     calls:
       en: Calls
       de: Anrufe
+      it: Chiamate
     calendar:
       en: Calendar
       de: Kalender
+      it: Calendario
     calendar_accounts:
       en: Calendar accounts
       de: Kalenderkonten
+      it: Account del calendario
     devices:
       en: Devices
       de: Geräte
+      it: Dispositivi
     agents:
       en: Agents
       de: Agents
+      it: Agent
     mcp:
       en: MCP
       de: MCP
+      it: MCP
     help:
       en: Help
       de: Hilfe
+      it: Aiuto
     about:
       en: About
       de: Info
+      it: Informazioni
   help:
     caption_client:
       en: CLIENT
       de: CLIENT
+      it: CLIENT
     caption_paths:
       en: PATHS
       de: PFADE
+      it: PERCORSI
     caption_packages:
       en: SUPPORT PACKAGES
       de: SUPPORT-PAKETE
+      it: PACCHETTI DI SUPPORTO
     caption_actions:
       en: SUPPORT
       de: SUPPORT
+      it: SUPPORTO
     packages_empty:
       en: No support packages yet
       de: Noch keine Support-Pakete
+      it: Nessun pacchetto di supporto
     copy_path_tooltip:
       en: Copy path
       de: Pfad kopieren
+      it: Copia percorso
     preview_truncated:
       en: Showing the first 256 KB
       de: Es werden die ersten 256 KB angezeigt
+      it: Visualizzazione dei primi 256 KB
     preview_binary:
       en: This file is not plain text and cannot be previewed here.
       de: Diese Datei ist kein Klartext und kann hier nicht angezeigt werden.
+      it: Questo file non è testo semplice e non può essere visualizzato qui.
     preview_error:
       en: Could not read this file.
       de: Diese Datei konnte nicht gelesen werden.
+      it: Impossibile leggere questo file.
     version:
       en: Version
       de: Version
+      it: Versione
     platform:
       en: Platform
       de: Plattform
+      it: Piattaforma
     locale:
       en: Language and timezone
       de: Sprache und Zeitzone
+      it: Lingua e fuso orario
     signed_in:
       en: Signed in
       de: Angemeldet
+      it: Accesso effettuato
     "yes":
       en: "Yes"
       de: Ja
+      it: Sì
     "no":
       en: "No"
       de: Nein
+      it: "No"
     debug_logging:
       en: Debug logging
       de: Debug-Protokollierung
+      it: Registrazione debug
     debug_logging_on_detail:
       en: Writing detailed logs to diagnostics.log - turn off when you are done
       de: Schreibt ausführliche Logs in diagnostics.log - danach wieder ausschalten
+      it: Scrive log dettagliati in diagnostics.log, disattivi al termine
     debug_logging_off_detail:
       en: Off by default - enable before reproducing a bug
       de: Standardmäßig aus - vor der Fehlerreproduktion einschalten
+      it: Disattivato per impostazione predefinita, attivi prima di riprodurre un bug
     clear_logs:
       en: Clear logs
       de: Logs leeren
+      it: Cancella i log
     clear_logs_detail:
       en: Removes diagnostics, crash logs, and call dumps on this computer
       de: Entfernt Diagnosen, Absturzprotokolle und Anruf-Dumps auf diesem Computer
+      it: Rimuove diagnostica, log degli arresti anomali e dump delle chiamate su questo computer
     clear_logs_button:
       en: Clear
       de: Leeren
+      it: Cancella
     logs_path:
       en: Logs root
       de: Log-Root
+      it: Cartella principale dei log
     bundles_path:
       en: Support packages
       de: Support-Pakete
+      it: Pacchetti di supporto
     detail:
       en: Create a local support package, then open an upstream GitHub issue and attach the files. Nothing is uploaded automatically.
       de: Erstellen Sie ein lokales Support-Paket, öffnen Sie danach ein Upstream-GitHub-Issue und hängen Sie die Dateien an. Es wird nichts automatisch hochgeladen.
+      it: Crei un pacchetto di supporto locale, apra poi un issue GitHub upstream e alleghi i file. Nessun file viene caricato automaticamente.
     create_bundle:
       en: Support package
       de: Support-Paket
+      it: Pacchetto di supporto
     create_bundle_detail:
       en: Scrubbed diagnostics and recent call reports on this computer
       de: Bereinigte Diagnosen und aktuelle Anrufberichte auf diesem Computer
+      it: Diagnostica anonimizzata e report recenti delle chiamate su questo computer
     create_bundle_button:
       en: Create
       de: Erstellen
+      it: Crea
     open_issue:
       en: GitHub issue
       de: GitHub-Issue
+      it: Issue GitHub
     open_issue_detail:
       en: Opens danieldaeschle/rusty-teams with a pre-filled draft
       de: Öffnet danieldaeschle/rusty-teams mit vorausgefülltem Entwurf
+      it: Apre danieldaeschle/rusty-teams con una bozza precompilata
     open_issue_button:
       en: Open
       de: Öffnen
+      it: Apri
     copy_summary:
       en: Client summary
       de: Client-Zusammenfassung
+      it: Riepilogo del client
     copy_summary_detail:
       en: Copy the same English block used in the issue
       de: Denselben englischen Block wie im Issue kopieren
+      it: Copia lo stesso blocco in inglese usato nell'issue
     copy_button:
       en: Copy
       de: Kopieren
+      it: Copia
     open_logs:
       en: Logs folder
       de: Log-Ordner
+      it: Cartella dei log
     open_logs_detail:
       en: diagnostics.log and call dumps
       de: diagnostics.log und Anruf-Dumps
+      it: diagnostics.log e dump delle chiamate
   caption:
     text:
       en: TEXT
       de: TEXT
+      it: TESTO
     system:
       en: SYSTEM
       de: SYSTEM
+      it: SISTEMA
     browser:
       en: BROWSER
       de: BROWSER
+      it: BROWSER
     compose_box:
       en: COMPOSE BOX
       de: EINGABEFELD
+      it: EDITOR
     translation:
       en: TRANSLATION
       de: ÜBERSETZUNG
+      it: TRADUZIONE
     language:
       en: LANGUAGE
       de: SPRACHE
+      it: LINGUA
     regional_format:
       en: REGIONAL FORMAT
       de: REGIONALES FORMAT
+      it: FORMATO REGIONALE
     theme:
       en: THEME
       de: DESIGN
+      it: TEMA
     app_icon:
       en: APP ICON
       de: APP-SYMBOL
+      it: ICONA DELL'APP
     appearance_and_sound:
       en: APPEARANCE AND SOUND
       de: DARSTELLUNG UND TON
+      it: ASPETTO E AUDIO
     sound:
       en: SOUND
       de: TON
+      it: AUDIO
   calendar:
     section_google:
       en: GOOGLE
       de: GOOGLE
+      it: GOOGLE
     section_caldav:
       en: CALDAV
       de: CALDAV
+      it: CALDAV
     section_ics:
       en: ICS SUBSCRIPTIONS
       de: ICS-ABOS
+      it: ABBONAMENTI ICS
     section_people:
       en: PEOPLE'S CALENDARS
       de: KALENDER VON PERSONEN
+      it: CALENDARI DELLE PERSONE
     section_home:
       en: HOME CALENDAR
       de: HAUPTKALENDER
+      it: CALENDARIO PRINCIPALE
     section_write:
       en: ALSO WRITE TO
       de: AUCH SCHREIBEN NACH
+      it: SCRIVI ANCHE SU
     google_title:
       en: Google Calendar
       de: Google Kalender
+      it: Google Calendar
     caldav_title:
       en: CalDAV calendar
       de: CalDAV-Kalender
+      it: Calendario CalDAV
     caldav_url:
       en: Server URL
       de: Server-URL
+      it: URL del server
     caldav_username:
       en: Username
       de: Benutzername
+      it: Nome utente
     caldav_password:
       en: App password
       de: App-Passwort
+      it: Password app
     caldav_connect:
       en: Connect CalDAV
       de: CalDAV verbinden
+      it: Connetti CalDAV
     caldav_hint:
       en: Use an app password. Templates fill a typical URL for Nextcloud, Fastmail, or iCloud.
       de: Nutzen Sie ein App-Passwort. Vorlagen setzen eine typische URL für Nextcloud, Fastmail oder iCloud.
+      it: Usi una password app. I modelli inseriscono un URL tipico per Nextcloud, Fastmail o iCloud.
     caldav_template_nextcloud:
       en: Nextcloud
       de: Nextcloud
+      it: Nextcloud
     caldav_template_fastmail:
       en: Fastmail
       de: Fastmail
+      it: Fastmail
     caldav_template_icloud:
       en: iCloud
       de: iCloud
+      it: iCloud
     caldav_connected:
       en: CalDAV account connected
       de: CalDAV-Konto verbunden
+      it: Account CalDAV connesso
     caldav_connect_failed:
       en: CalDAV connect failed
       de: CalDAV-Verbindung fehlgeschlagen
+      it: Connessione CalDAV non riuscita
     caldav_readonly:
       en: Read-only
       de: Nur lesen
+      it: Sola lettura
     ics_title:
       en: ICS subscription
       de: ICS-Abo
+      it: Abbonamento ICS
     ics_url:
       en: ICS URL
       de: ICS-URL
+      it: URL ICS
     ics_name:
       en: Display name
       de: Anzeigename
+      it: Nome visualizzato
     ics_connect:
       en: Add subscription
       de: Abo hinzufügen
+      it: Aggiungi abbonamento
     ics_hint:
       en: Read-only. For holidays or shared calendar links (including Proton share links).
       de: Nur lesen. Für Feiertage oder geteilte Kalenderlinks (auch Proton-Share-Links).
+      it: Sola lettura. Per festività o link di calendari condivisi, inclusi i link di condivisione Proton.
     ics_connected:
       en: ICS subscription added
       de: ICS-Abo hinzugefügt
+      it: Abbonamento ICS aggiunto
     ics_connect_failed:
       en: ICS subscription failed
       de: ICS-Abo fehlgeschlagen
+      it: Abbonamento ICS non riuscito
     people_title:
       en: Add from directory
       de: Aus dem Verzeichnis hinzufügen
+      it: Aggiungi dalla rubrica
     people_hint:
       en: Read-only. Shows titles where the person shares them, otherwise free/busy.
       de: Nur lesen. Zeigt Titel, wo die Person sie freigibt, sonst nur frei/gebucht.
+      it: Sola lettura. Mostra i titoli quando la persona li condivide, altrimenti la disponibilità.
     people_add:
       en: Add
       de: Hinzufügen
+      it: Aggiungi
     people_remove:
       en: Remove
       de: Entfernen
+      it: Rimuovi
     people_no_mail:
       en: This person has no email address for a calendar.
       de: Diese Person hat keine E-Mail-Adresse für einen Kalender.
+      it: Questa persona non ha un indirizzo email per un calendario.
     connect_button:
       en: Connect Google
       de: Google verbinden
+      it: Connetti Google
     connect_hint:
       en: Opens a browser for sign-in. If Google says the app is not verified, choose Advanced, then continue.
       de: Öffnet einen Browser zur Anmeldung. Meldet Google, die App sei nicht verifiziert, wählen Sie Advanced und dann Weiter.
+      it: Apre un browser per l'accesso. Se Google indica che l'app non è verificata, scelga Avanzate e poi Continua.
     finish_in_browser:
       en: Finish sign-in in your browser.
       de: Schliessen Sie die Anmeldung im Browser ab.
+      it: Completare l'accesso nel browser.
     open_browser_again:
       en: Open browser again
       de: Browser erneut öffnen
+      it: Apri di nuovo il browser
     copy_link:
       en: Copy link
       de: Link kopieren
+      it: Copia link
     connected_detail:
       en: Connected accounts appear below. Disconnect removes tokens from this device.
       de: Verbundene Konten erscheinen unten. Trennen entfernt die Tokens von diesem Gerät.
+      it: Gli account connessi appaiono qui sotto. La disconnessione rimuove i token da questo dispositivo.
     google_account:
       en: Google account
       de: Google-Konto
+      it: Account Google
     disconnect:
       en: Disconnect
       de: Trennen
+      it: Disconnetti
     primary:
       en: Primary calendar
       de: Hauptkalender
+      it: Calendario principale
     show_in_grid:
       en: Show in calendar grid
       de: Im Kalendergitter anzeigen
+      it: Mostra nella griglia del calendario
     also_write_to:
       en: Also write new meetings to %{name}
       de: Neue Besprechungen auch nach %{name} schreiben
+      it: Scrivi anche le nuove riunioni su %{name}
     outlook_mailbox:
       en: Outlook (Microsoft mailbox)
       de: Outlook (Microsoft-Postfach)
+      it: Outlook (casella Microsoft)
     dual_write_when_google_home:
       en: Also write when home is not Outlook
       de: Zusätzlich schreiben, wenn der Hauptkalender nicht Outlook ist
+      it: Scrivi anche quando il calendario principale non è Outlook
     outlook_home_detail:
       en: Default when no other home calendar is chosen
       de: Standard, wenn kein anderer Hauptkalender gewählt ist
+      it: Predefinito quando non è scelto nessun altro calendario principale
     no_extra_targets:
       en: No extra write targets
       de: Keine weiteren Schreibziele
+      it: Nessuna destinazione di scrittura aggiuntiva
     connect_then_dual_write:
       en: Connect another account, then enable dual-write on a calendar above.
       de: Weiteres Konto verbinden, dann oben Dual-Write für einen Kalender einschalten.
+      it: Connetta un altro account, poi attivi la scrittura doppia su un calendario qui sopra.
     section_view:
       en: VIEW
       de: ANSICHT
+      it: VISUALIZZAZIONE
     default_view:
       en: Default view
       de: Standardansicht
+      it: Visualizzazione predefinita
     default_view_detail:
       en: The view the calendar opens in
       de: Die Ansicht, in der der Kalender öffnet
+      it: La visualizzazione con cui si apre il calendario
     last_used:
       en: Last used
       de: Zuletzt verwendet
+      it: Ultima utilizzata
     work_days:
       en: Work days
       de: Arbeitstage
+      it: Giorni lavorativi
     work_hours:
       en: Work hours
       de: Arbeitszeit
+      it: Orario di lavoro
     mailbox_detail:
       en: Saved to your Outlook mailbox, like in Teams and Outlook
       de: Wird wie in Teams und Outlook in Ihrem Outlook-Postfach gespeichert
+      it: Salvato nella Sua casella Outlook, come in Teams e Outlook
     work_start:
       en: Start
       de: Beginn
+      it: Inizio
     work_end:
       en: End
       de: Ende
+      it: Fine
     time_scale:
       en: Time scale
       de: Zeitskala
+      it: Scala temporale
     time_scale_detail:
       en: Height of a grid row
       de: Höhe einer Rasterzeile
+      it: Altezza di una riga della griglia
     minutes:
       en: "%{count} minutes"
       de: "%{count} Minuten"
+      it: "%{count} minuti"
     weekend:
       en: Work week on a non-work day
       de: Arbeitswoche an arbeitsfreien Tagen
+      it: Settimana lavorativa in un giorno non lavorativo
     weekend_detail:
       en: What Today shows in Work week when today is not a work day
       de: Was Heute in der Arbeitswoche zeigt, wenn heute kein Arbeitstag ist
+      it: Cosa mostra Oggi in Settimana lavorativa quando oggi non è un giorno lavorativo
     weekend_next:
       en: Show next week
       de: Nächste Woche zeigen
+      it: Mostra la settimana successiva
     weekend_this:
       en: Show this week
       de: Diese Woche zeigen
+      it: Mostra questa settimana
     work_hours_not_saved:
       en: Work hours were not saved to your mailbox.
       de: Die Arbeitszeit wurde nicht im Postfach gespeichert.
+      it: L'orario di lavoro non è stato salvato nella Sua casella.
     connect_in_settings:
       en: "Connect Google in Settings › Calendar"
       de: "Google unter Einstellungen › Kalender verbinden"
+      it: "Connetta Google in Impostazioni › Calendario"
     google_label:
       en: Google
       de: Google
+      it: Google
     not_in_build:
       en: Google Calendar is not included in this build.
       de: Google Kalender ist in diesem Build nicht enthalten.
+      it: Google Calendar non è incluso in questa build.
     sign_in_start_failed:
       en: Could not start Google sign-in.
       de: Google-Anmeldung konnte nicht gestartet werden.
+      it: Impossibile avviare l'accesso a Google.
     sign_in_cancelled:
       en: Google sign-in was cancelled.
       de: Google-Anmeldung wurde abgebrochen.
+      it: Accesso a Google annullato.
     connected:
       en: Google Calendar connected (%{email}).
       de: Google Kalender verbunden (%{email}).
+      it: Google Calendar connesso (%{email}).
     picker_connect_hint:
       en: Connect Google in Settings › Calendar
       de: Google in Einstellungen › Kalender verbinden
+      it: Connetta Google in Impostazioni › Calendario
   general:
     auto_start:
       en: Auto-start Teams
       de: Teams automatisch starten
+      it: Avvia Teams automaticamente
     agents_mcp:
       en: Enable Agents and MCP
       de: Agenten und MCP aktivieren
+      it: Abilita Agent e MCP
     agents_mcp_detail:
       en: Off by default. Turns on the Agents section and the local MCP server only when you ask for them
       de: Standardmässig aus. Aktiviert den Bereich Agenten und den lokalen MCP-Server nur auf Anforderung
+      it: Disattivato per impostazione predefinita. Attiva la sezione Agent e il server MCP locale solo su Sua richiesta
     open_in_background:
       en: Open application in background
       de: Anwendung im Hintergrund starten
+      it: Apri l'applicazione in background
     show_in_tray:
       en: Show icon in the tray
       de: Symbol im Infobereich anzeigen
+      it: Mostra l'icona nella barra delle applicazioni
     show_in_tray_detail:
       en: In the macOS menu bar or the system tray. Without it, closing the window quits the app
       de: In der macOS-Menüleiste oder im Infobereich der Taskleiste. Ohne Symbol beendet das Schliessen des Fensters die App
+      it: Nella barra dei menu di macOS o nella barra delle applicazioni. Senza icona, chiudere la finestra chiude l'app
     close_to_tray:
       en: On close, keep the application running
       de: Beim Schliessen Anwendung weiterlaufen lassen
+      it: Alla chiusura, mantieni l'applicazione in esecuzione
     close_to_tray_detail:
       en: The title bar X hides the window to the tray
       de: Das X in der Titelleiste blendet das Fenster ins Infobereich-Symbol aus
+      it: La X nella barra del titolo nasconde la finestra nella barra delle applicazioni
     sign_in_browser:
       en: Teams session browser
       de: Browser der Teams-Sitzung
+      it: Browser della sessione Teams
     sign_in_browser_detail:
       en: Teams runs in its own profile of this browser, hidden after sign-in. Automatic takes your default browser if it is Chromium- or Firefox-based. Changing it restarts the app.
       de: Teams läuft in einem eigenen Profil dieses Browsers, nach der Anmeldung verborgen. Automatisch nimmt Ihren Standardbrowser, wenn er auf Chromium oder Firefox basiert. Eine Änderung startet die App neu.
+      it: Teams viene eseguito in un profilo separato di questo browser, nascosto dopo l'accesso. Con Automatico viene usato il browser predefinito se basato su Chromium o Firefox. La modifica riavvia l'app.
     sign_in_browser_automatic:
       en: Automatic
       de: Automatisch
+      it: Automatico
     external_browser:
       en: Open links and Google sign-in with
       de: Links und Google-Anmeldung öffnen mit
+      it: Apri link e accesso Google con
     external_browser_detail:
       en: Does not change the Teams session browser.
       de: Ändert nicht den Browser der Teams-Sitzung.
+      it: Non modifica il browser della sessione Teams.
     external_browser_system:
       en: System default
       de: Systemstandard
+      it: Predefinito del sistema
     up_arrow:
       en: Up arrow key behaviour in compose box
       de: Verhalten der Aufwärtspfeil-Taste im Eingabefeld
+      it: Comportamento del tasto freccia su nella casella di composizione
     up_arrow_detail:
       en: Choose what happens when you press Up arrow at the beginning of the compose box.
       de: Legen Sie fest, was passiert, wenn Sie am Anfang des Eingabefelds die Aufwärtspfeil-Taste drücken.
+      it: Scelga cosa accade quando preme la freccia su all'inizio della casella di composizione.
     translation_not_loaded:
       en: Translation settings not loaded yet
       de: Übersetzungseinstellungen noch nicht geladen
+      it: Impostazioni di traduzione non ancora caricate
     translation_title:
       en: Translation
       de: Übersetzung
+      it: Traduzione
     translate_into:
       en: Translate messages into this language
       de: Nachrichten in diese Sprache übersetzen
+      it: Traduci i messaggi in questa lingua
     behavior_title:
       en: How to handle messages in other languages
       de: Umgang mit Nachrichten in anderen Sprachen
+      it: Come gestire i messaggi in altre lingue
     behavior_ask:
       en: Ask me before translating
       de: Vor dem Übersetzen nachfragen
+      it: Chiedimi prima di tradurre
     behavior_auto:
       en: Auto-translate all messages
       de: Alle Nachrichten automatisch übersetzen
+      it: Traduci automaticamente tutti i messaggi
     behavior_never:
       en: Never translate
       de: Nie übersetzen
+      it: Non tradurre mai
     never_translate:
       en: Never translate messages in these languages
       de: Nachrichten in diesen Sprachen nie übersetzen
+      it: Non tradurre mai i messaggi in queste lingue
   notifications:
     flash_taskbar:
       en: Flash taskbar when notifications are received
       de: Taskleiste bei Benachrichtigungen blinken lassen
+      it: Lampeggia la barra delle applicazioni alla ricezione delle notifiche
     flash_taskbar_detail:
       en: On new messages, until you open the window
       de: Bei neuen Nachrichten, bis Sie das Fenster öffnen
+      it: Per i nuovi messaggi, finché non apre la finestra
     play_sounds:
       en: Play sounds with notifications
       de: Töne bei Benachrichtigungen abspielen
+      it: Riproduci suoni con le notifiche
     urgent_sounds:
       en: Play sounds with urgent and priority contact notifications
       de: Töne bei dringenden und Prioritätskontakt-Benachrichtigungen
+      it: Riproduci suoni per le notifiche urgenti e dei contatti prioritari
     call_sounds:
       en: Play sounds with incoming calls, requests to join, and meeting start notifications
       de: Töne bei eingehenden Anrufen, Beitrittsanfragen und Besprechungsstarts
+      it: Riproduci suoni per chiamate in arrivo, richieste di partecipazione e inizio delle riunioni
     busy_sounds:
       en: Play sounds when I'm busy or in a meeting
       de: Töne abspielen, wenn ich beschäftigt bin oder in einer Besprechung
+      it: Riproduci suoni quando sono occupato o in una riunione
     hide_in_calls:
       en: Hide notifications during calls and meetings
       de: Benachrichtigungen während Anrufen und Besprechungen ausblenden
+      it: Nascondi le notifiche durante chiamate e riunioni
     hide_in_calls_detail:
       en: No message toasts while a call is active
       de: Keine Nachrichten-Toasts während ein Anruf aktiv ist
+      it: Nessuna notifica popup durante una chiamata attiva
     position:
       en: Position on the screen
       de: Position auf dem Bildschirm
+      it: Posizione sullo schermo
     position_detail:
       en: Corner of the main screen
       de: Ecke des Hauptbildschirms
+      it: Angolo dello schermo principale
     test:
       en: Test notification
       de: Testbenachrichtigung
+      it: Notifica di prova
     test_detail:
       en: Shows a toast with the settings above
       de: Zeigt einen Toast mit den obigen Einstellungen
+      it: Mostra una notifica popup con le impostazioni sopra
     send_test:
       en: Send test notification
       de: Testbenachrichtigung senden
+      it: Invia notifica di prova
     notification_sound:
       en: Notification sound
       de: Benachrichtigungston
+      it: Suono delle notifiche
     urgent_sound:
       en: Urgent sound
       de: Dringlichkeitston
+      it: Suono urgente
     chat_messages:
       en: Chat message notifications
       de: Chatnachrichten-Benachrichtigungen
+      it: Notifiche dei messaggi chat
     meeting_chats:
       en: Meeting chat notifications
       de: Besprechungschat-Benachrichtigungen
+      it: Notifiche delle chat delle riunioni
     likes_reactions:
       en: Likes and reactions
       de: Likes und Reaktionen
+      it: Mi piace e reazioni
     teams_channels:
       en: Teams and channels
       de: Teams und Kanäle
+      it: Team e canali
     show_preview:
       en: Show message preview
       de: Nachrichtenvorschau anzeigen
+      it: Mostra anteprima del messaggio
   appearance:
     color_scheme:
       en: Color scheme
       de: Farbschema
+      it: Combinazione colori
     color_scheme_detail:
       en: The colors to use for Rusty Teams
       de: Die Farben für Rusty Teams
+      it: I colori da usare per Rusty Teams
     accent:
       en: Accent color
       de: Akzentfarbe
+      it: Colore d'accento
     accent_detail:
       en: Used by the Rusty Teams color scheme
       de: Gilt für das Farbschema Rusty Teams
+      it: Usato dalla combinazione colori Rusty Teams
     accent_preset:
       rust:
         en: Rust
         de: Rost
+        it: Ruggine
       amber:
         en: Amber
         de: Bernstein
+        it: Ambra
       emerald:
         en: Emerald
         de: Smaragd
+        it: Smeraldo
       cyan:
         en: Cyan
         de: Cyan
+        it: Ciano
       blue:
         en: Blue
         de: Blau
+        it: Blu
       violet:
         en: Violet
         de: Violett
+        it: Viola
       pink:
         en: Pink
         de: Pink
+        it: Rosa
       red:
         en: Red
         de: Rot
+        it: Rosso
     search:
       en: Search
       de: Suchen
+      it: Cerca
     ui_font:
       en: Interface font
       de: Schrift der Oberfläche
+      it: Carattere dell'interfaccia
     ui_font_detail:
       en: Any font installed on this device
       de: Jede auf diesem Gerät installierte Schrift
+      it: Qualsiasi carattere installato su questo dispositivo
     code_font:
       en: Code font
       de: Schrift für Code
+      it: Carattere per il codice
     code_font_detail:
       en: Used for code blocks and inline code
       de: Für Codeblöcke und Inline-Code
+      it: Usato per i blocchi di codice e il codice inline
     default_font:
       en: Default
       de: Standard
+      it: Predefinito
     no_matching_fonts:
       en: No matching fonts
       de: Keine passenden Schriften
+      it: Nessun carattere corrispondente
     theme:
       en: Theme
       de: Design
+      it: Tema
     theme_detail:
       en: The theme to use for Teams
       de: Das Design für Teams
+      it: Il tema da usare per Teams
     theme_follow_os:
       en: Follow operating system theme
       de: Systemdesign folgen
+      it: Segui il tema del sistema operativo
     theme_light:
       en: Light
       de: Hell
+      it: Chiaro
     theme_dark:
       en: Dark
       de: Dunkel
+      it: Scuro
     theme_high_contrast:
       en: High contrast
       de: Hoher Kontrast
+      it: Contrasto elevato
     app_icon:
       en: App icon
       de: App-Symbol
+      it: Icona dell'app
     app_icon_detail_windows:
       en: Shown in the title bar, taskbar and tray. Pinned shortcuts keep the icon of the .exe
       de: In Titelleiste, Taskleiste und Infobereich. Angeheftete Verknüpfungen behalten das Symbol der .exe
+      it: Mostrata nella barra del titolo, nella barra delle applicazioni e nell'area di notifica. Le scorciatoie ancorate mantengono l'icona del file .exe
     app_icon_detail:
       en: Shown in the title bar, taskbar and tray
       de: In Titelleiste, Taskleiste und Infobereich
+      it: Mostrata nella barra del titolo, nella barra delle applicazioni e nell'area di notifica
     language:
       title:
         en: Language
         de: Sprache
+        it: Lingua
       detail:
         en: Language for Rusty Teams and controls
         de: Sprache für Rusty Teams und Steuerelemente
+        it: Lingua di Rusty Teams e dei controlli
       follow_system:
         en: Follow system
         de: Systemeinstellung folgen
+        it: Segui il sistema
       english:
         en: English
         de: Englisch
+        it: Inglese
       german:
         en: Deutsch
         de: Deutsch
+        it: Tedesco
+      italian:
+        en: Italian
+        de: Italienisch
+        it: Italiano
     region:
       title:
         en: Region
         de: Region
+        it: Regione
       detail:
         en: Date and number format, also when the app language differs
         de: Datums- und Zahlenformat, auch bei anderer App-Sprache
+        it: Formato di date e numeri, anche quando la lingua dell'app è diversa
       follow_system:
         en: "Follow system (%{region})"
         de: "Systemeinstellung folgen (%{region})"
+        it: "Segui il sistema (%{region})"
     clock:
       title:
         en: Time format
         de: Zeitformat
+        it: Formato dell'ora
       detail:
         en: Times in chats, calendar and notifications
         de: Uhrzeiten in Chats, Kalender und Benachrichtigungen
+        it: Orari in chat, calendario e notifiche
       auto:
         en: "Automatic (%{example})"
         de: "Automatisch (%{example})"
+        it: "Automatico (%{example})"
       hours_24:
         en: "24-hour (%{example})"
         de: "24 Stunden (%{example})"
+        it: "24 ore (%{example})"
       hours_12:
         en: "12-hour (%{example})"
         de: "12 Stunden (%{example})"
+        it: "12 ore (%{example})"
     first_day:
       title:
         en: First day of week
         de: Erster Wochentag
+        it: Primo giorno della settimana
       detail:
         en: Calendar weeks, months and date pickers start on this day
         de: Wochen, Monate und Datumsauswahl im Kalender beginnen an diesem Tag
+        it: Settimane, mesi e selezionatori di date del calendario iniziano in questo giorno
       auto:
         en: "Automatic (%{day})"
         de: "Automatisch (%{day})"
+        it: "Automatico (%{day})"
   chats:
     density:
       en: Message density
       de: Nachrichtendichte
+      it: Densità dei messaggi
     message_preview:
       en: Show message preview
       de: Nachrichtenvorschau anzeigen
+      it: Mostra anteprima del messaggio
     message_preview_detail:
       en: Show the last message in the chat list. Turn off for a one-line chat list.
       de: Letzte Nachricht in der Chatliste anzeigen. Ausschalten für eine einzeilige Chatliste.
+      it: Mostra l'ultimo messaggio nell'elenco chat. Disattiva per un elenco a una sola riga.
     read_receipts:
       en: Read receipts
       de: Lesebestätigungen
+      it: Conferme di lettura
     message_actions:
       en: Show message actions on right click
       de: Nachrichtenaktionen per Rechtsklick anzeigen
+      it: Mostra le azioni sui messaggi con clic destro
     muted_section:
       en: Show muted items in their own section
       de: Stummgeschaltete Einträge in eigenem Abschnitt anzeigen
+      it: Mostra gli elementi silenziati in una sezione dedicata
     enter_to:
       en: When writing a message, press Enter to
       de: Beim Schreiben einer Nachricht führt Eingabetaste zu
+      it: Durante la scrittura di un messaggio, Invio serve a
     markdown:
       en: Format messages using mark-down
       de: Nachrichten mit Mark-down formatieren
+      it: Formatta i messaggi con mark-down
     markdown_detail:
       en: Use mark-down language to define the structure and appearance of messages. Your formatting will take effect once you send your message. When this is on, the formatting options menu won't be visible.
       de: Verwenden Sie Mark-down, um Struktur und Darstellung von Nachrichten festzulegen. Die Formatierung gilt nach dem Senden. Ist diese Option aktiv, ist das Formatierungsmenü ausgeblendet.
+      it: Usi il linguaggio mark-down per definire la struttura e l'aspetto dei messaggi. La formattazione avrà effetto dopo l'invio del messaggio. Quando questa opzione è attiva, il menu delle opzioni di formattazione non sarà visibile.
   calls:
     ringtones:
       en: Ringtones
       de: Klingeltöne
+      it: Suonerie
     screen_gone:
       en: The shared screen is no longer available. Sharing stopped.
       de: Der geteilte Bildschirm ist nicht mehr verfügbar. Die Freigabe wurde beendet.
+      it: Lo schermo condiviso non è più disponibile. Condivisione terminata.
 rail:
   activity:
     en: Activity
     de: Aktivität
+    it: Attività
   chat:
     en: Chat
     de: Chat
+    it: Chat
   teams:
     en: Teams
     de: Teams
+    it: Team
   calendar:
     en: Calendar
     de: Kalender
+    it: Calendario
   calls:
     en: Calls
     de: Anrufe
+    it: Chiamate
   agents:
     en: Agents
     de: Agents
+    it: Agent
   shortcut_activity:
     en: Open Activity
     de: Aktivität öffnen
+    it: Apri Attività
   shortcut_chats:
     en: Show Chats
     de: Chats anzeigen
+    it: Mostra chat
   shortcut_channels:
     en: Show Channels
     de: Kanäle anzeigen
+    it: Mostra canali
   shortcut_calendar:
     en: Open Calendar
     de: Kalender öffnen
+    it: Apri Calendario
   shortcut_calls:
     en: Show Calls
     de: Anrufe anzeigen
+    it: Mostra chiamate
   shortcut_agents:
     en: Open Agents
     de: Agents öffnen
+    it: Apri Agent
 tray:
   open:
     en: Open
     de: Öffnen
+    it: Apri
   quit:
     en: Quit
     de: Beenden
+    it: Esci
   do_not_disturb:
     en: Do not disturb
     de: Nicht stören
+    it: Non disturbare
   notifications:
     en: Notifications
     de: Benachrichtigungen
+    it: Notifiche
   mute_sound:
     en: Mute sound
     de: Ton stumm schalten
+    it: Disattiva audio
 notify:
   mark_read:
     en: Mark as read
     de: Als gelesen markieren
+    it: Segna come letto
   reply:
     en: Reply
     de: Antworten
+    it: Rispondi
   decline:
     en: Decline
     de: Ablehnen
+    it: Rifiuta
   accept:
     en: Accept
     de: Annehmen
+    it: Accetta
   audio:
     en: Audio
     de: Audio
+    it: Audio
   video:
     en: Video
     de: Video
+    it: Video
   join:
     en: Join
     de: Teilnehmen
+    it: Partecipa
   snooze:
     en: Snooze
     de: Schlummern
+    it: Rinvia
 install:
   title:
     en: Install Rusty Teams?
     de: Rusty Teams installieren?
+    it: Installare Rusty Teams?
   body:
     en: "Put Rusty Teams into %{folder} and add it to the application menu?"
     de: "Rusty Teams nach %{folder} legen und ins Anwendungsmenü aufnehmen?"
+    it: "Inserire Rusty Teams in %{folder} e aggiungerlo al menu delle applicazioni?"
   move:
     en: Install
     de: Installieren
+    it: Installa
   not_now:
     en: Not now
     de: Nicht jetzt
+    it: Non ora
   dont_ask:
     en: Don't ask again
     de: Nicht mehr fragen
+    it: Non chiedere più
   failed:
     en: "Could not install: %{detail}"
     de: "Installation fehlgeschlagen: %{detail}"
+    it: "Installazione non riuscita: %{detail}"
   removed:
     en: Removed from the application menu
     de: Aus dem Anwendungsmenü entfernt
+    it: Rimosso dal menu delle applicazioni
   remove_failed:
     en: "Could not remove: %{detail}"
     de: "Entfernen fehlgeschlagen: %{detail}"
+    it: "Rimozione non riuscita: %{detail}"
   menu_title:
     en: Application menu
     de: Anwendungsmenü
+    it: Menu delle applicazioni
   installed_detail:
     en: "Installed in %{folder}"
     de: "Installiert in %{folder}"
+    it: "Installato in %{folder}"
   other_copy_detail:
     en: "Another build is installed in %{folder}"
     de: "In %{folder} ist ein anderer Build installiert"
+    it: "Un'altra build è installata in %{folder}"
   not_installed_detail:
     en: Not installed. Install puts Rusty Teams into the application menu
     de: Nicht installiert. Installieren nimmt Rusty Teams ins Anwendungsmenü auf
+    it: Non installato. L'installazione inserisce Rusty Teams nel menu delle applicazioni
   replace:
     en: Replace with this build
     de: Durch diesen Build ersetzen
+    it: Sostituisci con questa build
   remove:
     en: Remove
     de: Entfernen
+    it: Rimuovi
   ask_on_start:
     en: Ask to install on start
     de: Beim Start nach Installation fragen
+    it: Chiedi di installare all'avvio
   updates_title:
     en: Updates
     de: Updates
+    it: Aggiornamenti
   updates_detail:
     en: "%{version}, updates from GitHub releases"
     de: "%{version}, Updates über GitHub-Releases"
+    it: "%{version}, aggiornamenti dalle release di GitHub"
   updates_detail_not_installed:
     en: "%{version}. Install Rusty Teams above to get updates"
     de: "%{version}. Installiere Rusty Teams oben, um Updates zu erhalten"
+    it: "%{version}. Installi Rusty Teams qui sopra per ricevere gli aggiornamenti"
   updates_need_install:
     en: Install Rusty Teams first (Application menu > Install), then it can update itself
     de: Installiere Rusty Teams zuerst (Anwendungsmenü > Installieren), dann kann es sich selbst aktualisieren
+    it: Installi prima Rusty Teams (Menu applicazioni > Installa), poi potrà aggiornarsi da solo
   check_now:
     en: Check now
     de: Jetzt prüfen
+    it: Controlla ora
   update_checking:
     en: Checking for updates...
     de: Suche nach Updates...
+    it: Ricerca aggiornamenti...
   auto_updates:
     en: Automatic updates
     de: Automatische Updates
+    it: Aggiornamenti automatici
   auto_updates_detail:
     en: Look for new releases and ask before installing
     de: Nach neuen Releases suchen und vor der Installation fragen
+    it: Cerca nuove release e chiede prima di installare
   update_available_title:
     en: Update available
     de: Update verfügbar
+    it: Aggiornamento disponibile
   update_available_body:
     en: "Rusty Teams %{version} is available. You have %{current}. Update now?"
     de: "Rusty Teams %{version} ist verfügbar. Installiert ist %{current}. Jetzt aktualisieren?"
+    it: "Rusty Teams %{version} è disponibile. È installata la versione %{current}. Aggiornare ora?"
   update_now:
     en: Update
     de: Aktualisieren
+    it: Aggiorna
   update_downloading:
     en: "Downloading %{version}... %{percent}%"
     de: "%{version} wird heruntergeladen... %{percent} %"
+    it: "Download di %{version}... %{percent}%"
   hide:
     en: Hide
     de: Ausblenden
+    it: Nascondi
   update_ready_title:
     en: Update ready
     de: Update bereit
+    it: Aggiornamento pronto
   update_ready_body:
     en: "%{version} is downloaded. Restart Rusty Teams to finish the update."
     de: "%{version} ist heruntergeladen. Starte Rusty Teams neu, um das Update abzuschließen."
+    it: "%{version} è stata scaricata. Riavvii Rusty Teams per completare l'aggiornamento."
   later:
     en: Later
     de: Später
+    it: Più tardi
   restart_now:
     en: Restart now
     de: Jetzt neu starten
+    it: Riavvia ora
   up_to_date:
     en: Rusty Teams is up to date
     de: Rusty Teams ist aktuell
+    it: Rusty Teams è aggiornato
   update_failed:
     en: "Update check failed: %{detail}"
     de: "Update-Prüfung fehlgeschlagen: %{detail}"
+    it: "Controllo aggiornamenti non riuscito: %{detail}"
 calls:
   notice:
     not_connected:
       en: Not connected to Teams yet
       de: Noch nicht mit Teams verbunden
+      it: Non ancora connesso a Teams
     read_only:
       en: Calls are off in read-only mode
       de: Anrufe sind im Nur-Lesen-Modus deaktiviert
+      it: Le chiamate sono disattivate in modalità sola lettura
     not_callable:
       en: This chat cannot be called
       de: Dieser Chat kann nicht angerufen werden
+      it: Non è possibile avviare una chiamata in questa chat
     meeting_unavailable:
       en: This meeting cannot be joined
       de: Dieser Besprechung kann nicht beigetreten werden
+      it: Non è possibile partecipare a questa riunione
     answer_failed:
       en: Could not answer the call
       de: Anruf konnte nicht angenommen werden
+      it: Impossibile rispondere alla chiamata
     consult_ended:
       en: The consultation ended
       de: Die Rücksprache ist beendet
+      it: La consultazione è terminata
     report_saved:
       en: Test report saved
       de: Testbericht gespeichert
+      it: Report del test salvato
     response_failed:
       en: Could not send your response
       de: Ihre Antwort konnte nicht gesendet werden
+      it: Impossibile inviare la risposta
     delete_failed:
       en: Could not delete the meeting
       de: Besprechung konnte nicht gelöscht werden
+      it: Impossibile eliminare la riunione
     delete_read_only:
       en: Meetings cannot be deleted in read-only mode.
       de: Besprechungen können im Nur-Lesen-Modus nicht gelöscht werden.
+      it: Le riunioni non possono essere eliminate in modalità sola lettura.
     no_meeting_chat:
       en: This meeting chat is not available
       de: Dieser Besprechungschat ist nicht verfügbar
+      it: Questa chat della riunione non è disponibile
     invite_failed:
       en: Could not add that person
       de: Diese Person konnte nicht hinzugefügt werden
+      it: Impossibile aggiungere quella persona
     no_peer:
       en: This call cannot be extended
       de: Dieser Anruf kann nicht erweitert werden
+      it: Questa chiamata non può essere estesa
     missed:
       en: Call missed
       de: Anruf verpasst
+      it: Chiamata persa
     not_found:
       en: Could not find that meeting
       de: Diese Besprechung wurde nicht gefunden
+      it: Impossibile trovare quella riunione
     meet_now_failed:
       en: Could not start the meeting
       de: Besprechung konnte nicht gestartet werden
+      it: Impossibile avviare la riunione
     consent_first:
       en: Accept the recording notice first
       de: Bitte zuerst den Aufzeichnungshinweis bestätigen
+      it: Accetti prima l'avviso di registrazione
     on_hold:
       en: Resume the call first
       de: Setzen Sie den Anruf zuerst fort
+      it: Riprenda prima la chiamata
     change_running:
       en: Another change is still running, try again in a moment
       de: Eine andere Änderung läuft noch, versuchen Sie es gleich erneut
+      it: Un'altra modifica è ancora in corso, riprovi tra poco
     video_failed:
       en: Video could not start, the call stays audio only
       de: Video konnte nicht starten, der Anruf bleibt nur Audio
+      it: Il video non è partito, la chiamata resta solo audio
     share_queued:
       en: Sharing starts in a moment
       de: Freigabe startet gleich
+      it: La condivisione inizia tra poco
     share_refused:
       en: The other side did not accept the screen share
       de: Die Gegenseite hat die Bildschirmfreigabe nicht akzeptiert
+      it: L'altra parte non ha accettato la condivisione dello schermo
     portal_unavailable:
       en: Screen sharing needs a desktop portal on this system
       de: Bildschirmfreigabe benötigt auf diesem System ein Desktop-Portal
+      it: La condivisione dello schermo richiede un portale desktop su questo sistema
     files_later:
       en: Files can be added once the chat exists.
       de: Dateien können hinzugefügt werden, sobald der Chat existiert.
+      it: I file possono essere aggiunti quando la chat esiste.
     calendar_load_failed:
       en: We couldn't load your calendar.
       de: Ihr Kalender konnte nicht geladen werden.
+      it: Non è stato possibile caricare il Suo calendario.
     no_calls:
       en: No calls yet
       de: Noch keine Anrufe
+      it: Nessuna chiamata
     video_starts_once_connected:
       en: Video starts once the call is connected
       de: Video startet, sobald der Anruf verbunden ist
+      it: Il video inizia quando la chiamata è connessa
     call_transferred:
       en: Call transferred
       de: Anruf weitergeleitet
+      it: Chiamata trasferita
     transfer_failed:
       en: The transfer did not go through
       de: Die Weiterleitung ist fehlgeschlagen
+      it: Il trasferimento non è riuscito
     recording_join_failed:
       en: The recording service could not join
       de: Der Aufzeichnungsdienst konnte nicht beitreten
+      it: Il servizio di registrazione non è riuscito a partecipare
     echo_test_failed:
       en: The test call could not start
       de: Der Testanruf konnte nicht gestartet werden
+      it: La chiamata di prova non è partita
     captions_join_failed:
       en: The captions service could not join
       de: Der Untertitel-Dienst konnte nicht beitreten
+      it: Il servizio dei sottotitoli non è riuscito a partecipare
     caption_language_failed:
       en: Could not change the spoken language
       de: Gesprochene Sprache konnte nicht geändert werden
+      it: Impossibile cambiare la lingua parlata
     camera_start:
       en: "Camera could not start: %{detail}"
       de: "Kamera konnte nicht starten: %{detail}"
+      it: "Impossibile avviare la fotocamera: %{detail}"
     camera_restart:
       en: "Camera could not restart: %{detail}"
       de: "Kamera konnte nicht neu starten: %{detail}"
+      it: "Impossibile riavviare la fotocamera: %{detail}"
     sharing_start:
       en: "Sharing could not start: %{detail}"
       de: "Freigabe konnte nicht starten: %{detail}"
+      it: "Impossibile avviare la condivisione: %{detail}"
     raise_hand_failed:
       en: Could not raise your hand
       de: Hand heben ist fehlgeschlagen
+      it: Impossibile alzare la mano
     lower_hand_failed:
       en: Could not lower your hand
       de: Hand senken ist fehlgeschlagen
+      it: Impossibile abbassare la mano
     lower_that_hand_failed:
       en: Could not lower that hand
       de: Diese Hand konnte nicht gesenkt werden
+      it: Impossibile abbassare quella mano
     lower_all_hands_failed:
       en: Could not lower all hands
       de: Alle Hände konnten nicht gesenkt werden
+      it: Impossibile abbassare tutte le mani
     confirm_recording_failed:
       en: Could not confirm the recording notice
       de: Aufzeichnungshinweis konnte nicht bestätigt werden
+      it: Impossibile confermare l'avviso di registrazione
     hold_failed:
       en: Could not put the call on hold
       de: Anruf konnte nicht gehalten werden
+      it: Impossibile mettere la chiamata in attesa
     resume_failed:
       en: Could not resume the call
       de: Anruf konnte nicht fortgesetzt werden
+      it: Impossibile riprendere la chiamata
     transfer_not_allowed:
       en: This call cannot be transferred
       de: Dieser Anruf kann nicht weitergeleitet werden
+      it: Questa chiamata non può essere trasferita
     transfer_call_failed:
       en: Could not transfer the call
       de: Anruf konnte nicht weitergeleitet werden
+      it: Impossibile trasferire la chiamata
     transferring:
       en: "Transferring to %{detail}..."
       de: "Weiterleitung an %{detail}..."
+      it: "Trasferimento a %{detail}..."
     whiteboards_meetings_only:
       en: Whiteboards belong to meetings
       de: Whiteboards gehören zu Besprechungen
+      it: Le lavagne sono legate alle riunioni
     whiteboard_open_failed:
       en: The whiteboard could not be opened
       de: Das Whiteboard konnte nicht geöffnet werden
+      it: Impossibile aprire la lavagna
     reaction_failed:
       en: Could not send the reaction
       de: Reaktion konnte nicht gesendet werden
+      it: Impossibile inviare la reazione
     recording_not_started:
       en: The recording did not start
       de: Die Aufzeichnung hat nicht gestartet
+      it: La registrazione non è partita
     recording_start_failed:
       en: The recording could not start
       de: Die Aufzeichnung konnte nicht starten
+      it: Impossibile avviare la registrazione
     captions_start_failed:
       en: Captions could not start
       de: Untertitel konnten nicht starten
+      it: Impossibile avviare i sottotitoli
     hold_change_failed:
       en: The hold did not go through
       de: Halten ist fehlgeschlagen
+      it: La messa in attesa non è riuscita
     recording_stop_failed:
       en: The recording could not be stopped
       de: Die Aufzeichnung konnte nicht gestoppt werden
+      it: Impossibile fermare la registrazione
     background_image_failed:
       en: That background image could not be used
       de: Dieses Hintergrundbild konnte nicht verwendet werden
+      it: Impossibile usare quell'immagine di sfondo
     camera_stopped:
       en: "Camera stopped: %{detail}"
       de: "Kamera gestoppt: %{detail}"
+      it: "Fotocamera arrestata: %{detail}"
     screen_share_stopped:
       en: "Screen share stopped: %{detail}"
       de: "Bildschirmfreigabe gestoppt: %{detail}"
+      it: "Condivisione dello schermo arrestata: %{detail}"
     admit_failed:
       en: Could not admit that person
       de: Diese Person konnte nicht zugelassen werden
+      it: Impossibile ammettere quella persona
     admit_all_failed:
       en: Could not admit everyone
       de: Nicht alle konnten zugelassen werden
+      it: Impossibile ammettere tutti
     deny_failed:
       en: Could not deny that person
       de: Diese Person konnte nicht abgewiesen werden
+      it: Impossibile rifiutare quella persona
     remove_participant_failed:
       en: Could not remove that person
       de: Diese Person konnte nicht entfernt werden
+      it: Impossibile rimuovere quella persona
     mute_participant_failed:
       en: Could not mute that person
       de: Diese Person konnte nicht stummgeschaltet werden
+      it: Impossibile disattivare l'audio di quella persona
     mute_all_failed:
       en: Could not mute everyone
       de: Nicht alle konnten stummgeschaltet werden
+      it: Impossibile disattivare l'audio di tutti
     meeting_lock_failed:
       en: Could not change the meeting lock
       de: Besprechungssperre konnte nicht geändert werden
+      it: Impossibile modificare il blocco della riunione
     change_role_failed:
       en: Could not change that role
       de: Diese Rolle konnte nicht geändert werden
+      it: Impossibile modificare quel ruolo
     mic_setting_failed:
       en: Could not change that microphone setting
       de: Diese Mikrofoneinstellung konnte nicht geändert werden
+      it: Impossibile modificare quell'impostazione del microfono
     camera_setting_failed:
       en: Could not change that camera setting
       de: Diese Kameraeinstellung konnte nicht geändert werden
+      it: Impossibile modificare quell'impostazione della fotocamera
     attendee_settings_failed:
       en: Could not change the attendee settings
       de: Teilnehmereinstellungen konnten nicht geändert werden
+      it: Impossibile modificare le impostazioni dei partecipanti
     invite_person_failed:
       en: Could not invite that person
       de: Diese Person konnte nicht eingeladen werden
+      it: Impossibile invitare quella persona
     spotlight_failed:
       en: Could not spotlight that person
       de: Diese Person konnte nicht hervorgehoben werden
+      it: Impossibile evidenziare quella persona
     stop_spotlight_failed:
       en: Could not stop the spotlight
       de: Hervorhebung konnte nicht beendet werden
+      it: Impossibile interrompere l'evidenziazione
   page:
     title:
       en: Calls
       de: Anrufe
+      it: Chiamate
     history:
       en: History
       de: Verlauf
+      it: Cronologia
     speed_dial:
       en: Speed dial
       de: Kurzwahl
+      it: Chiamata rapida
     speed_dial_empty:
       en: Add people to speed dial for quick access.
       de: Personen zur Kurzwahl hinzufügen für schnellen Zugriff.
+      it: Aggiunga persone alla chiamata rapida per un accesso veloce.
     speed_dial_add:
       en: Add to speed dial
       de: Zur Kurzwahl hinzufügen
+      it: Aggiungi alla chiamata rapida
     pick_one:
       en: Pick one person to call
       de: Eine Person zum Anrufen wählen
+      it: Scelga una persona da chiamare
   chrome:
     video_call:
       en: Video call
       de: Videoanruf
+      it: Chiamata video
     audio_call:
       en: Audio call
       de: Audioanruf
+      it: Chiamata audio
     call_options:
       en: Call options
       de: Anrufoptionen
+      it: Opzioni della chiamata
     meet_now:
       en: Meet now
       de: Jetzt besprechen
+      it: Avvia riunione ora
     stop_sharing:
       en: Stop sharing
       de: Freigabe beenden
+      it: Interrompi condivisione
     raise_hand:
       en: Raise hand
       de: Hand heben
+      it: Alza la mano
     lower_hand:
       en: Lower hand
       de: Hand senken
+      it: Abbassa la mano
     lower_all_hands:
       en: Lower all hands
       de: Alle Hände senken
+      it: Abbassa tutte le mani
     end_meeting_for_all:
       en: End meeting for everyone
       de: Besprechung für alle beenden
+      it: Termina la riunione per tutti
     open_chat:
       en: Open the chat
       de: Chat öffnen
+      it: Apri la chat
     close_chat:
       en: Close the chat
       de: Chat schliessen
+      it: Chiudi la chat
     share_entire_screen:
       en: Share entire screen
       de: Gesamten Bildschirm freigeben
+      it: Condividi l'intero schermo
     share_screen_n:
       en: "Share screen %{n}"
       de: "Bildschirm %{n} freigeben"
+      it: "Condividi schermo %{n}"
     share_window:
       en: Share a window
       de: Fenster freigeben
+      it: Condividi una finestra
     share_window_ellipsis:
       en: Share a window...
       de: Fenster freigeben...
+      it: Condividi una finestra...
     computer_sound_on:
       en: Computer sound on
       de: Computerton ein
+      it: Audio del computer attivo
     computer_sound_off:
       en: Computer sound off
       de: Computerton aus
+      it: Audio del computer disattivato
     sharing_label:
       en: "You are sharing: %{label}"
       de: "Sie geben frei: %{label}"
+      it: "Sta condividendo: %{label}"
     no_microphone:
       en: No microphone found
       de: Kein Mikrofon gefunden
+      it: Nessun microfono trovato
     audio_off_meeting:
       en: Audio is off for this meeting
       de: Audio ist für diese Besprechung aus
+      it: L'audio è disattivato per questa riunione
     no_camera:
       en: No camera found
       de: Keine Kamera gefunden
+      it: Nessuna fotocamera trovata
     sharing_when_connected:
       en: Sharing starts once the call is connected
       de: Freigabe startet, sobald der Anruf verbunden ist
+      it: La condivisione inizia quando la chiamata è connessa
     no_windows:
       en: No windows found
       de: Keine Fenster gefunden
+      it: Nessuna finestra trovata
     lobby_waiting:
       en: Waiting in the lobby...
       de: Warten in der Lobby...
+      it: In attesa nella sala d'attesa...
     include_computer_sound:
       en: Include computer sound
       de: Computerton einbeziehen
+      it: Includi l'audio del computer
     optimize_motion:
       en: Optimize for motion
       de: Für Bewegung optimieren
+      it: Ottimizza per il movimento
     show_me_over_content:
       en: Show me over my content
       de: Mich über meinen Inhalt anzeigen
+      it: Mostrami sopra i miei contenuti
     camera_on_first:
       en: Turn your camera on first
       de: Kamera zuerst einschalten
+      it: Attivi prima la fotocamera
     noise_suppression:
       en: Noise suppression
       de: Rauschunterdrückung
+      it: Soppressione del rumore
     music_mode:
       en: Music mode
       de: Musikmodus
+      it: Modalità musica
     push_to_talk:
       en: Unmuted - release Ctrl+Space to mute
       de: Entstummt – Strg+Leertaste loslassen zum Stummschalten
+      it: Microfono attivo, rilasci Ctrl+Spazio per disattivarlo
     hand_raised:
       en: Hand raised
       de: Hand gehoben
+      it: Mano alzata
     hand_position:
       en: "Hand %{position}"
       de: "Hand %{position}"
+      it: "Mano %{position}"
     reconnecting:
       en: Reconnecting...
       de: Verbindung wird wiederhergestellt...
+      it: Riconnessione in corso...
     microphone:
       en: Microphone
       de: Mikrofon
+      it: Microfono
     speaker:
       en: Speaker
       de: Lautsprecher
+      it: Altoparlante
     return_main:
       en: Return to main meeting
       de: Zur Hauptbesprechung zurück
+      it: Torna alla riunione principale
     breakout_room:
       en: Breakout room
       de: Breakout-Raum
+      it: Sala di gruppo
     on_hold:
       en: On hold
       de: Gehalten
+      it: In attesa
     you_on_hold:
       en: You're on hold
       de: Sie sind in der Warteschleife
+      it: È in attesa
     open_in_browser:
       en: Open in browser
       de: Im Browser öffnen
+      it: Apri nel browser
     recording_notice:
       en: This meeting is being recorded
       de: Diese Besprechung wird aufgezeichnet
+      it: Questa riunione viene registrata
     recording_accept_hint:
       en: Your microphone and camera stay off until you accept.
       de: Mikrofon und Kamera bleiben aus, bis Sie zustimmen.
+      it: Il Suo microfono e la Sua fotocamera restano disattivati finché non accetta.
     transfer:
       en: Transfer
       de: Weiterleiten
+      it: Trasferisci
     resume_person:
       en: "Resume %{name}"
       de: "%{name} fortsetzen"
+      it: "Riprendi %{name}"
     video_quality:
       en: Video quality
       de: Videoqualität
+      it: Qualità video
     auto:
       en: Auto
       de: Auto
+      it: Auto
     effects:
       en: Effects
       de: Effekte
+      it: Effetti
     mirror_video:
       en: Mirror my video
       de: Video spiegeln
+      it: Specchia il mio video
     auto_framing:
       en: Auto framing
       de: Automatischer Bildausschnitt
+      it: Inquadratura automatica
     adjust_brightness:
       en: Adjust brightness
       de: Helligkeit anpassen
+      it: Regola la luminosità
     soft_focus:
       en: Soft focus
       de: Weichzeichner
+      it: Morbidezza dello sfondo
     background:
       en: Background
       de: Hintergrund
+      it: Sfondo
     background_none:
       en: None
       de: Keiner
+      it: Nessuno
     background_blur:
       en: Blur
       de: Unscharf
+      it: Sfocatura
     add_image:
       en: Add image...
       de: Bild hinzufügen...
+      it: Aggiungi immagine...
   prejoin:
     camera_off:
       en: Your camera is off
       de: Ihre Kamera ist aus
+      it: La Sua fotocamera è disattivata
     default_device:
       en: Default device
       de: Standardgerät
+      it: Dispositivo predefinito
     starting_camera:
       en: Starting camera...
       de: Kamera wird gestartet...
+      it: Avvio della fotocamera...
     camera_failed:
       en: "Camera could not start: %{detail}"
       de: "Kamera konnte nicht starten: %{detail}"
+      it: "Impossibile avviare la fotocamera: %{detail}"
     background:
       en: Background
       de: Hintergrund
+      it: Sfondo
     camera:
       en: Camera
       de: Kamera
+      it: Fotocamera
     microphone:
       en: Microphone
       de: Mikrofon
+      it: Microfono
     speaker:
       en: Speaker
       de: Lautsprecher
+      it: Altoparlante
     join_now:
       en: Join now
       de: Jetzt beitreten
+      it: Partecipa ora
     choose_av:
       en: Choose your video and audio settings, then join
       de: Video- und Audioeinstellungen wählen, dann beitreten
+      it: Scelga le impostazioni video e audio, poi partecipi
   join_dialog:
     title:
       en: Join with a meeting ID
       de: Mit Besprechungs-ID beitreten
+      it: Partecipa con un ID riunione
     meeting_id:
       en: Meeting ID
       de: Besprechungs-ID
+      it: ID riunione
     passcode:
       en: Passcode
       de: Kenncode
+      it: Codice di accesso
     passcode_placeholder:
       en: Passcode (if the invitation has one)
       de: Kenncode (falls in der Einladung angegeben)
+      it: Codice di accesso (se indicato nell'invito)
   meeting:
     new_title:
       en: New meeting
       de: Neue Besprechung
+      it: Nuova riunione
     title_label:
       en: Title
       de: Titel
+      it: Titolo
     title_placeholder:
       en: Add a title
       de: Titel hinzufügen
+      it: Aggiungi un titolo
     people:
       en: People
       de: Personen
+      it: Persone
     date:
       en: Date
       de: Datum
+      it: Data
     start:
       en: Start
       de: Beginn
+      it: Inizio
     end:
       en: End
       de: Ende
+      it: Fine
     repeat:
       en: Repeat
       de: Wiederholen
+      it: Ripeti
     details:
       en: Details
       de: Details
+      it: Dettagli
     details_placeholder:
       en: Add details
       de: Details hinzufügen
+      it: Aggiungi dettagli
     teams_link_added:
       en: Teams meeting link is added
       de: Teams-Besprechungslink wird hinzugefügt
+      it: Il link della riunione Teams è stato aggiunto
 calendar:
   peek:
     all_day:
       en: All day
       de: Ganztägig
+      it: Tutto il giorno
     teams_meeting:
       en: Microsoft Teams meeting
       de: Microsoft Teams-Besprechung
+      it: Riunione Microsoft Teams
     google_meet:
       en: Google Meet
       de: Google Meet
+      it: Google Meet
     series:
       en: Series
       de: Serie
+      it: Serie
     invited_you:
       en: "%{name} invited you."
       de: "%{name} hat dich eingeladen."
+      it: "%{name} La ha invitato."
     accepted:
       en: Accepted
       de: Angenommen
+      it: Accettato
     declined:
       en: Declined
       de: Abgelehnt
+      it: Rifiutato
     tentative:
       en: Tentative
       de: Mit Vorbehalt
+      it: In via provvisoria
     no_response:
       en: Didn't respond
       de: Keine Antwort
+      it: Nessuna risposta
     email_organizer:
       en: Email organizer
       de: E-Mail an den Organisator
+      it: Invia email all'organizzatore
     message_placeholder:
       en: Add a message (optional)
       de: Nachricht hinzufügen (optional)
+      it: Aggiungi un messaggio (facoltativo)
     accept:
       en: Accept
       de: Annehmen
+      it: Accetta
     decline:
       en: Decline
       de: Ablehnen
+      it: Rifiuta
     tentative_action:
       en: Tentative
       de: Mit Vorbehalt
+      it: In via provvisoria
     this_occurrence:
       en: This occurrence
       de: Nur dieser Termin
+      it: Solo questo evento
     entire_series:
       en: Entire series
       de: Ganze Serie
+      it: Intera serie
     join_link:
       en: Join link
       de: Beitrittslink
+      it: Link di partecipazione
     tracking:
       en: Tracking
       de: Nachverfolgung
+      it: Monitoraggio
     organizer:
       en: Organizer
       de: Organisator
+      it: Organizzatore
     required:
       en: Required
       de: Erforderlich
+      it: Obbligatorio
     optional:
       en: Optional
       de: Optional
+      it: Facoltativo
     attendees_unknown:
       en: Attendee list not available.
       de: Teilnehmerliste nicht verfügbar.
+      it: Elenco dei partecipanti non disponibile.
     when_starts:
       en: When the event starts
       de: Zum Beginn des Termins
+      it: All'inizio dell'evento
     minute_before:
       en: "%{count} minute before"
       de: "%{count} Minute vorher"
+      it: "%{count} minuto prima"
     minutes_before:
       en: "%{count} minutes before"
       de: "%{count} Minuten vorher"
+      it: "%{count} minuti prima"
     hour_before:
       en: "%{count} hour before"
       de: "%{count} Stunde vorher"
+      it: "%{count} ora prima"
     hours_before:
       en: "%{count} hours before"
       de: "%{count} Stunden vorher"
+      it: "%{count} ore prima"
     day_before:
       en: "%{count} day before"
       de: "%{count} Tag vorher"
+      it: "%{count} giorno prima"
     days_before:
       en: "%{count} days before"
       de: "%{count} Tage vorher"
+      it: "%{count} giorni prima"
     view_source:
       en: View source
       de: Quelle anzeigen
+      it: Visualizza origine
     open_in_google:
       en: Open in Google Calendar
       de: In Google Kalender öffnen
+      it: Apri in Google Calendar
     email_guests:
       en: Email guests
       de: Gäste per E-Mail
+      it: Invia email agli ospiti
     canceled_prefix:
       en: "Canceled: "
       de: "Abgesagt: "
+      it: "Annullato: "
     no_title:
       en: (No title)
       de: (Kein Titel)
+      it: (Senza titolo)
   view:
     title:
       en: Calendar
       de: Kalender
+      it: Calendario
     today:
       en: Today
       de: Heute
+      it: Oggi
     span_day:
       en: Day
       de: Tag
+      it: Giorno
     span_work_week:
       en: Work week
       de: Arbeitswoche
+      it: Settimana lavorativa
     span_week:
       en: Week
       de: Woche
+      it: Settimana
     span_month:
       en: Month
       de: Monat
+      it: Mese
     previous_day:
       en: Go to previous day
       de: Zum vorherigen Tag
+      it: Vai al giorno precedente
     previous_week:
       en: Go to previous week
       de: Zur vorherigen Woche
+      it: Vai alla settimana precedente
     previous_month:
       en: Go to previous month
       de: Zum vorherigen Monat
+      it: Vai al mese precedente
     next_day:
       en: Go to next day
       de: Zum nächsten Tag
+      it: Vai al giorno successivo
     next_week:
       en: Go to next week
       de: Zur nächsten Woche
+      it: Vai alla settimana successiva
     next_month:
       en: Go to next month
       de: Zum nächsten Monat
+      it: Vai al mese successivo
     join_with_id:
       en: Join with an ID
       de: Mit einer ID teilnehmen
+      it: Partecipa con un ID
     meet_now:
       en: Meet now
       de: Jetzt besprechen
+      it: Avvia riunione ora
     new_meeting:
       en: New meeting
       de: Neue Besprechung
+      it: Nuova riunione
     toggle_pane:
       en: Show or hide the calendar list
       de: Kalenderliste ein- oder ausblenden
+      it: Mostra o nascondi l'elenco dei calendari
     loading:
       en: Loading…
       de: Wird geladen…
+      it: Caricamento…
     source_failed:
       en: "%{source} couldn't be loaded."
       de: "%{source} konnte nicht geladen werden."
+      it: "Impossibile caricare %{source}."
     more:
       en: "+%{count} more"
       de: "+%{count} weitere"
+      it: "+%{count} altri"
     copy_join_info:
       en: Copy join info
       de: Teilnahmeinformationen kopieren
+      it: Copia le informazioni di partecipazione
     chat_with_participants:
       en: Chat with participants
       de: Mit Teilnehmern chatten
+      it: Chatta con i partecipanti
     previous_month_short:
       en: Previous month
       de: Vorheriger Monat
+      it: Mese precedente
     next_month_short:
       en: Next month
       de: Nächster Monat
+      it: Mese successivo
     add_calendar:
       en: Add calendar
       de: Kalender hinzufügen
+      it: Aggiungi calendario
     my_calendars:
       en: My calendars
       de: Meine Kalender
+      it: I miei calendari
     people_calendars:
       en: People's calendars
       de: Kalender von Personen
+      it: Calendari delle persone
     person_busy:
       en: Busy
       de: Gebucht
+      it: Occupato
     person_tentative:
       en: Tentative
       de: Mit Vorbehalt
+      it: In via provvisoria
     person_away:
       en: Away
       de: Abwesend
+      it: Assente
     person_elsewhere:
       en: Working elsewhere
       de: An anderem Ort tätig
+      it: Lavora altrove
     show_all:
       en: Show all
       de: Alle anzeigen
+      it: Mostra tutti
     show_fewer:
       en: Show fewer
       de: Weniger anzeigen
+      it: Mostra meno
     series:
       en: Series
       de: Serie
+      it: Serie
   weekday:
     mon:
       en: Monday
       de: Montag
+      it: Lunedì
     tue:
       en: Tuesday
       de: Dienstag
+      it: Martedì
     wed:
       en: Wednesday
       de: Mittwoch
+      it: Mercoledì
     thu:
       en: Thursday
       de: Donnerstag
+      it: Giovedì
     fri:
       en: Friday
       de: Freitag
+      it: Venerdì
     sat:
       en: Saturday
       de: Samstag
+      it: Sabato
     sun:
       en: Sunday
       de: Sonntag
+      it: Domenica
   weekday_short:
     mon:
       en: Mon
       de: Mo
+      it: Lun
     tue:
       en: Tue
       de: Di
+      it: Mar
     wed:
       en: Wed
       de: Mi
+      it: Mer
     thu:
       en: Thu
       de: Do
+      it: Gio
     fri:
       en: Fri
       de: Fr
+      it: Ven
     sat:
       en: Sat
       de: Sa
+      it: Sab
     sun:
       en: Sun
       de: So
+      it: Dom
   month:
     m01:
       en: January
       de: Januar
+      it: Gennaio
     m02:
       en: February
       de: Februar
+      it: Febbraio
     m03:
       en: March
       de: März
+      it: Marzo
     m04:
       en: April
       de: April
+      it: Aprile
     m05:
       en: May
       de: Mai
+      it: Maggio
     m06:
       en: June
       de: Juni
+      it: Giugno
     m07:
       en: July
       de: Juli
+      it: Luglio
     m08:
       en: August
       de: August
+      it: Agosto
     m09:
       en: September
       de: September
+      it: Settembre
     m10:
       en: October
       de: Oktober
+      it: Ottobre
     m11:
       en: November
       de: November
+      it: Novembre
     m12:
       en: December
       de: Dezember
+      it: Dicembre
 agents:
   start:
     new_session:
       en: New session
       de: Neue Sitzung
+      it: Nuova sessione
     recent_sessions:
       en: Recent sessions
       de: Letzte Sitzungen
+      it: Sessioni recenti
     other_sessions:
       en: Other sessions
       de: Weitere Sitzungen
+      it: Altre sessioni
     recent:
       en: Recent
       de: Zuletzt
+      it: Recenti
     browse:
       en: Browse...
       de: Durchsuchen...
+      it: Sfoglia...
     session:
       en: Session
       de: Sitzung
+      it: Sessione
     working_dir:
       en: Working dir
       de: Arbeitsverzeichnis
+      it: Directory di lavoro
     message_to_session:
       en: Message to the session
       de: Nachricht an die Sitzung
+      it: Messaggio alla sessione
     extra_instructions:
       en: Extra instructions (optional)
       de: Zusätzliche Anweisungen (optional)
+      it: Istruzioni aggiuntive (facoltative)
     show_prompt:
       en: Show prompt
       de: Prompt anzeigen
+      it: Mostra prompt
     send:
       en: Send
       de: Senden
+      it: Invia
     allow_and_start:
       en: Allow and start
       de: Erlauben und starten
+      it: Consenti e avvia
     start:
       en: Start
       de: Starten
+      it: Avvia
     message_placeholder:
       en: Type the message to send
       de: Nachricht zum Senden eingeben
+      it: Digiti il messaggio da inviare
     chat_invisible:
       en: Agents can't see this chat yet.
       de: Agents sehen diesen Chat noch nicht.
+      it: Gli Agent non possono ancora vedere questa chat.
   settings:
     note:
       en: Agents get the message, its sender and up to 20 earlier messages. Nothing is sent to Teams without you.
       de: Agents erhalten die Nachricht, den Absender und bis zu 20 frühere Nachrichten. Ohne Sie wird nichts an Teams gesendet.
+      it: Gli Agent ricevono il messaggio, il mittente e fino a 20 messaggi precedenti. Nessun messaggio viene inviato a Teams senza il Suo consenso.
     on_this_computer:
       en: ON THIS COMPUTER
       de: AUF DIESEM COMPUTER
+      it: SU QUESTO COMPUTER
     scan_again:
       en: Scan again
       de: Erneut suchen
+      it: Scansiona di nuovo
     no_cli_found:
       en: No Claude, Copilot, Codex, Cursor or Antigravity CLI is waiting to be added.
       de: Keine Claude-, Copilot-, Codex-, Cursor- oder Antigravity-CLI wartet auf Hinzufügen.
+      it: Nessuna CLI Claude, Copilot, Codex, Cursor o Antigravity in attesa di essere aggiunta.
     agents_header:
       en: AGENTS
       de: AGENTS
+      it: AGENT
     actions_header:
       en: ACTIONS - IN THIS ORDER IN THE MENU
       de: AKTIONEN – IN DIESER REIHENFOLGE IM MENÜ
+      it: AZIONI - IN QUEST'ORDINE NEL MENU
     write_with:
       en: Write with
       de: Schreiben mit
+      it: Scrivi con
     rewrite_hint:
       en: Rewrite in the composer and the chat assistant island. Microsoft Copilot needs the licence.
       de: Umschreiben im Editor und im Chat-Assistenten-Insel. Microsoft Copilot benötigt die Lizenz.
+      it: Riscrivi nella casella di composizione e nella barra dell'assistente chat. Microsoft Copilot richiede la licenza.
     answer_with:
       en: "Answer with %{name}"
       de: "Antworten mit %{name}"
+      it: "Rispondi con %{name}"
     new_action:
       en: New action
       de: Neue Aktion
+      it: Nuova azione
     custom_agent:
       en: Custom agent
       de: Eigener Agent
+      it: Agente personalizzato
     unknown_agent:
       en: Unknown agent
       de: Unbekannter Agent
+      it: Agente sconosciuto
 auth:
   sign_in:
     en: Sign in
     de: Anmelden
+    it: Accedi
   splash:
     starting:
       en: Starting Rusty Teams
       de: Rusty Teams wird gestartet
+      it: Avvio di Rusty Teams
     signing_in:
       en: Signing in
       de: Anmeldung läuft
+      it: Accesso in corso
     opening_browser:
       en: Opening the browser for sign-in…
       de: Browser für die Anmeldung wird geöffnet…
+      it: Apertura del browser per l'accesso…
     awaiting_browser:
       en: Sign in to Teams in the browser window that opened
       de: Melde dich in dem geöffneten Browserfenster bei Teams an
+      it: Acceda a Teams nella finestra del browser che si è aperta
     finishing:
       en: Finishing sign-in…
       de: Anmeldung wird abgeschlossen…
+      it: Completamento dell'accesso…
     browser_failed:
       en: Could not open a browser for sign-in (Chrome, Edge, Brave, Helium, Firefox, Zen)
       de: Kein Browser für die Anmeldung konnte geöffnet werden (Chrome, Edge, Brave, Helium, Firefox, Zen)
+      it: Impossibile aprire un browser per l'accesso (Chrome, Edge, Brave, Helium, Firefox, Zen)
     browser_still_loading_hint:
       en: The Teams logo in the browser means the login page is still loading
       de: Das Teams-Logo im Browser heisst, die Anmeldeseite lädt noch
+      it: Il logo Teams nel browser indica che la pagina di accesso è ancora in caricamento
     first_start_hint:
       en: First start can take a little longer once
       de: Der erste Start kann etwas länger dauern
+      it: Il primo avvio può richiedere un po' più di tempo
     loading_chats:
       en: Loading your chats
       de: Chats werden geladen
+      it: Caricamento delle Sue chat
     syncing:
       en: Syncing new messages
       de: Neue Nachrichten werden synchronisiert
+      it: Sincronizzazione dei nuovi messaggi
     opening:
       en: "Opening %{title}"
       de: "%{title} wird geöffnet"
+      it: "Apertura di %{title}"
     cannot_reach:
       en: Cannot reach Teams, trying again
       de: Teams nicht erreichbar, erneuter Versuch
+      it: Impossibile raggiungere Teams, nuovo tentativo
   banner:
     connecting:
       en: Connecting...
       de: Verbindung wird hergestellt...
+      it: Connessione in corso...
     reconnecting:
       en: Reconnecting...
       de: Verbindung wird wiederhergestellt...
+      it: Riconnessione in corso...
     offline:
       en: Something went wrong while connecting to Teams. Reconnect to keep the conversation going.
       de: Beim Verbinden mit Teams ist etwas schiefgelaufen. Stelle die Verbindung wieder her, um weiterzuschreiben.
+      it: Si è verificato un errore durante la connessione a Teams. Riconnettersi per continuare la conversazione.
     sign_in:
       en: Sign-in required. Sign in to Teams in the browser window that opened.
       de: Anmeldung nötig. Melde dich in dem geöffneten Browserfenster bei Teams an.
+      it: È richiesto l'accesso. Acceda a Teams nella finestra del browser che si è aperta.
     live_unavailable:
       en: Live updates unavailable
       de: Live-Updates nicht verfügbar
+      it: Aggiornamenti in tempo reale non disponibili
     last_synced:
       en: "Last synced %{time}"
       de: "Zuletzt synchronisiert %{time}"
+      it: "Ultima sincronizzazione %{time}"
 shell:
   settings_and_more:
     en: Settings and more
     de: Einstellungen und mehr
+    it: Impostazioni e altro
 status_menu:
   guest_org:
     en: "%{name} (Guest)"
     de: "%{name} (Gast)"
+    it: "%{name} (Ospite)"
   view_account:
     en: View account
     de: Konto anzeigen
+    it: Visualizza account
   set_status_message:
     en: Set status message
     de: Statusmeldung festlegen
+    it: Imposta messaggio di stato
   resume_notifications:
     en: Resume notifications
     de: Benachrichtigungen fortsetzen
+    it: Ripristina le notifiche
   chat_list:
     en: Chat list
     de: Chatliste
+    it: Elenco chat
   translation:
     en: Translation
     de: Übersetzung
+    it: Traduzione
   notification_settings:
     en: Notification settings
     de: Benachrichtigungseinstellungen
+    it: Impostazioni notifiche
   test_call:
     en: Make a test call
     de: Testanruf starten
+    it: Effettua una chiamata di prova
   simulate_incoming:
     en: Simulate incoming call
     de: Eingehenden Anruf simulieren
+    it: Simula chiamata in arrivo
   duration:
     en: Duration
     de: Dauer
+    it: Durata
   reset_status:
     en: Reset status
     de: Status zurücksetzen
+    it: Reimposta stato
   work_location_today:
     en: Set work location for today
     de: Arbeitsort für heute festlegen
+    it: Imposta la sede di lavoro per oggi
   office:
     en: Office
     de: Büro
+    it: Ufficio
   remote:
     en: Remote
     de: Remote
+    it: Remoto
   clear_work_location:
     en: Clear work location
     de: Arbeitsort löschen
+    it: Cancella la sede di lavoro
 sidebar:
   pinned:
     en: Pinned
     de: Angepinnt
+    it: In evidenza
   quick_views:
     en: Quick views
     de: Schnellansichten
+    it: Viste rapide
   teams:
     en: Teams
     de: Teams
+    it: Team
   mark_all_read:
     en: Mark all as read
     de: Alle als gelesen markieren
+    it: Segna tutti come letti
   collapse_all:
     en: Collapse all sections
     de: Alle Abschnitte einklappen
+    it: Comprimi tutte le sezioni
   hidden_teams:
     en: Hidden teams
     de: Ausgeblendete Teams
+    it: Team nascosti
   see_all_channels:
     en: See all channels
     de: Alle Kanäle anzeigen
+    it: Mostra tutti i canali
   see_fewer_channels:
     en: See fewer channels
     de: Weniger Kanäle anzeigen
+    it: Mostra meno canali
   loading_older:
     en: Loading older chats
     de: Ältere Chats werden geladen
+    it: Caricamento delle chat precedenti
   new_chat:
     en: New chat
     de: Neuer Chat
+    it: Nuova chat
   new_chat_shortcut:
     en: New chat (Ctrl+N)
     de: Neuer Chat (Strg+N)
+    it: Nuova chat (Ctrl+N)
   more_options:
     en: More options
     de: Weitere Optionen
+    it: Altre opzioni
   draft:
     en: Draft
     de: Entwurf
+    it: Bozza
   draft_prefix:
     en: "Draft:"
     de: "Entwurf:"
+    it: "Bozza:"
   not_sent:
     en: Not sent
     de: Nicht gesendet
+    it: Non inviato
   see_more:
     en: "See more (%{count})"
     de: "Mehr anzeigen (%{count})"
+    it: "Mostra altri (%{count})"
   see_less:
     en: See less
     de: Weniger anzeigen
+    it: Mostra meno
   new_section:
     en: New section
     de: Neuer Abschnitt
+    it: Nuova sezione
   rename_section:
     en: Rename section
     de: Abschnitt umbenennen
+    it: Rinomina sezione
   move_up:
     en: Move up
     de: Nach oben
+    it: Sposta su
   move_down:
     en: Move down
     de: Nach unten
+    it: Sposta giù
   delete_section:
     en: Delete section
     de: Abschnitt löschen
+    it: Elimina sezione
   delete_section_title:
     en: 'Delete section "%{name}"?'
     de: 'Abschnitt „%{name}" löschen?'
+    it: 'Eliminare la sezione "%{name}"?'
   delete_section_detail:
     en: Chats in it move back to Chats.
     de: Chats darin werden zurück zu Chats verschoben.
+    it: Le chat al suo interno tornano in Chat.
   new_channel:
     en: New channel
     de: Neuer Kanal
+    it: Nuovo canale
   new_message:
     en: New message
     de: Neue Nachricht
+    it: Nuovo messaggio
   new_items:
     en: New items
     de: Neue Elemente
+    it: Nuovi elementi
   notifications:
     en: Notifications
     de: Benachrichtigungen
+    it: Notifiche
   notify_banner_activity:
     en: Banner and activity
     de: Banner und Aktivität
+    it: Banner e attività
   notify_activity_only:
     en: Activity only
     de: Nur Aktivität
+    it: Solo attività
   notify_off:
     en: "Off"
     de: Aus
+    it: "Disattivato"
   include_thread_replies:
     en: Include thread replies
     de: Thread-Antworten einschliessen
+    it: Includi le risposte nella conversazione
   filter:
     placeholder:
       en: Filter by person or chat name
       de: Nach Person oder Chatname filtern
+      it: Filtra per persona o nome della chat
     channel_placeholder:
       en: Filter by channel name
       de: Nach Kanalname filtern
+      it: Filtra per nome del canale
     no_matches:
       en: We didn't find any matches.
       de: Keine Treffer gefunden.
+      it: Nessun risultato trovato.
     clear:
       en: Clear filters
       de: Filter zurücksetzen
+      it: Cancella i filtri
     clear_text:
       en: Clear filter text
       de: Filtertext löschen
+      it: Cancella il testo del filtro
     show_box:
       en: Show filter text box
       de: Filterfeld anzeigen
+      it: Mostra il campo filtro
     close_box:
       en: Close filter text box
       de: Filterfeld schliessen
+      it: Chiudi il campo filtro
     show_shortcut:
       en: "%{label} (Ctrl+Shift+F)"
       de: "%{label} (Strg+Umschalt+F)"
+      it: "%{label} (Ctrl+Shift+F)"
     unread:
       en: Unread
       de: Ungelesen
+      it: Non letto
   pill:
     unread:
       en: Unread
       de: Ungelesen
+      it: Non letto
     mentions:
       en: "@Mentions"
       de: "@Erwähnungen"
+      it: "@Menzioni"
     chats:
       en: Chats
       de: Chats
+      it: Chat
     meetings:
       en: Meeting chats
       de: Besprechungschats
+      it: Chat delle riunioni
     muted:
       en: Muted
       de: Stummgeschaltet
+      it: Silenziato
   quick_view:
     mentions:
       en: Mentions
       de: Erwähnungen
+      it: Menzioni
     drafts:
       en: Drafts
       de: Entwürfe
+      it: Bozze
     saved:
       en: Saved
       de: Gespeichert
+      it: Salvati
     mentions_empty:
       en: No mentions yet. When someone @mentions you, it shows up here.
       de: Noch keine Erwähnungen. Wenn Sie jemand @erwähnt, erscheint es hier.
+      it: Nessuna menzione. Quando qualcuno La menziona con @, appare qui.
     drafts_empty:
       en: No drafts. Messages you start and do not send show up here.
       de: Keine Entwürfe. Begonnene, aber nicht gesendete Nachrichten erscheinen hier.
+      it: Nessuna bozza. I messaggi iniziati e non inviati appaiono qui.
     saved_empty:
       en: No saved messages. Use Save message in the ... menu of a message.
       de: Keine gespeicherten Nachrichten. Nutzen Sie «Nachricht speichern» im …-Menü einer Nachricht.
+      it: Nessun messaggio salvato. Usi Salva messaggio nel menu ... di un messaggio.
 shortcuts:
   title:
     en: Keyboard shortcuts
     de: Tastenkürzel
+    it: Scorciatoie da tastiera
   group:
     general:
       en: General
       de: Allgemein
+      it: Generale
     navigation:
       en: Navigation
       de: Navigation
+      it: Navigazione
     composer:
       en: Messages and composer
       de: Nachrichten und Editor
+      it: Messaggi e composizione
     calls:
       en: Calls
       de: Anrufe
+      it: Chiamate
 regional:
   today:
     en: Today
     de: Heute
+    it: Oggi
   yesterday:
     en: Yesterday
     de: Gestern
+    it: Ieri
   tomorrow:
     en: Tomorrow
     de: Morgen
+    it: Domani
   today_clock:
     en: "today %{clock}"
     de: "heute %{clock}"
+    it: "oggi %{clock}"
   today_at:
     en: "today at %{clock}"
     de: "heute um %{clock}"
+    it: "oggi alle %{clock}"
   yesterday_at:
     en: "yesterday at %{clock}"
     de: "gestern um %{clock}"
+    it: "ieri alle %{clock}"
   date_at:
     en: "%{date} at %{clock}"
     de: "%{date} um %{clock}"
+    it: "%{date} alle %{clock}"
   until:
     en: "until %{time}"
     de: "bis %{time}"
+    it: "fino alle %{time}"
   region:
     at:
       en: Austria
       de: Österreich
+      it: Austria
     au:
       en: Australia
       de: Australien
+      it: Australia
     br:
       en: Brazil
       de: Brasilien
+      it: Brasile
     ca:
       en: Canada
       de: Kanada
+      it: Canada
     ch:
       en: Switzerland
       de: Schweiz
+      it: Svizzera
     cz:
       en: Czechia
       de: Tschechien
+      it: Cechia
     de:
       en: Germany
       de: Deutschland
+      it: Germania
     dk:
       en: Denmark
       de: Dänemark
+      it: Danimarca
     es:
       en: Spain
       de: Spanien
+      it: Spagna
     fi:
       en: Finland
       de: Finnland
+      it: Finlandia
     fr:
       en: France
       de: Frankreich
+      it: Francia
     gb:
       en: United Kingdom
       de: Vereinigtes Königreich
+      it: Regno Unito
     ie:
       en: Ireland
       de: Irland
+      it: Irlanda
     in:
       en: India
       de: Indien
+      it: India
     it:
       en: Italy
       de: Italien
+      it: Italia
     jp:
       en: Japan
       de: Japan
+      it: Giappone
     nl:
       en: Netherlands
       de: Niederlande
+      it: Paesi Bassi
     no:
       en: Norway
       de: Norwegen
+      it: Norvegia
     pl:
       en: Poland
       de: Polen
+      it: Polonia
     se:
       en: Sweden
       de: Schweden
+      it: Svezia
     us:
       en: United States
       de: Vereinigte Staaten
+      it: Stati Uniti

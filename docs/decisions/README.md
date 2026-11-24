@@ -23,7 +23,7 @@ Statuses: `proposed`, `accepted`, `superseded`.
 | [0005](0005-screen-share-uses-the-system-picker.md) | Screen share uses the system picker |
 | [0006](0006-mic-path-matches-browser-teams.md) | The mic path matches Teams in the browser |
 | [0007](0007-local-agent-clis-beside-copilot.md) | Local agent CLIs sit beside Copilot |
-| [0008](0008-product-ui-locale-en-de.md) | Product UI is English and German |
+| [0008](0008-product-ui-locale-en-de.md) | Product UI is English and German (superseded by 0024) |
 | [0009](0009-bundled-google-oauth-client.md) | Bundled Google OAuth Desktop client |
 | [0010](0010-preferred-external-browser.md) | Preferred browser for links and Google OAuth |
 | [0011](0011-calendar-event-peek.md) | Calendar events open as a Teams-like peek |
@@ -39,5 +39,6 @@ Statuses: `proposed`, `accepted`, `superseded`.
 | [0021](0021-linux-packages.md) | Linux releases also ship an AppImage, a deb and an rpm |
 | [0022](0022-linux-parks-the-idle-teams-tab.md) | Linux parks the idle Teams tab in a Chromium browser |
 | [0023](0023-secrets-live-in-the-os-keyring.md) | Secrets live in the OS keyring, the cache is owner-only |
+| [0024](0024-product-ui-locale-italian.md) | Product UI also supports Italian |
 
 Records `0001` to `0021` are the decisions already shipped. `0001` follows Daniel's call-window note in `GUARDRAILS.md`.

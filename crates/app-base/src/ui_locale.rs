@@ -11,13 +11,15 @@ pub enum LocalePreference {
     Auto,
     English,
     German,
+    Italian,
 }
 
 impl LocalePreference {
-    pub const ALL: [LocalePreference; 3] = [
+    pub const ALL: [LocalePreference; 4] = [
         LocalePreference::Auto,
         LocalePreference::English,
         LocalePreference::German,
+        LocalePreference::Italian,
     ];
 
     pub fn key(self) -> &'static str {
@@ -25,6 +27,7 @@ impl LocalePreference {
             LocalePreference::Auto => "auto",
             LocalePreference::English => "en",
             LocalePreference::German => "de",
+            LocalePreference::Italian => "it",
         }
     }
 
@@ -47,9 +50,13 @@ pub(crate) fn effective_locale_for(pref: LocalePreference, os_tag: &str) -> &'st
     match pref {
         LocalePreference::German => "de",
         LocalePreference::English => "en",
+        LocalePreference::Italian => "it",
         LocalePreference::Auto => {
-            if os_tag.to_lowercase().starts_with("de") {
+            let tag = os_tag.to_lowercase();
+            if tag.starts_with("de") {
                 "de"
+            } else if tag.starts_with("it") {
+                "it"
             } else {
                 "en"
             }
@@ -157,7 +164,7 @@ mod tests {
             let Some((key, value)) = trimmed.split_once(':') else {
                 continue;
             };
-            if key == "en" || key == "de" {
+            if key == "en" || key == "de" || key == "it" {
                 if let Some(last) = leaves.last_mut() {
                     last.1.push(key.to_owned());
                 }
@@ -175,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn calendar_strings_exist_in_english_and_german() {
+    fn calendar_strings_exist_in_all_locales() {
         const PREFIXES: [&str; 5] = [
             "calendar.view.",
             "calendar.weekday.",
@@ -196,22 +203,24 @@ mod tests {
         let missing: Vec<_> = covered
             .iter()
             .filter(|(_, languages)| {
-                !(languages.contains(&"en".into()) && languages.contains(&"de".into()))
+                ["en", "de", "it"]
+                    .iter()
+                    .any(|locale| !languages.contains(&(*locale).into()))
             })
             .map(|(key, _)| key.as_str())
             .collect();
-        assert!(missing.is_empty(), "missing en or de: {missing:?}");
+        assert!(missing.is_empty(), "missing locale: {missing:?}");
     }
 
     #[test]
-    fn every_key_resolves_in_english_and_german() {
+    fn every_key_resolves_in_all_locales() {
         let _guard = locale_test_lock();
         let keys: Vec<String> = leaf_languages()
             .into_iter()
             .map(|(key, _)| key.replace('"', ""))
             .collect();
         assert!(keys.len() > 500, "only {} keys found", keys.len());
-        for locale in ["en", "de"] {
+        for locale in ["en", "de", "it"] {
             rust_i18n::set_locale(locale);
             let raw: Vec<_> = keys.iter().filter(|key| tr(key) == **key).collect();
             assert!(raw.is_empty(), "{locale} shows raw keys: {raw:?}");
@@ -220,7 +229,7 @@ mod tests {
     }
 
     #[test]
-    fn ui_locale_effective_prefers_explicit_english_and_german() {
+    fn ui_locale_effective_prefers_explicit_locales() {
         let _guard = locale_test_lock();
         assert_eq!(
             effective_locale_for(LocalePreference::English, "de-DE"),
@@ -230,6 +239,10 @@ mod tests {
             effective_locale_for(LocalePreference::German, "en-US"),
             "de"
         );
+        assert_eq!(
+            effective_locale_for(LocalePreference::Italian, "en-US"),
+            "it"
+        );
     }
 
     #[test]
@@ -237,6 +250,8 @@ mod tests {
         let _guard = locale_test_lock();
         assert_eq!(effective_locale_for(LocalePreference::Auto, "de-DE"), "de");
         assert_eq!(effective_locale_for(LocalePreference::Auto, "de"), "de");
+        assert_eq!(effective_locale_for(LocalePreference::Auto, "it-IT"), "it");
+        assert_eq!(effective_locale_for(LocalePreference::Auto, "it"), "it");
         assert_eq!(effective_locale_for(LocalePreference::Auto, "en-US"), "en");
         assert_eq!(effective_locale_for(LocalePreference::Auto, "fr-FR"), "en");
     }
@@ -248,6 +263,8 @@ mod tests {
         assert_eq!(load(&store), LocalePreference::Auto);
         save(&store, LocalePreference::German);
         assert_eq!(load(&store), LocalePreference::German);
+        save(&store, LocalePreference::Italian);
+        assert_eq!(load(&store), LocalePreference::Italian);
         save(&store, LocalePreference::English);
         assert_eq!(load(&store), LocalePreference::English);
     }
@@ -273,12 +290,14 @@ mod tests {
     }
 
     #[test]
-    fn ui_locale_tr_resolves_catalog_in_en_and_de() {
+    fn ui_locale_tr_resolves_catalog_in_all_locales() {
         let _guard = locale_test_lock();
         apply_locale("en");
         assert_eq!(tr("common.cancel"), "Cancel");
         apply_locale("de");
         assert_eq!(tr("common.cancel"), "Abbrechen");
+        apply_locale("it");
+        assert_eq!(tr("common.cancel"), "Annulla");
     }
 
     #[test]
