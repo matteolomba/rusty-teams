@@ -23,7 +23,7 @@ use super::push_to_talk::PushToTalk;
 use super::report::SharedRecorder;
 use super::share_view::ShareStage;
 use super::stage_layout::{
-    first_page_size, split_overflow, VisibleRotation, FILMSTRIP_MAX, RECENT_SPEAKER, SPEAKER_HOLD,
+    FILMSTRIP_MAX, RECENT_SPEAKER, SPEAKER_HOLD, VisibleRotation, first_page_size, split_overflow,
 };
 use super::transcript::{Transcript, TranscriptEntry};
 use super::view_settings::{CallLayout, ViewSettings};
@@ -2189,9 +2189,11 @@ mod tests {
                 .len(),
             1
         );
-        assert!(model
-            .visible_captions(start + Duration::from_secs(7))
-            .is_empty());
+        assert!(
+            model
+                .visible_captions(start + Duration::from_secs(7))
+                .is_empty()
+        );
         model.apply(CallUpdate::Captions(CaptionState::Off));
         assert!(model.caption_lines.is_empty() && !model.captions_on());
     }
@@ -2214,14 +2216,16 @@ mod tests {
         assert!(!model.can_hold() && !model.can_transfer());
         let meeting = meeting_with_me();
         assert!(!meeting.can_hold() && !meeting.can_transfer());
-        assert!(!CallModel::people(
-            "Group",
-            &[
-                ("8:orgid:a".into(), "A".into()),
-                ("8:orgid:b".into(), "B".into())
-            ]
-        )
-        .can_hold());
+        assert!(
+            !CallModel::people(
+                "Group",
+                &[
+                    ("8:orgid:a".into(), "A".into()),
+                    ("8:orgid:b".into(), "B".into())
+                ]
+            )
+            .can_hold()
+        );
     }
 
     #[test]
