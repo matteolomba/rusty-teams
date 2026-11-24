@@ -12,7 +12,12 @@ use crate::links::EMPTY_LINKS;
 use crate::markdown::plain_text_to_html;
 use crate::preview::OwnedPreview;
 use crate::roster_event::RosterEvent;
-use crate::stored::{AttachmentInfo, MentionInfo, QuoteInfo, ReactionInfo};
+use crate::stored::{AttachmentInfo, MentionInfo, MentionTargetKind, QuoteInfo, ReactionInfo};
+
+/// Values of Graph's `conversationIdentityType` on mention targets.
+const CHANNEL_IDENTITY_TYPE: &str = "channel";
+const TEAM_IDENTITY_TYPE: &str = "team";
+const CHAT_IDENTITY_TYPE: &str = "chat";
 
 pub fn graph_hidden(chat: &Chat) -> bool {
     chat.viewpoint
@@ -295,6 +300,26 @@ fn reaction_info(reaction: &Reaction) -> ReactionInfo {
     }
 }
 
+fn mention_target_kind(mentioned: Option<&graph::Sender>) -> Option<MentionTargetKind> {
+    let mentioned = mentioned?;
+    if mentioned.user.is_some() {
+        return Some(MentionTargetKind::User);
+    }
+    // An application has no outgoing mention target.
+    if mentioned.application.is_some() {
+        return None;
+    }
+    if mentioned.tag.is_some() {
+        return Some(MentionTargetKind::Tag);
+    }
+    match mentioned.conversation.as_ref()?.identity_type.as_deref()? {
+        CHANNEL_IDENTITY_TYPE => Some(MentionTargetKind::Channel),
+        TEAM_IDENTITY_TYPE => Some(MentionTargetKind::Team),
+        CHAT_IDENTITY_TYPE => Some(MentionTargetKind::Everyone),
+        _ => None,
+    }
+}
+
 fn mention_info(mention: &Mention) -> Option<MentionInfo> {
     let mentioned = mention.mentioned.as_ref();
     let name = mention.mention_text.clone().or_else(|| {
@@ -312,6 +337,7 @@ fn mention_info(mention: &Mention) -> Option<MentionInfo> {
             .and_then(|sender| sender.target_id())
             .map(str::to_owned),
         group: mentioned.is_some_and(|sender| sender.is_group()),
+        target_kind: mention_target_kind(mentioned),
     })
 }
 
@@ -649,26 +675,43 @@ mod tests {
     }
 
     #[test]
-    fn channel_team_and_tag_mentions_are_group_mentions() {
-        for mentioned in [
-            json!({"conversation": {"id": "19:chan@thread.tacv2", "conversationIdentityType": "channel"}}),
-            json!({"conversation": {"id": "team-1", "conversationIdentityType": "team"}}),
-            json!({"tag": {"id": "tag-1"}}),
+    fn mention_target_kinds_are_persisted() {
+        for (mentioned, expected) in [
+            (
+                json!({"conversation": {"id": "19:chan@thread.tacv2", "conversationIdentityType": "channel"}}),
+                MentionTargetKind::Channel,
+            ),
+            (
+                json!({"conversation": {"id": "team-1", "conversationIdentityType": "team"}}),
+                MentionTargetKind::Team,
+            ),
+            (
+                json!({"conversation": {"id": "19:g@thread.v2", "conversationIdentityType": "chat"}}),
+                MentionTargetKind::Everyone,
+            ),
+            (json!({"tag": {"id": "tag-1"}}), MentionTargetKind::Tag),
+            (json!({"user": {"id": "u1"}}), MentionTargetKind::User),
         ] {
             let mentions = mentions_of(mentioned);
-            assert!(mentions[0].group);
-            assert_eq!(mentions[0].user_id, None);
+            assert!(mentions[0].group || expected == MentionTargetKind::User);
+            if expected != MentionTargetKind::User {
+                assert_eq!(mentions[0].user_id, None);
+            }
             assert!(mentions[0].target_id.is_some());
+            assert_eq!(mentions[0].target_kind, Some(expected));
+            let serialized = serde_json::to_value(&mentions[0]).unwrap();
+            assert!(serialized["target_kind"].is_string());
         }
     }
 
     #[test]
     fn user_and_application_mentions_are_not_group_mentions() {
-        for mentioned in [
-            json!({"user": {"id": "u1"}}),
-            json!({"application": {"id": "bot-1"}}),
-        ] {
-            assert!(!mentions_of(mentioned)[0].group);
-        }
+        assert_eq!(
+            mentions_of(json!({"user": {"id": "u1"}}))[0].target_kind,
+            Some(MentionTargetKind::User)
+        );
+        let application = mentions_of(json!({"application": {"id": "bot-1"}}));
+        assert!(!application[0].group);
+        assert_eq!(application[0].target_kind, None);
     }
 }

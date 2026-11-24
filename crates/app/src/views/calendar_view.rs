@@ -28,8 +28,8 @@ use crate::call::calendar_now::{
 use crate::call::slot_select::{SlotSelection, minute_at};
 use crate::call::week::CalendarLoadFailure;
 use crate::call::week_grid::{
-    CalendarSpan, EventLook, WeekBlock, WeekDay, WeekLayout, calendar_index, event_look,
-    hour_label, month_shown, week_days,
+    CalendarSpan, EventLook, MINUTES_PER_DAY, WeekBlock, WeekDay, WeekLayout, calendar_index,
+    event_look, hour_label, month_shown, week_days,
 };
 use crate::i18n::tr;
 use crate::theme;
@@ -423,18 +423,7 @@ impl CalendarView {
         let row = self.hour_height;
         let top = selection.start_minute as f32 / 60. * row;
         let height = (selection.end_minute - selection.start_minute) as f32 / 60. * row;
-        let clock = |minute: i64| {
-            let minute = minute.rem_euclid(24 * 60);
-            chrono::NaiveTime::from_hms_opt((minute / 60) as u32, (minute % 60) as u32, 0)
-                .unwrap_or_default()
-                .format(clock_format())
-                .to_string()
-        };
-        let label = format!(
-            "{} – {}",
-            clock(selection.start_minute),
-            clock(selection.end_minute)
-        );
+        let label = selection_label(selection.start_minute, selection.end_minute);
         div()
             .absolute()
             .top(px(top))
@@ -1008,6 +997,19 @@ impl CalendarView {
     }
 }
 
+/// Label of a picked block, clamped like `SlotSelection::times()` so a block to midnight
+/// reads 23:00 – 23:59 rather than wrapping to 00:00.
+fn selection_label(start_minute: i64, end_minute: i64) -> String {
+    let clock = |minute: i64| {
+        let minute = minute.clamp(0, MINUTES_PER_DAY - 1);
+        chrono::NaiveTime::from_hms_opt((minute / 60) as u32, (minute % 60) as u32, 0)
+            .unwrap_or_default()
+            .format(clock_format())
+            .to_string()
+    };
+    format!("{} – {}", clock(start_minute), clock(end_minute))
+}
+
 /// Loading line and one notice per failed source, under the calendar header.
 fn load_notices(
     state: &Entity<AppState>,
@@ -1294,7 +1296,10 @@ impl Render for CalendarView {
 
 #[cfg(test)]
 mod tests {
-    use super::header_labels;
+    use app_base::format::clock_format;
+    use chrono::NaiveDate;
+
+    use super::{MINUTES_PER_DAY, SlotSelection, header_labels, selection_label};
 
     #[test]
     fn header_buttons_drop_their_text_as_the_header_narrows() {
@@ -1304,5 +1309,30 @@ mod tests {
         assert!(middle.primary && !middle.secondary);
         let narrow = header_labels(600.);
         assert!(!narrow.primary && !narrow.secondary);
+    }
+
+    #[test]
+    fn selection_label_matches_the_times_sent_to_the_meeting_form() {
+        let day = NaiveDate::from_ymd_opt(2026, 11, 24).unwrap();
+        for (start, end) in [
+            (10 * 60, 11 * 60 + 30),
+            (23 * 60, MINUTES_PER_DAY),
+            (-30, MINUTES_PER_DAY + 30),
+        ] {
+            let selection = SlotSelection {
+                date: day,
+                start_minute: start,
+                end_minute: end,
+            };
+            let (meeting_start, meeting_end) = selection.times();
+            assert_eq!(
+                selection_label(start, end),
+                format!(
+                    "{} – {}",
+                    meeting_start.format(clock_format()),
+                    meeting_end.format(clock_format())
+                )
+            );
+        }
     }
 }

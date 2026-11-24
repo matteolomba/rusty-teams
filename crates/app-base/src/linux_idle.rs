@@ -20,28 +20,78 @@ const INPUT_IDLE_VERSION: u32 = 2;
 struct WaylandIdle {
     available: bool,
     idle_since: Option<Instant>,
+    /// A watcher is still starting or running; avoids one thread per poll.
+    starting: bool,
 }
 
 pub fn system_idle() -> Option<Duration> {
-    if std::env::var_os("WAYLAND_DISPLAY").is_some() {
-        return wayland_idle();
+    resolve_idle(
+        std::env::var_os("WAYLAND_DISPLAY").is_some(),
+        wayland_idle,
+        x11_idle,
+    )
+}
+
+/// Wayland wins when usable; a missing or failed Wayland watcher falls back to X11.
+fn resolve_idle(
+    wayland_display: bool,
+    wayland: impl FnOnce() -> Option<Duration>,
+    x11: impl FnOnce() -> Option<Duration>,
+) -> Option<Duration> {
+    if wayland_display {
+        if let Some(idle) = wayland() {
+            return Some(idle);
+        }
     }
-    x11_idle()
+    x11()
 }
 
 fn wayland_idle() -> Option<Duration> {
-    static STATE: LazyLock<Arc<Mutex<WaylandIdle>>> = LazyLock::new(|| {
-        let state = Arc::new(Mutex::new(WaylandIdle::default()));
-        let watched = state.clone();
-        let _ = std::thread::Builder::new()
-            .name("wayland-idle".into())
-            .spawn(move || watch_wayland(watched));
-        state
-    });
-    let state = STATE.lock().ok()?;
-    state
+    static STATE: LazyLock<Arc<Mutex<WaylandIdle>>> =
+        LazyLock::new(|| Arc::new(Mutex::new(WaylandIdle::default())));
+    wayland_idle_from(&*STATE, start_wayland_watcher)
+}
+
+/// Reads the shared watcher state, (re)starting it after a failed attempt.
+fn wayland_idle_from(
+    state: &Arc<Mutex<WaylandIdle>>,
+    start: impl Fn(&Arc<Mutex<WaylandIdle>>) -> bool,
+) -> Option<Duration> {
+    let state = Arc::clone(state);
+    {
+        let mut guard = state.lock().ok()?;
+        if !guard.available && !guard.starting {
+            guard.starting = true;
+            drop(guard);
+            if !start(&state) {
+                if let Ok(mut guard) = state.lock() {
+                    guard.starting = false;
+                }
+                return None;
+            }
+        }
+    }
+    let guard = state.lock().ok()?;
+    guard
         .available
-        .then(|| idle_duration(state.idle_since, Instant::now()))
+        .then(|| idle_duration(guard.idle_since, Instant::now()))
+}
+
+fn start_wayland_watcher(state: &Arc<Mutex<WaylandIdle>>) -> bool {
+    let watched = Arc::clone(state);
+    std::thread::Builder::new()
+        .name("wayland-idle".into())
+        .spawn(move || {
+            let usable = watch_wayland(&watched);
+            if let Ok(mut guard) = watched.lock() {
+                guard.starting = false;
+                if !usable {
+                    guard.available = false;
+                    guard.idle_since = None;
+                }
+            }
+        })
+        .is_ok()
 }
 
 pub fn idle_duration(idle_since: Option<Instant>, now: Instant) -> Duration {
@@ -52,12 +102,23 @@ struct Watcher {
     state: Arc<Mutex<WaylandIdle>>,
 }
 
-fn watch_wayland(state: Arc<Mutex<WaylandIdle>>) -> Option<()> {
-    let connection = Connection::connect_to_env().ok()?;
-    let (globals, mut queue) = registry_queue_init::<Watcher>(&connection).ok()?;
+/// Runs the Wayland event loop. `false` means the watcher must be retried.
+fn watch_wayland(state: &Arc<Mutex<WaylandIdle>>) -> bool {
+    let Ok(connection) = Connection::connect_to_env() else {
+        return false;
+    };
+    let Ok((globals, mut queue)) = registry_queue_init::<Watcher>(&connection) else {
+        return false;
+    };
     let handle = queue.handle();
-    let seat: wl_seat::WlSeat = globals.bind(&handle, 1..=1, ()).ok()?;
-    let notifier: ExtIdleNotifierV1 = globals.bind(&handle, 1..=INPUT_IDLE_VERSION, ()).ok()?;
+    let seat: wl_seat::WlSeat = match globals.bind(&handle, 1..=1, ()) {
+        Ok(seat) => seat,
+        Err(_) => return false,
+    };
+    let notifier: ExtIdleNotifierV1 = match globals.bind(&handle, 1..=INPUT_IDLE_VERSION, ()) {
+        Ok(notifier) => notifier,
+        Err(_) => return false,
+    };
     let timeout = NOTIFY_AFTER.as_millis() as u32;
     // Version 2 counts input only, like Windows' last-input time; version 1 also honours
     // idle inhibitors such as a playing video.
@@ -66,11 +127,16 @@ fn watch_wayland(state: Arc<Mutex<WaylandIdle>>) -> Option<()> {
     } else {
         notifier.get_idle_notification(timeout, &seat, &handle, ())
     };
-    state.lock().ok()?.available = true;
-    let mut watcher = Watcher { state };
-    loop {
-        queue.blocking_dispatch(&mut watcher).ok()?;
-    }
+    let Ok(mut guard) = state.lock() else {
+        return false;
+    };
+    guard.available = true;
+    drop(guard);
+    let mut watcher = Watcher {
+        state: Arc::clone(state),
+    };
+    while queue.blocking_dispatch(&mut watcher).is_ok() {}
+    false
 }
 
 impl Dispatch<ExtIdleNotificationV1, ()> for Watcher {
@@ -145,11 +211,56 @@ fn x11_idle() -> Option<Duration> {
 mod tests {
     use super::*;
 
+    fn seconds(count: u64) -> Duration {
+        Duration::from_secs(count)
+    }
+
     #[test]
     fn idle_counts_from_the_reported_start_and_is_zero_while_active() {
         let start = Instant::now();
         assert_eq!(idle_duration(None, start), Duration::ZERO);
         let now = start + Duration::from_secs(400);
         assert_eq!(idle_duration(Some(start), now), Duration::from_secs(400));
+    }
+
+    #[test]
+    fn missing_wayland_falls_back_to_x11() {
+        assert_eq!(
+            resolve_idle(true, || None, || Some(seconds(7))),
+            Some(seconds(7))
+        );
+        assert_eq!(
+            resolve_idle(true, || Some(seconds(3)), || Some(seconds(7))),
+            Some(seconds(3))
+        );
+        assert_eq!(
+            resolve_idle(false, || Some(seconds(3)), || Some(seconds(7))),
+            Some(seconds(7))
+        );
+        assert_eq!(resolve_idle(false, || None, || None), None);
+    }
+
+    #[test]
+    fn wayland_watcher_is_retried_until_ready() {
+        let state = Arc::new(Mutex::new(WaylandIdle::default()));
+        let attempts = std::cell::Cell::new(0);
+        let start = |state: &Arc<Mutex<WaylandIdle>>| {
+            attempts.set(attempts.get() + 1);
+            if attempts.get() < 3 {
+                return false;
+            }
+            let Ok(mut guard) = state.lock() else {
+                return false;
+            };
+            guard.starting = false;
+            guard.available = true;
+            true
+        };
+        assert_eq!(wayland_idle_from(&state, &start), None);
+        assert_eq!(wayland_idle_from(&state, &start), None);
+        assert_eq!(attempts.get(), 2);
+        assert!(wayland_idle_from(&state, &start).is_some());
+        assert!(wayland_idle_from(&state, &start).is_some());
+        assert_eq!(attempts.get(), 3);
     }
 }

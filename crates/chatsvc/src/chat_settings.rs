@@ -370,7 +370,16 @@ impl ChatSettingsDocument {
 fn flag(value: &Value) -> Option<bool> {
     match value {
         Value::Bool(flag) => Some(*flag),
-        Value::String(text) => Some(!text.trim().eq_ignore_ascii_case("false")),
+        Value::String(text) => {
+            let text = text.trim();
+            if text.eq_ignore_ascii_case("true") {
+                Some(true)
+            } else if text.eq_ignore_ascii_case("false") {
+                Some(false)
+            } else {
+                None
+            }
+        }
         _ => None,
     }
 }
@@ -618,15 +627,22 @@ mod tests {
     }
 
     #[test]
-    fn read_receipts_follow_teams_parsing() {
+    fn read_receipts_accept_only_teams_boolean_flags() {
         let read = |value: Value| {
             ChatSettingsDocument::from_properties(&json!({"readReceiptsEnabled": value}))
                 .settings()
                 .read_receipts
         };
         assert!(read(json!("true")));
+        assert!(read(json!(" TRUE ")));
+        assert!(!read(json!("false")));
         assert!(!read(json!(" False ")));
         assert!(!read(json!(false)));
+        // Unrecognised strings and JSON values keep the default instead of meaning true.
+        assert_eq!(flag(&json!("0")), None);
+        assert_eq!(flag(&json!("Off")), None);
+        assert_eq!(flag(&json!("anything")), None);
+        assert_eq!(flag(&json!(1)), None);
         assert!(read(json!("anything")));
     }
 

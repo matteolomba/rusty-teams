@@ -11,6 +11,9 @@ use tokio::sync::watch;
 pub const IDLE_AFTER: Duration = Duration::from_secs(5 * 60);
 const SAMPLE_INTERVAL: Duration = Duration::from_secs(15);
 
+/// Bounds the synchronous X11/Wayland probe so it cannot stall the sampler.
+const SYSTEM_IDLE_TIMEOUT: Duration = Duration::from_secs(2);
+
 pub struct UserInput {
     origin: Instant,
     last_input_millis: AtomicU64,
@@ -99,10 +102,14 @@ pub fn track(input: Arc<UserInput>) -> watch::Receiver<bool> {
     crate::runtime::handle().spawn(async move {
         let mut interval = tokio::time::interval(SAMPLE_INTERVAL);
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        let mut last_system_idle: Option<(Instant, Duration)> = None;
         loop {
             interval.tick().await;
+            let sampled = sample_system_idle().await;
             let now = Instant::now();
-            let last_input = latest_input(input.last_input(), system_idle(), now);
+            let system = advance_system_idle(sampled, last_system_idle, now);
+            last_system_idle = system;
+            let last_input = latest_input(input.last_input(), system.map(|(_, idle)| idle), now);
             let previous = *sender.borrow();
             if let Some(current) = activity_change(previous, last_input, now, IDLE_AFTER) {
                 sender.send_replace(current);
@@ -110,6 +117,35 @@ pub fn track(input: Arc<UserInput>) -> watch::Receiver<bool> {
         }
     });
     receiver
+}
+
+/// Runs the platform probe off the Tokio runtime; timeouts and panics yield no sample.
+async fn sample_system_idle() -> Option<Duration> {
+    tokio::time::timeout(
+        SYSTEM_IDLE_TIMEOUT,
+        tokio::task::spawn_blocking(system_idle),
+    )
+    .await
+    .ok()
+    .and_then(|joined| joined.ok())
+    .unwrap_or(None)
+}
+
+/// Idle only grows, so a timed-out probe keeps advancing the last known sample.
+fn advance_system_idle(
+    sampled: Option<Duration>,
+    last: Option<(Instant, Duration)>,
+    now: Instant,
+) -> Option<(Instant, Duration)> {
+    match sampled {
+        Some(idle) => Some((now, idle)),
+        None => last.map(|(sampled_at, idle)| {
+            (
+                sampled_at,
+                idle.saturating_add(now.saturating_duration_since(sampled_at)),
+            )
+        }),
+    }
 }
 
 #[cfg(windows)]
@@ -176,15 +212,18 @@ mod tests {
 
     #[test]
     fn only_a_change_of_state_is_reported() {
-        let last_input = Some(Instant::now());
-        let at = |offset: u64| last_input.unwrap() + seconds(offset);
-        assert_eq!(activity_change(true, last_input, at(10), IDLE_AFTER), None);
+        let last_input = Instant::now();
+        let at = |offset: u64| last_input + seconds(offset);
         assert_eq!(
-            activity_change(true, last_input, at(301), IDLE_AFTER),
+            activity_change(true, Some(last_input), at(10), IDLE_AFTER),
+            None
+        );
+        assert_eq!(
+            activity_change(true, Some(last_input), at(301), IDLE_AFTER),
             Some(false)
         );
         assert_eq!(
-            activity_change(false, last_input, at(301), IDLE_AFTER),
+            activity_change(false, Some(last_input), at(301), IDLE_AFTER),
             None
         );
         assert_eq!(
@@ -192,7 +231,7 @@ mod tests {
             Some(true)
         );
         assert_eq!(
-            activity_change(false, last_input, at(10), IDLE_AFTER),
+            activity_change(false, Some(last_input), at(10), IDLE_AFTER),
             Some(true)
         );
     }
@@ -223,5 +262,20 @@ mod tests {
         std::thread::sleep(Duration::from_millis(5));
         input.touch();
         assert!(input.last_input().unwrap() > first);
+    }
+
+    #[test]
+    fn timed_out_system_probe_keeps_the_last_known_idle() {
+        let sampled_at = Instant::now();
+        let later = sampled_at + seconds(2);
+        assert_eq!(
+            advance_system_idle(None, Some((sampled_at, seconds(20))), later),
+            Some((sampled_at, seconds(22)))
+        );
+        assert_eq!(advance_system_idle(None, None, later), None);
+        assert_eq!(
+            advance_system_idle(Some(seconds(5)), Some((sampled_at, seconds(20))), later),
+            Some((later, seconds(5)))
+        );
     }
 }

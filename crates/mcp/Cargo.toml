@@ -11,7 +11,7 @@ base64.workspace = true
 chrono.workspace = true
 percent-encoding.workspace = true
 rand = "0.9"
-rmcp = { version = "=3.5.1", features = ["server", "client", "macros", "transport-streamable-http-server", "transport-streamable-http-client-reqwest"] }
+rmcp = { version = "=3.9.0", features = ["server", "client", "macros", "transport-streamable-http-server", "transport-streamable-http-client-reqwest"] }
 serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
 store.workspace = true
@@ -24,5 +24,5 @@ uuid.workspace = true
 
 [dev-dependencies]
 reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
-rmcp = { version = "=3.5.1", features = ["client", "transport-streamable-http-client-reqwest"] }
+rmcp = { version = "=3.9.0", features = ["client", "transport-streamable-http-client-reqwest"] }
 tempfile.workspace = true

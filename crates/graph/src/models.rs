@@ -45,11 +45,18 @@ impl Member {
     }
 }
 
+/// `identity_type` carries Graph's `userIdentityType` / `conversationIdentityType`.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Identity {
     pub id: Option<String>,
     pub display_name: Option<String>,
+    #[serde(
+        default,
+        alias = "userIdentityType",
+        alias = "conversationIdentityType"
+    )]
+    pub identity_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Default)]

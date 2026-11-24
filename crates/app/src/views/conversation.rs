@@ -3412,11 +3412,11 @@ impl ConversationView {
             let store = &app.store;
             MentionInput::saved_inputs(&record, in_chat, |target_id, name| {
                 if store.channel(target_id).ok().flatten().is_some() {
-                    MentionInput::channel(target_id, name)
+                    Some(MentionInput::channel(target_id, name))
                 } else if store.team(target_id).ok().flatten().is_some() {
-                    MentionInput::team(target_id, name)
+                    Some(MentionInput::team(target_id, name))
                 } else {
-                    MentionInput::tag(target_id, name)
+                    None
                 }
             })
         };

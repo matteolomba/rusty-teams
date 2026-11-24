@@ -8,6 +8,7 @@ use crate::draft::{Draft, LineKind, MarkKind};
 use crate::error::{Error, Result};
 use crate::markdown::escape_html;
 use crate::spans::Span;
+use crate::stored::MentionTargetKind;
 
 /// `text` is the display name exactly as it appears after the `@` in the message text.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -64,11 +65,12 @@ impl MentionInput {
 
     /// Mention inputs of a saved message, in the order of its `@` spans so
     /// `apply_mentions` gives them the same ids on edit. `classify_group`
-    /// resolves group targets from local data, without a network lookup.
+    /// resolves legacy group targets from local data, without a network lookup;
+    /// returning `None` drops a target that cannot be identified reliably.
     pub fn saved_inputs(
         record: &MessageRecord,
         in_chat: bool,
-        classify_group: impl Fn(&str, &str) -> MentionInput,
+        classify_group: impl Fn(&str, &str) -> Option<MentionInput>,
     ) -> Vec<Self> {
         let infos = crate::stored::mentions(record);
         let mut inputs = Vec::new();
@@ -89,7 +91,7 @@ fn collect_saved_mentions(
     infos: &[crate::stored::MentionInfo],
     conversation_id: &str,
     in_chat: bool,
-    classify_group: &impl Fn(&str, &str) -> MentionInput,
+    classify_group: &impl Fn(&str, &str) -> Option<MentionInput>,
     inputs: &mut Vec<MentionInput>,
 ) {
     for span in spans {
@@ -152,24 +154,49 @@ fn collect_saved_mentions(
                 let Some(target_id) = info.target_id.as_deref().filter(|id| !id.is_empty()) else {
                     continue;
                 };
-                let target = match info.user_id.as_deref().filter(|id| !id.is_empty()) {
-                    Some(user_id) => MentionTarget::User {
-                        user_id: user_id.to_owned(),
+                let target = match info.target_kind {
+                    Some(MentionTargetKind::User) => MentionTarget::User {
+                        user_id: info
+                            .user_id
+                            .as_deref()
+                            .filter(|id| !id.is_empty())
+                            .unwrap_or(target_id)
+                            .to_owned(),
                     },
-                    // An application has no outgoing mention target here.
-                    None if !info.group => continue,
-                    None if target_id == conversation_id => {
-                        if in_chat {
-                            MentionTarget::Everyone {
-                                chat_id: target_id.to_owned(),
-                            }
-                        } else {
-                            MentionTarget::Channel {
-                                channel_id: target_id.to_owned(),
+                    Some(MentionTargetKind::Channel) => MentionTarget::Channel {
+                        channel_id: target_id.to_owned(),
+                    },
+                    Some(MentionTargetKind::Team) => MentionTarget::Team {
+                        team_id: target_id.to_owned(),
+                    },
+                    Some(MentionTargetKind::Everyone) => MentionTarget::Everyone {
+                        chat_id: target_id.to_owned(),
+                    },
+                    Some(MentionTargetKind::Tag) => MentionTarget::Tag {
+                        tag_id: target_id.to_owned(),
+                    },
+                    None => match info.user_id.as_deref().filter(|id| !id.is_empty()) {
+                        Some(user_id) => MentionTarget::User {
+                            user_id: user_id.to_owned(),
+                        },
+                        // An application has no outgoing mention target here.
+                        None if !info.group => continue,
+                        None if target_id == conversation_id => {
+                            if in_chat {
+                                MentionTarget::Everyone {
+                                    chat_id: target_id.to_owned(),
+                                }
+                            } else {
+                                MentionTarget::Channel {
+                                    channel_id: target_id.to_owned(),
+                                }
                             }
                         }
-                    }
-                    None => classify_group(target_id, name).target,
+                        None => match classify_group(target_id, name) {
+                            Some(input) => input.target,
+                            None => continue,
+                        },
+                    },
                 };
                 inputs.push(MentionInput {
                     target,
@@ -605,7 +632,7 @@ mod tests {
     fn tagged_mentions(
         record: &MessageRecord,
         in_chat: bool,
-        classify_group: impl Fn(&str, &str) -> MentionInput,
+        classify_group: impl Fn(&str, &str) -> Option<MentionInput>,
     ) -> (String, Vec<OutgoingMention>) {
         let inputs = MentionInput::saved_inputs(record, in_chat, classify_group);
         let html = Draft::from_spans(&crate::stored::message_spans(record)).to_html();
@@ -683,9 +710,9 @@ mod tests {
         );
         let (_, outgoing) = tagged_mentions(&record, false, |target, name| {
             if target == "team-1" {
-                MentionInput::team(target, name)
+                Some(MentionInput::team(target, name))
             } else {
-                MentionInput::tag(target, name)
+                Some(MentionInput::tag(target, name))
             }
         });
         assert_eq!(
@@ -715,7 +742,7 @@ mod tests {
             ]),
         );
         let inputs = MentionInput::saved_inputs(&record, false, |target, name| {
-            MentionInput::tag(target, name)
+            Some(MentionInput::tag(target, name))
         });
         assert_eq!(inputs, [MentionInput::tag("tag-1", "Tip day")]);
         let html = Draft::from_spans(&crate::stored::message_spans(&record)).to_html();
@@ -736,6 +763,88 @@ mod tests {
         let inputs = MentionInput::saved_inputs(&record, false, |_, _| {
             panic!("an application is not a group")
         });
+        assert!(inputs.is_empty());
+    }
+
+    #[test]
+    fn explicit_target_kinds_need_no_local_group_lookup() {
+        let record = saved_record(
+            "19:c@thread.tacv2",
+            "<p><at id=\"0\">Squad</at> <at id=\"1\">Design</at> <at id=\"2\">Ada</at></p>",
+            serde_json::json!([
+                {"name": "Squad", "id": 0, "target_id": "team-1", "group": true, "target_kind": "team"},
+                {"name": "Design", "id": 1, "target_id": "tag-1", "group": true, "target_kind": "tag"},
+                {"name": "Ada", "id": 2, "target_id": "u1", "user_id": "u1", "target_kind": "user"},
+            ]),
+        );
+        let (_, outgoing) = tagged_mentions(&record, false, |_, _| {
+            panic!("explicit kinds need no cache")
+        });
+        assert_eq!(
+            outgoing
+                .iter()
+                .map(|mention| mention.target.clone())
+                .collect::<Vec<_>>(),
+            [
+                MentionTarget::Team {
+                    team_id: "team-1".into()
+                },
+                MentionTarget::Tag {
+                    tag_id: "tag-1".into()
+                },
+                MentionTarget::User {
+                    user_id: "u1".into()
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn explicit_channel_and_everyone_kinds_ignore_the_current_view() {
+        let channel = saved_record(
+            "19:c@thread.tacv2",
+            "<p><at id=\"0\">General</at></p>",
+            serde_json::json!([
+                {"name": "General", "id": 0, "target_id": "19:c@thread.tacv2", "group": true, "target_kind": "channel"},
+            ]),
+        );
+        let (_, outgoing) = tagged_mentions(&channel, true, |_, _| {
+            panic!("explicit kinds need no cache")
+        });
+        assert_eq!(
+            outgoing[0].target,
+            MentionTarget::Channel {
+                channel_id: "19:c@thread.tacv2".into()
+            }
+        );
+
+        let chat = saved_record(
+            "19:g@thread.v2",
+            "<p><at id=\"0\">Everyone</at></p>",
+            serde_json::json!([
+                {"name": "Everyone", "id": 0, "target_id": "19:g@thread.v2", "group": true, "target_kind": "everyone"},
+            ]),
+        );
+        let (_, outgoing) =
+            tagged_mentions(&chat, false, |_, _| panic!("explicit kinds need no cache"));
+        assert_eq!(
+            outgoing[0].target,
+            MentionTarget::Everyone {
+                chat_id: "19:g@thread.v2".into()
+            }
+        );
+    }
+
+    #[test]
+    fn an_unresolved_legacy_group_mention_is_dropped() {
+        let record = saved_record(
+            "19:c@thread.tacv2",
+            "<p>ping <at id=\"0\">Mystery</at></p>",
+            serde_json::json!([
+                {"name": "Mystery", "id": 0, "target_id": "unknown-1", "group": true},
+            ]),
+        );
+        let inputs = MentionInput::saved_inputs(&record, false, |_, _| None);
         assert!(inputs.is_empty());
     }
 }

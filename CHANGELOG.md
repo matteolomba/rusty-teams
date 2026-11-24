@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.7.0-rc.1] - 2026-11-24
+
 ### Added
 - Impostazione "Mostra anteprima messaggi" nella lista chat: con l'anteprima disattivata le righe diventano a una sola linea.
 - Modalità Compact più densa nelle conversazioni.

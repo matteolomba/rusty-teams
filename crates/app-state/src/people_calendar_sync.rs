@@ -26,10 +26,18 @@ pub async fn fetch_people_events<T: CardTransport>(
     let mut failures = Vec::new();
     for chunk in people.chunks(SCHEDULES_PER_REQUEST) {
         let mails: Vec<String> = chunk.iter().map(|person| person.mail.clone()).collect();
-        let schedules = calendar
-            .schedules(&mails, start, end)
-            .await
-            .map_err(|error| error.to_string())?;
+        let schedules = match calendar.schedules(&mails, start, end).await {
+            Ok(schedules) => schedules,
+            Err(error) => {
+                let names = chunk
+                    .iter()
+                    .map(|person| person.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                failures.push(format!("{names}: {error}"));
+                continue;
+            }
+        };
         for person in chunk {
             let Some(schedule) = schedules
                 .iter()
@@ -129,6 +137,7 @@ mod tests {
 
     struct Recording {
         requests: Arc<Mutex<Vec<Value>>>,
+        fail_on_request: Option<usize>,
     }
 
     impl CardTransport for Recording {
@@ -156,7 +165,15 @@ mod tests {
                     })
                 })
                 .collect::<Vec<_>>();
-            self.requests.lock().unwrap().push(body);
+            let mut requests = self.requests.lock().unwrap();
+            let request_index = requests.len();
+            requests.push(body);
+            drop(requests);
+            if self.fail_on_request == Some(request_index) {
+                return Err(chatsvc::Error::UnexpectedAnswer(
+                    "transient failure".to_owned(),
+                ));
+            }
             Ok(ApiResponse {
                 status: 200,
                 body: json!({"value": entries}),
@@ -176,6 +193,7 @@ mod tests {
         let requests = Arc::new(Mutex::new(Vec::new()));
         let recorder = Recording {
             requests: requests.clone(),
+            fail_on_request: None,
         };
         let calendar = Calendar::with_transport(recorder, "emea");
         let start = Utc.with_ymd_and_hms(2026, 11, 24, 0, 0, 0).unwrap();
@@ -188,5 +206,32 @@ mod tests {
         assert_eq!(requests[1]["schedules"].as_array().map(Vec::len), Some(4));
         assert_eq!(events.len(), 23);
         assert_eq!(failures, vec!["Person 22: not found".to_owned()]);
+    }
+
+    #[tokio::test]
+    async fn a_failed_chunk_keeps_events_from_the_others() {
+        let mut accounts = CalendarAccounts::default();
+        for index in 0..25 {
+            accounts
+                .add_person_calendar(&format!("p{index}@example.com"), &format!("Person {index}"));
+        }
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let recorder = Recording {
+            requests: requests.clone(),
+            fail_on_request: Some(1),
+        };
+        let calendar = Calendar::with_transport(recorder, "emea");
+        let start = Utc.with_ymd_and_hms(2026, 11, 24, 0, 0, 0).unwrap();
+        let (events, failures) = fetch_people_events(&calendar, &accounts, start, start)
+            .await
+            .expect("schedules");
+        assert_eq!(requests.lock().unwrap().len(), 2);
+        assert_eq!(events.len(), 20);
+        assert_eq!(
+            failures,
+            vec![
+                "Person 20, Person 21, Person 22, Person 23, Person 24: unexpected service answer: transient failure".to_owned()
+            ]
+        );
     }
 }

@@ -47,7 +47,6 @@ impl ShareSource {
 }
 
 fn capturer(kind: ShareKind) -> Option<DesktopCapturer> {
-    guard_x11_get_image();
     let mut options = DesktopCapturerOptions::new(kind.source_type());
     options.set_include_cursor(true);
     #[cfg(target_os = "macos")]
@@ -93,6 +92,11 @@ pub fn share_thumbnail(
     max_width: u32,
     max_height: u32,
 ) -> Option<VideoPicture> {
+    if wanted.kind == ShareKind::Window
+        && !window_thumbnails_enabled(std::env::var("WAYLAND_DISPLAY").ok().as_deref())
+    {
+        return None;
+    }
     let source = sources_of(wanted.kind)
         .into_iter()
         .find(|(source, _)| source.id == wanted.id)
@@ -144,114 +148,14 @@ fn pump_messages() {
 #[cfg(not(windows))]
 fn pump_messages() {}
 
-#[cfg(target_os = "linux")]
-mod x11_errors {
-    use std::cell::Cell;
-    use std::ffi::{c_int, c_ulong, c_void};
-
-    const LIB_X11: &[u8] = b"libX11.so.6\0";
-    const SET_HANDLER: &[u8] = b"XSetErrorHandler\0";
-    const DEFAULT_HANDLER: &[u8] = b"_XDefaultError\0";
-    const BAD_MATCH: c_int = 1;
-    /// Core X11 request code of `GetImage`.
-    const X_GET_IMAGE: u8 = 73;
-
-    pub(super) fn is_ignorable(error_code: c_int, request_code: u8) -> bool {
-        error_code == BAD_MATCH && request_code == X_GET_IMAGE
-    }
-
-    #[allow(dead_code)]
-    #[repr(C)]
-    struct XErrorEvent {
-        kind: c_int,
-        display: *mut c_void,
-        serial: c_ulong,
-        send_event: c_int,
-        requestor: *mut c_void,
-        error_code: c_int,
-        request_code: u8,
-        minor_code: u8,
-        resource_id: c_ulong,
-    }
-
-    type Handler = unsafe extern "C" fn(*mut c_void, *mut XErrorEvent) -> c_int;
-    type SetHandler = unsafe extern "C" fn(Option<Handler>) -> Option<Handler>;
-
-    #[derive(Clone, Copy)]
-    struct Installed {
-        active: bool,
-        previous: Option<Handler>,
-        fallback: Option<Handler>,
-    }
-
-    thread_local! {
-        static INSTALLED: Cell<Installed> = const {
-            Cell::new(Installed {
-                active: false,
-                previous: None,
-                fallback: None,
-            })
-        };
-    }
-
-    /// Xlib keeps error handlers per thread. Install before the capturer opens
-    /// its display: `XGetImage` can raise `BadMatch` for a window that closed
-    /// between listing and capture, and that must not end the process.
-    pub(super) fn guard() {
-        if INSTALLED.with(|slot| slot.get().active) {
-            return;
-        }
-        unsafe {
-            let library =
-                libc::dlopen(LIB_X11.as_ptr().cast(), libc::RTLD_LAZY | libc::RTLD_GLOBAL);
-            if library.is_null() {
-                return;
-            }
-            let Some(set_handler) = symbol::<SetHandler>(library, SET_HANDLER) else {
-                return;
-            };
-            let fallback = symbol::<Handler>(library, DEFAULT_HANDLER);
-            let previous = set_handler(Some(ignore_get_image_bad_match))
-                .filter(|handler| (*handler) as usize != ignore_get_image_bad_match as usize);
-            INSTALLED.set(Installed {
-                active: true,
-                previous,
-                fallback,
-            });
-        }
-    }
-
-    unsafe fn symbol<T: Copy>(library: *mut c_void, name: &[u8]) -> Option<T> {
-        let address = libc::dlsym(library, name.as_ptr().cast());
-        (address as usize != 0)
-            .then(|| unsafe { std::mem::transmute_copy::<*mut c_void, T>(&address) })
-    }
-
-    unsafe extern "C" fn ignore_get_image_bad_match(
-        display: *mut c_void,
-        event: *mut XErrorEvent,
-    ) -> c_int {
-        let bad_get_image = unsafe { event.as_ref() }
-            .is_some_and(|event| is_ignorable(event.error_code, event.request_code));
-        if bad_get_image {
-            return 0;
-        }
-        let installed = INSTALLED.with(Cell::get);
-        match (installed.previous, installed.fallback) {
-            (Some(previous), _) => unsafe { previous(display, event) },
-            (None, Some(default)) => unsafe { default(display, event) },
-            (None, None) => libc::abort(),
-        }
-    }
+/// X11 `XGetImage` can raise `BadMatch` for a window that closes between listing and
+/// thumbnail capture. Xlib error handlers are per thread and shared with the app's own
+/// display connection, so suppressing that error with a handler here would also hide
+/// unrelated errors. Without Wayland there is no safe per-capture handler: skip window
+/// thumbnails instead. Wayland sessions use the portal, which has no thumbnail list.
+fn window_thumbnails_enabled(wayland_display: Option<&str>) -> bool {
+    !cfg!(target_os = "linux") || wayland_display.is_some_and(|value| !value.is_empty())
 }
-
-#[cfg(target_os = "linux")]
-fn guard_x11_get_image() {
-    x11_errors::guard();
-}
-
-#[cfg(not(target_os = "linux"))]
-fn guard_x11_get_image() {}
 
 fn scaled_bgra(
     bytes: &[u8],
@@ -553,7 +457,8 @@ fn active_portal_error(error: CaptureError) -> Option<ActiveShareStop> {
         CaptureError::StartFailed | CaptureError::Interrupted => {
             Some(ActiveShareStop::Notice("macOS stopped the capture"))
         }
-        CaptureError::Temporary | CaptureError::Permanent | CaptureError::SourceGone => None,
+        CaptureError::Permanent => Some(ActiveShareStop::Notice("capture failed permanently")),
+        CaptureError::Temporary | CaptureError::SourceGone => None,
     }
 }
 
@@ -783,7 +688,10 @@ mod tests {
         );
         assert_eq!(active_portal_error(CaptureError::SourceGone), None);
         assert_eq!(active_portal_error(CaptureError::Temporary), None);
-        assert_eq!(active_portal_error(CaptureError::Permanent), None);
+        assert_eq!(
+            active_portal_error(CaptureError::Permanent),
+            Some(ActiveShareStop::Notice("capture failed permanently"))
+        );
     }
 }
 
@@ -943,15 +851,15 @@ mod portal_smoke {
     }
 }
 
-#[cfg(all(test, target_os = "linux"))]
-mod x11_error_tests {
-    use super::x11_errors::is_ignorable;
+#[cfg(test)]
+mod thumbnail_policy_tests {
+    use super::window_thumbnails_enabled;
 
     #[test]
-    fn only_bad_match_from_get_image_is_ignored() {
-        assert!(is_ignorable(1, 73));
-        assert!(!is_ignorable(2, 73));
-        assert!(!is_ignorable(1, 72));
-        assert!(!is_ignorable(0, 0));
+    fn window_thumbnails_need_wayland_on_linux() {
+        let linux = cfg!(target_os = "linux");
+        assert_eq!(window_thumbnails_enabled(None), !linux);
+        assert_eq!(window_thumbnails_enabled(Some("")), !linux);
+        assert!(window_thumbnails_enabled(Some("wayland-0")));
     }
 }

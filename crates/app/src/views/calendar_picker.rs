@@ -401,6 +401,7 @@ fn people_group(app: &Entity<AppState>, accounts: &CalendarAccounts, collapsed: 
         let (mail, menu_mail) = (person.mail.clone(), person.mail.clone());
         let index = person_calendar_index(accounts, &person.mail);
         let color = index.map_or_else(theme::accent, theme::calendar_color);
+        let palette_color = palette_color_index(index);
         body = body.child(
             calendar_row(
                 format!("calendar-picker-person-{}", person.mail),
@@ -413,10 +414,17 @@ fn people_group(app: &Entity<AppState>, accounts: &CalendarAccounts, collapsed: 
                     })
                 },
             )
-            .context_menu(move |menu, _, _| person_menu(menu, &menu_app, &menu_mail, index)),
+            .context_menu(move |menu, _, _| {
+                person_menu(menu, &menu_app, &menu_mail, palette_color)
+            }),
         );
     }
     body
+}
+
+/// Calendar indices start at 1 (0 is the accent colour); palette colours start at 0.
+fn palette_color_index(calendar_index: Option<usize>) -> Option<usize> {
+    calendar_index.and_then(|index| index.checked_sub(1))
 }
 
 /// Right-click on a person: pick their colour or remove them, as in Teams.
@@ -424,7 +432,7 @@ fn person_menu(
     mut menu: PopupMenu,
     app: &Entity<AppState>,
     mail: &str,
-    current: Option<usize>,
+    palette_color: Option<usize>,
 ) -> PopupMenu {
     for palette_index in 0..theme::avatar_palette_len() {
         let (pick, mail) = (app.clone(), mail.to_owned());
@@ -433,7 +441,7 @@ fn person_menu(
             PopupMenuItem::element(move |_, _| {
                 div().size(px(CHECK_SIZE)).rounded(px(3.)).bg(swatch)
             })
-            .checked(current == Some(palette_index + 1))
+            .checked(palette_color == Some(palette_index))
             .on_click(move |_, _, cx| {
                 pick.update(cx, |state, cx| {
                     state.set_person_calendar_color(&mail, palette_index, cx)
@@ -568,4 +576,17 @@ fn check_box(check: GroupCheck, color: Hsla) -> Div {
             // Lines stay soft: an empty box is a light fill of the calendar colour.
             GroupCheck::None => check_box.bg(color.opacity(0.22)),
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::palette_color_index;
+
+    #[test]
+    fn a_calendar_index_maps_to_the_saved_palette_color() {
+        assert_eq!(palette_color_index(Some(1)), Some(0));
+        assert_eq!(palette_color_index(Some(4)), Some(3));
+        assert_eq!(palette_color_index(Some(0)), None);
+        assert_eq!(palette_color_index(None), None);
+    }
 }

@@ -212,6 +212,17 @@ pub struct ReactionInfo {
     pub created_at: Option<DateTime<Utc>>,
 }
 
+/// Explicit kind of a mention target, as reported by Graph. Older records may lack it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MentionTargetKind {
+    User,
+    Channel,
+    Team,
+    Everyone,
+    Tag,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MentionInfo {
     pub user_id: Option<String>,
@@ -222,6 +233,8 @@ pub struct MentionInfo {
     pub target_id: Option<String>,
     #[serde(default)]
     pub group: bool,
+    #[serde(default)]
+    pub target_kind: Option<MentionTargetKind>,
 }
 
 pub fn attachments(record: &MessageRecord) -> Vec<AttachmentInfo> {

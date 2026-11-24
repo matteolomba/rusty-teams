@@ -5,7 +5,7 @@ use gpui_kit::*;
 use super::rows::{control_row, stacked_field, text_button};
 use crate::app_state::AppState;
 use crate::i18n::tr;
-use crate::views::new_chat::NewChatDraft;
+use crate::views::new_chat::{NewChatDraft, Pick};
 
 pub struct CalDavForm {
     app: Entity<AppState>,
@@ -252,6 +252,11 @@ pub struct PeopleCalendarForm {
     people: Entity<NewChatDraft>,
 }
 
+/// Free/busy needs a mail; without one the lookup is asynchronous and may fail.
+fn has_mail(pick: &Pick) -> bool {
+    matches!(&pick.mail, Some(mail) if !mail.is_empty())
+}
+
 impl PeopleCalendarForm {
     pub fn new(app: Entity<AppState>, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let draft_app = app.clone();
@@ -262,14 +267,20 @@ impl PeopleCalendarForm {
     }
 
     fn add(&mut self, cx: &mut Context<Self>) {
-        let picks = self.people.read(cx).chips().to_vec();
-        for pick in picks {
+        let (resolved, unresolved): (Vec<_>, Vec<_>) = self
+            .people
+            .read(cx)
+            .chips()
+            .to_vec()
+            .into_iter()
+            .partition(has_mail);
+        for pick in resolved {
             self.app.update(cx, |state, cx| {
                 state.add_person_calendar(pick.user_id, pick.mail, pick.name, cx)
             });
         }
         self.people
-            .update(cx, |draft, cx| draft.set_chips(Vec::new(), cx));
+            .update(cx, |draft, cx| draft.set_chips(unresolved, cx));
     }
 }
 
@@ -289,5 +300,26 @@ impl Render for PeopleCalendarForm {
                         .on_click(move |_, _, cx| form.update(cx, |form, cx| form.add(cx))),
                 ),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::has_mail;
+    use crate::views::new_chat::Pick;
+
+    fn pick(mail: Option<&str>) -> Pick {
+        Pick {
+            user_id: "u1".into(),
+            name: "Ada".into(),
+            mail: mail.map(|mail| mail.to_owned()),
+        }
+    }
+
+    #[test]
+    fn only_picks_with_a_mail_are_removed_after_adding() {
+        assert!(has_mail(&pick(Some("ada@example.com"))));
+        assert!(!has_mail(&pick(None)));
+        assert!(!has_mail(&pick(Some(""))));
     }
 }
