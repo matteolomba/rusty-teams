@@ -98,7 +98,7 @@ fn sound_button(app: &Entity<AppState>, active: bool, wanted: bool) -> Stateful<
             .build(window, cx)
         })
         .on_click(move |_, _, cx| {
-            app.update(cx, |state, cx| state.set_call_share_sound(!wanted, cx))
+            app.update(cx, |state, cx| state.set_call_share_sound(!active, cx))
         })
 }
 
