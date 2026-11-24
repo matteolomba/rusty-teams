@@ -92,7 +92,17 @@ impl SettingsDialog {
         let search = cx.new(|cx| InputState::new(window, cx).placeholder(SEARCH_PLACEHOLDER));
         let subscriptions = [
             cx.observe(&center, |_, _, cx| cx.notify()),
-            cx.observe(&app, |_, _, cx| cx.notify()),
+            cx.observe(&app, |this, _, cx| {
+                let rusty_available = crate::agents::agents_mcp_enabled(cx);
+                let section = available(this.section, rusty_available);
+                if section != this.section {
+                    this.section = section;
+                    this.body_scroll = ScrollHandle::new();
+                    this.mcp = None;
+                    this.agents = None;
+                }
+                cx.notify();
+            }),
             cx.subscribe_in(
                 &search,
                 window,

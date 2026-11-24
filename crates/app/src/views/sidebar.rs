@@ -434,7 +434,12 @@ impl SidebarView {
                 cx.notify();
             }
         });
-        let state_observation = cx.observe(&state, |_, _, cx| cx.notify());
+        let state_observation = cx.observe(&state, |view, _, cx| {
+            if view.tab == SidebarTab::Agents && !crate::agents::agents_enabled(cx) {
+                view.open_tab(SidebarTab::Chats, cx);
+            }
+            cx.notify();
+        });
         let agent_observation =
             crate::agent_api::handle(cx).map(|api| cx.observe(&api, |_, _, cx| cx.notify()));
         let runs_observation = crate::agents::runs_handle(cx).map(|runs| {
