@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.7.0-rc.2] - 2026-11-24
+
 ### Added
 - Modalità aggiornamenti configurabile in Impostazioni > Generale: `Off`, `Manual` (predefinita), `Automatic`, `Release page`. Il feed punta al fork e rifiuta asset upstream.
 
