@@ -13,9 +13,12 @@ Run on a real Mac (`.app` from `scripts/build-macos.sh` or a release zip). Unit 
 
 1. Echo / test call: mic and speaker work; hang up cleans up.
 2. Start screen share: ScreenCaptureKit picker stays open until you pick or cancel (no portal-unavailable flash).
-3. Pick a display or window: share banner shows; stop share leaves the call up.
-4. Cancel the picker: no share, call stays connected, no error toast.
-5. Prefer a second person for 1:1 ring / accept when available (ROADMAP still Partial without that).
+3. Pick a display: share banner shows; stop share leaves the call up.
+4. Share a window from the Window share action: `SCContentSharingPicker` opens with the single-window choice; after the pick the banner shows that window and frames reach the remote side.
+5. Cancel the window picker: no share, call stays connected, no error toast.
+6. Stop the shared window from the macOS menu bar: the share switches off without an error toast and the call stays connected.
+7. Close the shared window briefly, then reopen it: the share survives the grace period; a window that stays closed ends the share with a notice.
+8. Prefer a second person for 1:1 ring / accept when available (ROADMAP still Partial without that).
 
 ## Desktop integration
 
@@ -25,7 +28,7 @@ Run on a real Mac (`.app` from `scripts/build-macos.sh` or a release zip). Unit 
 
 ## Packaging
 
-1. Unsigned local build: TCC prompts for mic / camera / screen when first used.
+1. Ad hoc signed local build (no `MACOS_CODESIGN_IDENTITY`): TCC prompts for mic / camera / screen when first used. Each rebuild changes the code hash, so macOS may ask again; `tccutil reset ScreenCapture org.rusty-teams.teams` (or `Camera` / `Microphone`) clears a stale entry.
 2. Signed + notarized build (when `MACOS_CODESIGN_IDENTITY` / `MACOS_NOTARY_PROFILE` are set): Gatekeeper opens without a right-click override.
 
 ## Report

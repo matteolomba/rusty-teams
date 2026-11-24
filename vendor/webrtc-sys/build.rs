@@ -127,7 +127,10 @@ fn main() {
     ]);
     builder.define("WEBRTC_APM_DEBUG_DUMP", "0");
 
-    println!("cargo:rustc-link-search=native={}", webrtc_lib.to_str().unwrap());
+    println!(
+        "cargo:rustc-link-search=native={}",
+        webrtc_lib.to_str().unwrap()
+    );
 
     for (key, value) in webrtc_sys_build::webrtc_defines() {
         let value = value.as_deref();
@@ -178,7 +181,10 @@ fn main() {
 
             // Do not use pkg_config::probe_library, because we only require headers.
             for lib_name in ["glib-2.0", "gobject-2.0", "gio-2.0"] {
-                let lib = pkg_config::Config::new().cargo_metadata(false).probe(lib_name).unwrap();
+                let lib = pkg_config::Config::new()
+                    .cargo_metadata(false)
+                    .probe(lib_name)
+                    .unwrap();
                 for path in lib.include_paths {
                     builder.include(path);
                 }
@@ -187,9 +193,18 @@ fn main() {
             add_lazy_load_so(
                 &mut builder,
                 "desktop_capturer",
-                ["drm", "gbm", "X11", "Xfixes", "Xdamage", "Xrandr", "Xcomposite", "Xext"]
-                    .map(String::from)
-                    .to_vec(),
+                [
+                    "drm",
+                    "gbm",
+                    "X11",
+                    "Xfixes",
+                    "Xdamage",
+                    "Xrandr",
+                    "Xcomposite",
+                    "Xext",
+                ]
+                .map(String::from)
+                .to_vec(),
             );
 
             let x86 = target_arch == "x86_64" || target_arch == "i686";
@@ -334,7 +349,7 @@ fn main() {
             println!("cargo:rustc-link-lib=framework=IOSurface");
             println!("cargo:rustc-link-lib=framework=ScreenCaptureKit");
 
-            configure_darwin_sysroot(&mut builder);
+            let sysroot = configure_darwin_sysroot(&mut builder);
 
             builder
                 .file("src/objc_video_factory.mm")
@@ -342,6 +357,29 @@ fn main() {
                 .flag("-stdlib=libc++")
                 .flag("-std=c++20")
                 .flag("-Wno-nullability-completeness");
+
+            let mut sck_builder = cc::Build::new();
+            sck_builder
+                .cpp(true)
+                .file("src/sck_window_capturer.mm")
+                .includes(&[
+                    path::PathBuf::from("./include"),
+                    webrtc_include.clone(),
+                    webrtc_include.join("third_party/abseil-cpp/"),
+                    webrtc_include.join("third_party/libyuv/include/"),
+                    webrtc_include.join("third_party/libc++/"),
+                    webrtc_include.join("sdk/objc"),
+                    webrtc_include.join("sdk/objc/base"),
+                ])
+                .flag(format!("-isysroot{}", sysroot))
+                .flag("-stdlib=libc++")
+                .flag("-std=c++20")
+                .flag("-fobjc-arc")
+                .flag("-Wno-nullability-completeness");
+            for (key, value) in webrtc_sys_build::webrtc_defines() {
+                sck_builder.define(key.as_str(), value.as_deref());
+            }
+            sck_builder.warnings(false).compile("webrtcsys-sck-window");
         }
         "ios" => {
             println!("cargo:rustc-link-lib=framework=Foundation");
@@ -426,12 +464,14 @@ fn get_output_path() -> PathBuf {
     let manifest_dir_string = env::var("CARGO_MANIFEST_DIR").unwrap();
     let build_type = env::var("PROFILE").unwrap();
     let build_target = env::var("TARGET").unwrap();
-    let path =
-        Path::new(&manifest_dir_string).join("../target").join(build_target).join(build_type);
+    let path = Path::new(&manifest_dir_string)
+        .join("../target")
+        .join(build_target)
+        .join(build_type);
     return PathBuf::from(path);
 }
 
-fn configure_darwin_sysroot(builder: &mut cc::Build) {
+fn configure_darwin_sysroot(builder: &mut cc::Build) -> String {
     let target_os = webrtc_sys_build::target_os();
 
     let sdk = match target_os.as_str() {
@@ -451,12 +491,17 @@ fn configure_darwin_sysroot(builder: &mut cc::Build) {
     println!("cargo:rustc-link-lib={}", clang_rt);
     println!("cargo:rustc-link-arg=-ObjC");
 
-    let sysroot = Command::new("xcrun").args(["--sdk", sdk, "--show-sdk-path"]).output().unwrap();
+    let sysroot = Command::new("xcrun")
+        .args(["--sdk", sdk, "--show-sdk-path"])
+        .output()
+        .unwrap();
 
-    let sysroot = String::from_utf8_lossy(&sysroot.stdout);
-    let sysroot = sysroot.trim();
+    let sysroot = String::from_utf8_lossy(&sysroot.stdout).trim().to_owned();
 
-    let search_dirs = Command::new("cc").arg("--print-search-dirs").output().unwrap();
+    let search_dirs = Command::new("cc")
+        .arg("--print-search-dirs")
+        .output()
+        .unwrap();
 
     let search_dirs = String::from_utf8_lossy(&search_dirs.stdout);
     for line in search_dirs.lines() {
@@ -468,6 +513,7 @@ fn configure_darwin_sysroot(builder: &mut cc::Build) {
     }
 
     builder.flag(format!("-isysroot{}", sysroot).as_str());
+    sysroot
 }
 
 fn configure_android_sysroot(builder: &mut cc::Build) {
@@ -584,9 +630,12 @@ fn check_clang_version(builder: &cc::Build, libcxx: &path::Path) {
         .output()
         .unwrap_or_else(|e| panic!("failed to run {}: {e}", compiler.path().display()));
 
-    let major = String::from_utf8_lossy(&defines.stdout).lines().find_map(|line| {
-        line.strip_prefix("#define __clang_major__ ").and_then(|v| v.trim().parse::<u32>().ok())
-    });
+    let major = String::from_utf8_lossy(&defines.stdout)
+        .lines()
+        .find_map(|line| {
+            line.strip_prefix("#define __clang_major__ ")
+                .and_then(|v| v.trim().parse::<u32>().ok())
+        });
 
     match major {
         Some(major) if major >= min => {}

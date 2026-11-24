@@ -47,8 +47,13 @@ impl ShareSource {
 }
 
 fn capturer(kind: ShareKind) -> Option<DesktopCapturer> {
+    guard_x11_get_image();
     let mut options = DesktopCapturerOptions::new(kind.source_type());
     options.set_include_cursor(true);
+    #[cfg(target_os = "macos")]
+    if kind == ShareKind::Window {
+        options.set_sck_system_picker(true);
+    }
     DesktopCapturer::new(options)
 }
 
@@ -138,6 +143,115 @@ fn pump_messages() {
 
 #[cfg(not(windows))]
 fn pump_messages() {}
+
+#[cfg(target_os = "linux")]
+mod x11_errors {
+    use std::cell::Cell;
+    use std::ffi::{c_int, c_ulong, c_void};
+
+    const LIB_X11: &[u8] = b"libX11.so.6\0";
+    const SET_HANDLER: &[u8] = b"XSetErrorHandler\0";
+    const DEFAULT_HANDLER: &[u8] = b"_XDefaultError\0";
+    const BAD_MATCH: c_int = 1;
+    /// Core X11 request code of `GetImage`.
+    const X_GET_IMAGE: u8 = 73;
+
+    pub(super) fn is_ignorable(error_code: c_int, request_code: u8) -> bool {
+        error_code == BAD_MATCH && request_code == X_GET_IMAGE
+    }
+
+    #[allow(dead_code)]
+    #[repr(C)]
+    struct XErrorEvent {
+        kind: c_int,
+        display: *mut c_void,
+        serial: c_ulong,
+        send_event: c_int,
+        requestor: *mut c_void,
+        error_code: c_int,
+        request_code: u8,
+        minor_code: u8,
+        resource_id: c_ulong,
+    }
+
+    type Handler = unsafe extern "C" fn(*mut c_void, *mut XErrorEvent) -> c_int;
+    type SetHandler = unsafe extern "C" fn(Option<Handler>) -> Option<Handler>;
+
+    #[derive(Clone, Copy)]
+    struct Installed {
+        active: bool,
+        previous: Option<Handler>,
+        fallback: Option<Handler>,
+    }
+
+    thread_local! {
+        static INSTALLED: Cell<Installed> = const {
+            Cell::new(Installed {
+                active: false,
+                previous: None,
+                fallback: None,
+            })
+        };
+    }
+
+    /// Xlib keeps error handlers per thread. Install before the capturer opens
+    /// its display: `XGetImage` can raise `BadMatch` for a window that closed
+    /// between listing and capture, and that must not end the process.
+    pub(super) fn guard() {
+        if INSTALLED.with(|slot| slot.get().active) {
+            return;
+        }
+        unsafe {
+            let library =
+                libc::dlopen(LIB_X11.as_ptr().cast(), libc::RTLD_LAZY | libc::RTLD_GLOBAL);
+            if library.is_null() {
+                return;
+            }
+            let Some(set_handler) = symbol::<SetHandler>(library, SET_HANDLER) else {
+                return;
+            };
+            let fallback = symbol::<Handler>(library, DEFAULT_HANDLER);
+            let previous = set_handler(Some(ignore_get_image_bad_match))
+                .filter(|handler| (*handler) as usize != ignore_get_image_bad_match as usize);
+            INSTALLED.set(Installed {
+                active: true,
+                previous,
+                fallback,
+            });
+        }
+    }
+
+    unsafe fn symbol<T: Copy>(library: *mut c_void, name: &[u8]) -> Option<T> {
+        let address = libc::dlsym(library, name.as_ptr().cast());
+        (address as usize != 0)
+            .then(|| unsafe { std::mem::transmute_copy::<*mut c_void, T>(&address) })
+    }
+
+    unsafe extern "C" fn ignore_get_image_bad_match(
+        display: *mut c_void,
+        event: *mut XErrorEvent,
+    ) -> c_int {
+        let bad_get_image = unsafe { event.as_ref() }
+            .is_some_and(|event| is_ignorable(event.error_code, event.request_code));
+        if bad_get_image {
+            return 0;
+        }
+        let installed = INSTALLED.with(Cell::get);
+        match (installed.previous, installed.fallback) {
+            (Some(previous), _) => unsafe { previous(display, event) },
+            (None, Some(default)) => unsafe { default(display, event) },
+            (None, None) => libc::abort(),
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn guard_x11_get_image() {
+    x11_errors::guard();
+}
+
+#[cfg(not(target_os = "linux"))]
+fn guard_x11_get_image() {}
 
 fn scaled_bgra(
     bytes: &[u8],
@@ -271,18 +385,34 @@ fn i420_from_bgra(bytes: &[u8], width: u32, height: u32, stride: u32) -> I420Buf
     buffer
 }
 
+/// `ended` runs at most once, when the share stops on its own: with the reason
+/// to show, or with `None` when the user stopped it outside the app.
 pub fn start_screen_capture(
     wanted: ShareSource,
     fps: Arc<AtomicU32>,
     mut deliver: impl FnMut(I420Buffer) + Send + 'static,
-    failed: impl FnOnce(String) + Send + 'static,
+    ended: impl FnOnce(Option<String>) + Send + 'static,
 ) -> Result<Capture> {
     if current_share_picker() == SharePicker::Portal {
-        return start_portal_capture(wanted.kind, fps, deliver, move |follow| {
-            if let PortalFollowUp::Notice(text) = follow {
-                failed(text.to_owned());
-            }
-        });
+        let ended = Arc::new(Mutex::new(Some(ended)));
+        let failed = ended.clone();
+        return start_portal_capture(
+            wanted.kind,
+            fps,
+            deliver,
+            move |follow| {
+                if let PortalFollowUp::Notice(text) = follow
+                    && let Some(failed) = take_once(&failed)
+                {
+                    failed(Some(text.to_owned()));
+                }
+            },
+            move |reason| {
+                if let Some(ended) = take_once(&ended) {
+                    ended(reason);
+                }
+            },
+        );
     }
     Capture::spawn_thread("screen-capture", move |stop| {
         let Some(source) = sources_of(wanted.kind)
@@ -290,10 +420,10 @@ pub fn start_screen_capture(
             .find(|(source, _)| source.id == wanted.id)
             .map(|(_, raw)| raw)
         else {
-            return failed("the shared source is gone".to_owned());
+            return ended(Some("the shared source is gone".to_owned()));
         };
         let Some(mut capturer) = capturer(wanted.kind) else {
-            return failed("screen capture is not available".to_owned());
+            return ended(Some("screen capture is not available".to_owned()));
         };
         let gone_since: Arc<Mutex<Option<Instant>>> = Arc::default();
         let gone_mark = gone_since.clone();
@@ -301,7 +431,7 @@ pub fn start_screen_capture(
             let frame = match result {
                 Ok(frame) => frame,
                 Err(error) => {
-                    if matches!(error, CaptureError::Permanent)
+                    if matches!(error, CaptureError::Permanent | CaptureError::SourceGone)
                         && let Ok(mut since) = gone_mark.lock()
                     {
                         since.get_or_insert_with(Instant::now);
@@ -324,7 +454,7 @@ pub fn start_screen_capture(
                 .lock()
                 .is_ok_and(|since| since.is_some_and(|since| since.elapsed() >= SOURCE_GONE_AFTER));
             if gone {
-                return failed("the shared source is gone".to_owned());
+                return ended(Some("the shared source is gone".to_owned()));
             }
             pump_messages();
             capturer.capture_frame();
@@ -333,6 +463,10 @@ pub fn start_screen_capture(
         }
     })
     .map_err(|error| Error::Webrtc(format!("screen thread: {error}")))
+}
+
+fn take_once<F>(slot: &Mutex<Option<F>>) -> Option<F> {
+    slot.lock().ok()?.take()
 }
 
 /// Where the share menu gets its sources. Wayland and macOS use a system dialog.
@@ -389,15 +523,37 @@ pub fn portal_follow_up(event: PortalPickerEvent, source: Option<ShareSource>) -
 }
 
 /// What a frame result says about a system picker without a delegated
-/// controller (macOS). Frames start once a source is picked. A cancel, or a
-/// picker that fails to start, turns into a permanent error.
+/// controller (macOS). Frames start once a source is picked. A cancel turns
+/// into `Cancelled`, while a capture that fails to start turns into `Failed`.
 fn picker_event_from_frame<T>(
     result: &std::result::Result<T, CaptureError>,
 ) -> Option<PortalPickerEvent> {
     match result {
         Ok(_) => Some(PortalPickerEvent::Selected),
-        Err(CaptureError::Permanent) => Some(PortalPickerEvent::Cancelled),
+        Err(CaptureError::Permanent | CaptureError::StoppedByUser) => {
+            Some(PortalPickerEvent::Cancelled)
+        }
+        Err(CaptureError::StartFailed | CaptureError::SourceGone | CaptureError::Interrupted) => {
+            Some(PortalPickerEvent::Failed)
+        }
         Err(CaptureError::Temporary) => None,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ActiveShareStop {
+    Quiet,
+    Notice(&'static str),
+}
+
+/// Classifies an error received while a portal share is active.
+fn active_portal_error(error: CaptureError) -> Option<ActiveShareStop> {
+    match error {
+        CaptureError::StoppedByUser => Some(ActiveShareStop::Quiet),
+        CaptureError::StartFailed | CaptureError::Interrupted => {
+            Some(ActiveShareStop::Notice("macOS stopped the capture"))
+        }
+        CaptureError::Temporary | CaptureError::Permanent | CaptureError::SourceGone => None,
     }
 }
 
@@ -406,6 +562,7 @@ pub(crate) fn start_portal_capture(
     fps: Arc<AtomicU32>,
     mut deliver: impl FnMut(I420Buffer) + Send + 'static,
     outcome: impl FnOnce(PortalFollowUp) + Send + 'static,
+    ended: impl FnOnce(Option<String>) + Send + 'static,
 ) -> Result<Capture> {
     Capture::spawn_thread("portal-share", move |stop| {
         libwebrtc::desktop_capturer::ensure_shared_glib_loop();
@@ -421,10 +578,19 @@ pub(crate) fn start_portal_capture(
             outcome(PortalFollowUp::Notice(PORTAL_UNAVAILABLE_NOTICE));
             return;
         }
+        // ScreenCaptureKit streams run on their own queue; cap their rate to
+        // the same target the share loop uses for polling.
+        capturer.set_max_frame_rate(fps.load(Ordering::Relaxed).max(1));
         let (sender, receiver) = std::sync::mpsc::channel();
         let frame_events = (!delegated).then(|| sender.clone());
         let selected = Arc::new(AtomicBool::new(false));
         let gate = selected.clone();
+        // A closed window gets the same grace as in the source list: it may
+        // reopen, and the remote side keeps the last frame meanwhile.
+        let gone_since: Arc<Mutex<Option<Instant>>> = Arc::default();
+        let gone_mark = gone_since.clone();
+        let active_end: Arc<Mutex<Option<ActiveShareStop>>> = Arc::default();
+        let end_mark = active_end.clone();
         capturer.start_capture(None, move |result| {
             if !gate.load(Ordering::SeqCst) {
                 let Some(events) = &frame_events else { return };
@@ -437,10 +603,34 @@ pub(crate) fn start_portal_capture(
                 }
                 gate.store(true, Ordering::SeqCst);
             }
-            let Ok(frame) = result else { return };
-            let (width, height) = (frame.width() as u32 & !1, frame.height() as u32 & !1);
-            if let Some(picture) = share_frame(frame.data(), width, height, frame.stride()) {
-                deliver(picture);
+            match result {
+                Ok(frame) => {
+                    if let Ok(mut since) = gone_mark.lock() {
+                        *since = None;
+                    }
+                    let (width, height) = (frame.width() as u32 & !1, frame.height() as u32 & !1);
+                    if let Some(picture) = share_frame(frame.data(), width, height, frame.stride())
+                    {
+                        deliver(picture);
+                    }
+                }
+                Err(CaptureError::Temporary) => {
+                    if let Ok(mut since) = gone_mark.lock() {
+                        *since = None;
+                    }
+                }
+                Err(CaptureError::SourceGone) => {
+                    if let Ok(mut since) = gone_mark.lock() {
+                        since.get_or_insert_with(Instant::now);
+                    }
+                }
+                Err(error) => {
+                    if let Some(stop_reason) = active_portal_error(error)
+                        && let Ok(mut slot) = end_mark.lock()
+                    {
+                        slot.get_or_insert(stop_reason);
+                    }
+                }
             }
         });
         if delegated {
@@ -488,9 +678,27 @@ pub(crate) fn start_portal_capture(
         }
         capturer.capture_frame();
         outcome(follow);
-        while !stop.load(Ordering::SeqCst) {
+        let reason = loop {
+            if stop.load(Ordering::SeqCst) {
+                return;
+            }
             capturer.capture_frame();
+            if let Some(end) = active_end.lock().ok().and_then(|mut slot| slot.take()) {
+                break match end {
+                    ActiveShareStop::Quiet => None,
+                    ActiveShareStop::Notice(text) => Some(text),
+                };
+            }
+            let gone = gone_since
+                .lock()
+                .is_ok_and(|since| since.is_some_and(|since| since.elapsed() >= SOURCE_GONE_AFTER));
+            if gone {
+                break Some("the shared source is gone");
+            }
             std::thread::sleep(Duration::from_secs(1) / fps.load(Ordering::Relaxed).max(1));
+        };
+        if !stop.load(Ordering::SeqCst) {
+            ended(reason.map(str::to_owned));
         }
     })
     .map_err(|error| Error::Webrtc(format!("portal thread: {error}")))
@@ -538,9 +746,44 @@ mod tests {
             Some(PortalPickerEvent::Cancelled)
         );
         assert_eq!(
+            picker_event_from_frame::<()>(&Err(CaptureError::StoppedByUser)),
+            Some(PortalPickerEvent::Cancelled)
+        );
+        assert_eq!(
+            picker_event_from_frame::<()>(&Err(CaptureError::StartFailed)),
+            Some(PortalPickerEvent::Failed)
+        );
+        assert_eq!(
+            picker_event_from_frame::<()>(&Err(CaptureError::SourceGone)),
+            Some(PortalPickerEvent::Failed)
+        );
+        assert_eq!(
+            picker_event_from_frame::<()>(&Err(CaptureError::Interrupted)),
+            Some(PortalPickerEvent::Failed)
+        );
+        assert_eq!(
             picker_event_from_frame::<()>(&Err(CaptureError::Temporary)),
             None
         );
+    }
+
+    #[test]
+    fn active_portal_errors_separate_user_stop_from_failures() {
+        assert_eq!(
+            active_portal_error(CaptureError::StoppedByUser),
+            Some(ActiveShareStop::Quiet)
+        );
+        assert_eq!(
+            active_portal_error(CaptureError::Interrupted),
+            Some(ActiveShareStop::Notice("macOS stopped the capture"))
+        );
+        assert_eq!(
+            active_portal_error(CaptureError::StartFailed),
+            Some(ActiveShareStop::Notice("macOS stopped the capture"))
+        );
+        assert_eq!(active_portal_error(CaptureError::SourceGone), None);
+        assert_eq!(active_portal_error(CaptureError::Temporary), None);
+        assert_eq!(active_portal_error(CaptureError::Permanent), None);
     }
 }
 
@@ -641,6 +884,19 @@ mod portal_loop_tests {
     }
 }
 
+#[cfg(all(test, target_os = "macos"))]
+mod macos_window_capturer_tests {
+    use super::{ShareKind, capturer};
+
+    #[test]
+    fn macos_sck_window_capturer_creates_without_opening_picker() {
+        // Creating the window capturer on macOS 14+ binds the ScreenCaptureKit
+        // single-window backend without invoking SCContentSharingPicker until start.
+        let mut window_capturer = capturer(ShareKind::Window).expect("macOS window capturer");
+        window_capturer.set_max_frame_rate(15);
+    }
+}
+
 #[cfg(all(test, target_os = "linux"))]
 mod portal_smoke {
     use std::sync::Arc;
@@ -667,6 +923,7 @@ mod portal_smoke {
                 eprintln!("PORTAL_FOLLOW={follow:?}");
                 let _ = sender.send(follow);
             },
+            |_| {},
         )
         .expect("portal thread");
         let follow = receiver
@@ -683,5 +940,18 @@ mod portal_smoke {
             PortalFollowUp::Quiet => panic!("the dialog was cancelled"),
             PortalFollowUp::Notice(text) => panic!("portal notice: {text}"),
         }
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod x11_error_tests {
+    use super::x11_errors::is_ignorable;
+
+    #[test]
+    fn only_bad_match_from_get_image_is_ignored() {
+        assert!(is_ignorable(1, 73));
+        assert!(!is_ignorable(2, 73));
+        assert!(!is_ignorable(1, 72));
+        assert!(!is_ignorable(0, 0));
     }
 }

@@ -46,7 +46,10 @@ impl Default for DesktopCapturerOptions {
 
 impl DesktopCapturerOptions {
     pub(crate) fn new(source_type: SourceType) -> Self {
-        Self { source_type, ..Default::default() }
+        Self {
+            source_type,
+            ..Default::default()
+        }
     }
 
     pub(crate) fn with_cursor(mut self, include: bool) -> Self {
@@ -86,7 +89,10 @@ impl DesktopCapturerOptions {
     }
 }
 
-#[cfg(all(any(target_os = "linux", target_os = "freebsd"), feature = "glib-main-loop"))]
+#[cfg(all(
+    any(target_os = "linux", target_os = "freebsd"),
+    feature = "glib-main-loop"
+))]
 mod shared_glib {
     use std::sync::OnceLock;
 
@@ -106,21 +112,32 @@ mod shared_glib {
 
     pub(super) fn id() -> usize {
         ensure();
-        LOOP.get().map(|main_loop| main_loop as *const glib::MainLoop as usize).unwrap_or(0)
+        LOOP.get()
+            .map(|main_loop| main_loop as *const glib::MainLoop as usize)
+            .unwrap_or(0)
     }
 }
 
 pub(crate) fn ensure_shared_glib_loop() {
-    #[cfg(all(any(target_os = "linux", target_os = "freebsd"), feature = "glib-main-loop"))]
+    #[cfg(all(
+        any(target_os = "linux", target_os = "freebsd"),
+        feature = "glib-main-loop"
+    ))]
     shared_glib::ensure();
 }
 
 pub(crate) fn shared_glib_loop_id() -> usize {
-    #[cfg(all(any(target_os = "linux", target_os = "freebsd"), feature = "glib-main-loop"))]
+    #[cfg(all(
+        any(target_os = "linux", target_os = "freebsd"),
+        feature = "glib-main-loop"
+    ))]
     {
         return shared_glib::id();
     }
-    #[cfg(not(all(any(target_os = "linux", target_os = "freebsd"), feature = "glib-main-loop")))]
+    #[cfg(not(all(
+        any(target_os = "linux", target_os = "freebsd"),
+        feature = "glib-main-loop"
+    )))]
     {
         0
     }
@@ -144,11 +161,18 @@ impl DesktopCapturer {
         self.sys_handle.capture_frame();
     }
 
+    pub(crate) fn set_max_frame_rate(&self, max_fps: u32) {
+        self.sys_handle.set_max_frame_rate(max_fps);
+    }
+
     pub(crate) fn start<T>(&mut self, callback: T)
     where
         T: FnMut(Result<DesktopFrame, CaptureError>) + Send + 'static,
     {
-        #[cfg(all(any(target_os = "linux", target_os = "freebsd"), feature = "glib-main-loop"))]
+        #[cfg(all(
+            any(target_os = "linux", target_os = "freebsd"),
+            feature = "glib-main-loop"
+        ))]
         if std::env::var("WAYLAND_DISPLAY").is_ok() {
             ensure_shared_glib_loop();
         }
@@ -166,7 +190,9 @@ impl DesktopCapturer {
         let mut sources = Vec::new();
         let source_list = self.sys_handle.get_source_list();
         for source in source_list.iter() {
-            sources.push(CaptureSource { sys_handle: source.clone() });
+            sources.push(CaptureSource {
+                sys_handle: source.clone(),
+            });
         }
         sources
     }
@@ -175,13 +201,19 @@ impl DesktopCapturer {
         self.sys_handle.has_delegated_picker()
     }
 
-    pub(crate) fn observe_picker(&mut self, callback: impl FnMut(sys_dc::PickerEvent) + Send + 'static) {
+    pub(crate) fn observe_picker(
+        &mut self,
+        callback: impl FnMut(sys_dc::PickerEvent) + Send + 'static,
+    ) {
         let wrapper = sys_dc::PortalPickerCallbackWrapper::new(Box::new(callback));
         self.sys_handle.pin_mut().observe_picker(Box::new(wrapper));
     }
 
     pub(crate) fn ensure_picker_visible(&mut self) {
-        #[cfg(all(any(target_os = "linux", target_os = "freebsd"), feature = "glib-main-loop"))]
+        #[cfg(all(
+            any(target_os = "linux", target_os = "freebsd"),
+            feature = "glib-main-loop"
+        ))]
         if std::env::var("WAYLAND_DISPLAY").is_ok() {
             ensure_shared_glib_loop();
         }
@@ -248,6 +280,10 @@ where
             Err(error) => Err(match error {
                 sys_dc::CaptureError::Temporary => CaptureError::Temporary,
                 sys_dc::CaptureError::Permanent => CaptureError::Permanent,
+                sys_dc::CaptureError::StartFailed => CaptureError::StartFailed,
+                sys_dc::CaptureError::StoppedByUser => CaptureError::StoppedByUser,
+                sys_dc::CaptureError::SourceGone => CaptureError::SourceGone,
+                sys_dc::CaptureError::Interrupted => CaptureError::Interrupted,
             }),
         }
     }
@@ -287,4 +323,8 @@ impl CaptureSource {
 pub(crate) enum CaptureError {
     Temporary,
     Permanent,
+    StartFailed,
+    StoppedByUser,
+    SourceGone,
+    Interrupted,
 }

@@ -44,6 +44,10 @@ pub mod ffi {
         Success,
         ErrorTemporary,
         ErrorPermanent,
+        StartFailed,
+        StoppedByUser,
+        SourceGone,
+        Interrupted,
     }
 
     unsafe extern "C++" {
@@ -54,6 +58,7 @@ pub mod ffi {
 
         fn new_desktop_capturer(options: DesktopCapturerOptions) -> UniquePtr<DesktopCapturer>;
         fn capture_frame(self: &DesktopCapturer);
+        fn set_max_frame_rate(self: &DesktopCapturer, max_fps: u32);
         fn get_source_list(self: &DesktopCapturer) -> Vec<Source>;
         fn select_source(self: &DesktopCapturer, id: u64) -> bool;
         fn start(self: Pin<&mut DesktopCapturer>, callback: Box<DesktopCapturerCallbackWrapper>);
@@ -92,10 +97,18 @@ pub mod ffi {
 
 impl_thread_safety!(ffi::DesktopCapturer, Send + Sync);
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CaptureError {
     Temporary,
     Permanent,
+    /// The picker or capture stream failed to start.
+    StartFailed,
+    /// Sharing was stopped from the system UI, such as the macOS menu bar.
+    StoppedByUser,
+    /// The shared source is closed or gone (on macOS 15.2+ it may reopen).
+    SourceGone,
+    /// The OS stopped the capture stream for another reason.
+    Interrupted,
 }
 
 pub trait DesktopCapturerCallback: Send {
@@ -114,13 +127,27 @@ impl DesktopCapturerCallbackWrapper {
     fn on_capture_result(&mut self, result: CaptureResult, frame: UniquePtr<DesktopFrame>) {
         match result {
             CaptureResult::Success => self.callback.on_capture_result(Ok(frame)),
-            CaptureResult::ErrorTemporary => {
-                self.callback.on_capture_result(Err(CaptureError::Temporary))
-            }
-            CaptureResult::ErrorPermanent => {
-                self.callback.on_capture_result(Err(CaptureError::Permanent))
-            }
-            _ => self.callback.on_capture_result(Err(CaptureError::Permanent)),
+            CaptureResult::ErrorTemporary => self
+                .callback
+                .on_capture_result(Err(CaptureError::Temporary)),
+            CaptureResult::ErrorPermanent => self
+                .callback
+                .on_capture_result(Err(CaptureError::Permanent)),
+            CaptureResult::StartFailed => self
+                .callback
+                .on_capture_result(Err(CaptureError::StartFailed)),
+            CaptureResult::StoppedByUser => self
+                .callback
+                .on_capture_result(Err(CaptureError::StoppedByUser)),
+            CaptureResult::SourceGone => self
+                .callback
+                .on_capture_result(Err(CaptureError::SourceGone)),
+            CaptureResult::Interrupted => self
+                .callback
+                .on_capture_result(Err(CaptureError::Interrupted)),
+            _ => self
+                .callback
+                .on_capture_result(Err(CaptureError::Interrupted)),
         }
     }
 }
