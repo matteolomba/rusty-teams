@@ -2,10 +2,12 @@ use std::ops::Range;
 
 use graph::{MentionTarget, OutgoingMention};
 use serde::{Deserialize, Serialize};
+use store::MessageRecord;
 
 use crate::draft::{Draft, LineKind, MarkKind};
 use crate::error::{Error, Result};
 use crate::markdown::escape_html;
+use crate::spans::Span;
 
 /// `text` is the display name exactly as it appears after the `@` in the message text.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,6 +59,124 @@ impl MentionInput {
                 tag_id: tag_id.to_owned(),
             },
             text: text.to_owned(),
+        }
+    }
+
+    /// Mention inputs of a saved message, in the order of its `@` spans so
+    /// `apply_mentions` gives them the same ids on edit. `classify_group`
+    /// resolves group targets from local data, without a network lookup.
+    pub fn saved_inputs(
+        record: &MessageRecord,
+        in_chat: bool,
+        classify_group: impl Fn(&str, &str) -> MentionInput,
+    ) -> Vec<Self> {
+        let infos = crate::stored::mentions(record);
+        let mut inputs = Vec::new();
+        collect_saved_mentions(
+            &crate::stored::message_spans(record),
+            &infos,
+            &record.conversation_id,
+            in_chat,
+            &classify_group,
+            &mut inputs,
+        );
+        inputs
+    }
+}
+
+fn collect_saved_mentions(
+    spans: &[Span],
+    infos: &[crate::stored::MentionInfo],
+    conversation_id: &str,
+    in_chat: bool,
+    classify_group: &impl Fn(&str, &str) -> MentionInput,
+    inputs: &mut Vec<MentionInput>,
+) {
+    for span in spans {
+        match span {
+            Span::Bold(children)
+            | Span::Italic(children)
+            | Span::Strike(children)
+            | Span::Superscript(children)
+            | Span::Subscript(children)
+            | Span::Underline(children)
+            | Span::BlockQuote(children) => collect_saved_mentions(
+                children,
+                infos,
+                conversation_id,
+                in_chat,
+                classify_group,
+                inputs,
+            ),
+            Span::Sized(_, children)
+            | Span::Colored { children, .. }
+            | Span::Heading { children, .. }
+            | Span::Link { children, .. }
+            | Span::Indent { children, .. } => collect_saved_mentions(
+                children,
+                infos,
+                conversation_id,
+                in_chat,
+                classify_group,
+                inputs,
+            ),
+            Span::List { items, .. } => items.iter().for_each(|item| {
+                collect_saved_mentions(
+                    item,
+                    infos,
+                    conversation_id,
+                    in_chat,
+                    classify_group,
+                    inputs,
+                )
+            }),
+            Span::Table { rows, .. } => rows.iter().flatten().for_each(|cell| {
+                collect_saved_mentions(
+                    cell,
+                    infos,
+                    conversation_id,
+                    in_chat,
+                    classify_group,
+                    inputs,
+                )
+            }),
+            // The reply quote is not part of the edited draft.
+            Span::Quote { .. } => {}
+            Span::Mention { name, id } => {
+                let Some(id) = id.as_deref().and_then(|id| id.parse::<i64>().ok()) else {
+                    continue;
+                };
+                let Some(info) = infos.iter().find(|info| info.id == Some(id)) else {
+                    continue;
+                };
+                let Some(target_id) = info.target_id.as_deref().filter(|id| !id.is_empty()) else {
+                    continue;
+                };
+                let target = match info.user_id.as_deref().filter(|id| !id.is_empty()) {
+                    Some(user_id) => MentionTarget::User {
+                        user_id: user_id.to_owned(),
+                    },
+                    // An application has no outgoing mention target here.
+                    None if !info.group => continue,
+                    None if target_id == conversation_id => {
+                        if in_chat {
+                            MentionTarget::Everyone {
+                                chat_id: target_id.to_owned(),
+                            }
+                        } else {
+                            MentionTarget::Channel {
+                                channel_id: target_id.to_owned(),
+                            }
+                        }
+                    }
+                    None => classify_group(target_id, name).target,
+                };
+                inputs.push(MentionInput {
+                    target,
+                    text: name.clone(),
+                });
+            }
+            _ => {}
         }
     }
 }
@@ -467,5 +587,155 @@ mod tests {
         assert!(ensure_allowed_in_chat(&[MentionInput::everyone("19:g", "Everyone")]).is_ok());
         assert!(ensure_allowed_in_chat(&[MentionInput::team("t", "Squad")]).is_err());
         assert!(ensure_allowed_in_chat(&[MentionInput::tag("tag-1", "Design")]).is_err());
+    }
+
+    fn saved_record(
+        conversation_id: &str,
+        body_html: &str,
+        mentions: serde_json::Value,
+    ) -> MessageRecord {
+        MessageRecord {
+            conversation_id: conversation_id.to_owned(),
+            body_html: body_html.to_owned(),
+            mentions_json: mentions.to_string(),
+            ..MessageRecord::default()
+        }
+    }
+
+    fn tagged_mentions(
+        record: &MessageRecord,
+        in_chat: bool,
+        classify_group: impl Fn(&str, &str) -> MentionInput,
+    ) -> (String, Vec<OutgoingMention>) {
+        let inputs = MentionInput::saved_inputs(record, in_chat, classify_group);
+        let html = Draft::from_spans(&crate::stored::message_spans(record)).to_html();
+        apply_mentions(&html, &inputs)
+    }
+
+    #[test]
+    fn saved_channel_mentions_keep_their_ids_beside_user_mentions() {
+        let record = saved_record(
+            "19:c@thread.tacv2",
+            "<p>hi <at id=\"0\">Ada</at> and <at id=\"1\">General</at></p>",
+            serde_json::json!([
+                {"user_id": "u1", "name": "Ada", "id": 0, "target_id": "u1"},
+                {"name": "General", "id": 1, "target_id": "19:c@thread.tacv2", "group": true},
+            ]),
+        );
+        let (html, outgoing) =
+            tagged_mentions(&record, false, |_, _| panic!("the channel names itself"));
+        assert_eq!(
+            html,
+            "hi <at id=\"0\">Ada</at> and <at id=\"1\">General</at>"
+        );
+        assert_eq!(
+            outgoing
+                .iter()
+                .map(|mention| (mention.id, mention.target.clone()))
+                .collect::<Vec<_>>(),
+            [
+                (
+                    0,
+                    MentionTarget::User {
+                        user_id: "u1".into()
+                    }
+                ),
+                (
+                    1,
+                    MentionTarget::Channel {
+                        channel_id: "19:c@thread.tacv2".into()
+                    }
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_group_mention_of_the_chat_becomes_everyone_on_edit() {
+        let record = saved_record(
+            "19:g@thread.v2",
+            "<p><at id=\"0\">Everyone</at> please</p>",
+            serde_json::json!([
+                {"name": "Everyone", "id": 0, "target_id": "19:g@thread.v2", "group": true},
+            ]),
+        );
+        let (html, outgoing) = tagged_mentions(&record, true, |_, _| {
+            panic!("a chat mention names the chat")
+        });
+        assert_eq!(html, "<at id=\"0\">Everyone</at> please");
+        assert_eq!(
+            outgoing[0].target,
+            MentionTarget::Everyone {
+                chat_id: "19:g@thread.v2".into()
+            }
+        );
+    }
+
+    #[test]
+    fn saved_team_and_tag_mentions_use_the_resolved_target() {
+        let record = saved_record(
+            "19:c@thread.tacv2",
+            "<p><at id=\"0\">Squad</at> and <at id=\"1\">Design</at></p>",
+            serde_json::json!([
+                {"name": "Squad", "id": 0, "target_id": "team-1", "group": true},
+                {"name": "Design", "id": 1, "target_id": "tag-1", "group": true},
+            ]),
+        );
+        let (_, outgoing) = tagged_mentions(&record, false, |target, name| {
+            if target == "team-1" {
+                MentionInput::team(target, name)
+            } else {
+                MentionInput::tag(target, name)
+            }
+        });
+        assert_eq!(
+            outgoing
+                .iter()
+                .map(|mention| mention.target.clone())
+                .collect::<Vec<_>>(),
+            [
+                MentionTarget::Team {
+                    team_id: "team-1".into()
+                },
+                MentionTarget::Tag {
+                    tag_id: "tag-1".into()
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn split_saved_mentions_become_one_input_like_the_draft() {
+        let record = saved_record(
+            "19:c@thread.tacv2",
+            "<p><at id=\"0\">Tip</at> <at id=\"1\">day</at></p>",
+            serde_json::json!([
+                {"name": "Tip", "id": 0, "target_id": "tag-1", "group": true},
+                {"name": "day", "id": 1, "target_id": "tag-1", "group": true},
+            ]),
+        );
+        let inputs = MentionInput::saved_inputs(&record, false, |target, name| {
+            MentionInput::tag(target, name)
+        });
+        assert_eq!(inputs, [MentionInput::tag("tag-1", "Tip day")]);
+        let html = Draft::from_spans(&crate::stored::message_spans(&record)).to_html();
+        let (tagged, outgoing) = apply_mentions(&html, &inputs);
+        assert_eq!(tagged, "<at id=\"0\">Tip day</at>");
+        assert_eq!(outgoing[0].text, "Tip day");
+    }
+
+    #[test]
+    fn a_stored_application_mention_is_not_recreated_as_a_person() {
+        let record = saved_record(
+            "19:c@thread.tacv2",
+            "<p>ping <at id=\"0\">Bot</at></p>",
+            serde_json::json!([
+                {"name": "Bot", "id": 0, "target_id": "bot-1"},
+            ]),
+        );
+        let inputs = MentionInput::saved_inputs(&record, false, |_, _| {
+            panic!("an application is not a group")
+        });
+        assert!(inputs.is_empty());
     }
 }

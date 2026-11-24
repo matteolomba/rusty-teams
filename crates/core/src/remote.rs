@@ -976,9 +976,11 @@ impl Remote for Graph {
                     .await?)
             }
             Some(conversation @ ConversationRef::Chat { .. }) => {
-                let entries = crate::teams_quote::mention_entries(mentions).ok_or(
-                    Error::Unsupported("editing in a team, channel or tag mention"),
-                )?;
+                // Channel, team and tag mentions have no chatsvc `mentions` entry;
+                // Graph writes them with their conversation or tag identity.
+                let Some(entries) = crate::teams_quote::mention_entries(mentions) else {
+                    return Ok(Graph::edit_message(self, target, html, mentions, extras).await?);
+                };
                 let html = format!(
                     "{}{}{}",
                     extras.kept_html(),

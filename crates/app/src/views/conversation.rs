@@ -18,8 +18,8 @@ use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 use store::{ChannelTabRecord, MessageRecord, OutboxState, OutboxTarget, is_bot_id};
 use teams_core::{
-    ExecuteAction, FileCard, ImageRef, JumpPlan, LinkPreview, WindowDirection, is_notes_chat,
-    without_islands,
+    ExecuteAction, FileCard, ImageRef, JumpPlan, LinkPreview, MentionInput, WindowDirection,
+    is_notes_chat, without_islands,
 };
 
 mod channel_details;
@@ -3407,10 +3407,18 @@ impl ConversationView {
             self.current.as_ref().map(|current| &current.selection),
             Some(Selection::Chat(_))
         );
-        let mentions = if in_chat {
-            teams_core::user_mention_inputs(&record)
-        } else {
-            Vec::new()
+        let mentions = {
+            let app = self.app.read(cx);
+            let store = &app.store;
+            MentionInput::saved_inputs(&record, in_chat, |target_id, name| {
+                if store.channel(target_id).ok().flatten().is_some() {
+                    MentionInput::channel(target_id, name)
+                } else if store.team(target_id).ok().flatten().is_some() {
+                    MentionInput::team(target_id, name)
+                } else {
+                    MentionInput::tag(target_id, name)
+                }
+            })
         };
         let draft = Outgoing {
             banner: None,
