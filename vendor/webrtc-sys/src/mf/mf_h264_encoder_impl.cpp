@@ -554,11 +554,16 @@ int32_t MFH264EncoderImpl::Encode(
   if (static_cast<uint32_t>(i420->width()) != width_ ||
       static_cast<uint32_t>(i420->height()) != height_) {
     // Resolution changed dynamically: re-init MFT or fall back cleanly.
-    width_ = static_cast<uint32_t>(i420->width());
-    height_ = static_cast<uint32_t>(i420->height());
-    if (!IsEvenSize(width_, height_)) {
+    const uint32_t width = static_cast<uint32_t>(i420->width());
+    const uint32_t height = static_cast<uint32_t>(i420->height());
+    if (!IsEvenSize(width, height)) {
+      // Keep no MFT sized for the old frame: a later frame of this size would pass the size
+      // check above and overrun the NV12 buffer.
+      Release();
       return WEBRTC_VIDEO_CODEC_FALLBACK_SOFTWARE;
     }
+    width_ = width;
+    height_ = height;
     mft_.Reset();
     codec_api_.Reset();
     event_gen_.Reset();
