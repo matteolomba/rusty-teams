@@ -31,7 +31,7 @@ impl App {
     }
 
     pub fn is_park_url(self, url: &str) -> bool {
-        url.starts_with(self.park_url())
+        url == self.park_url()
     }
 }
 
@@ -128,6 +128,7 @@ mod tests {
         let teams = find_app_tab(&parked, App::Teams).unwrap();
         assert!(App::Teams.is_park_url(&teams.url));
         assert!(!App::Teams.is_park_url("https://teams.cloud.microsoft/v2/"));
+        assert!(!App::Teams.is_park_url("https://teams.cloud.microsoft/robots.txt?x=1"));
     }
 
     /// Regression: `starts_with` took a look-alike host for the Teams or login origin.
