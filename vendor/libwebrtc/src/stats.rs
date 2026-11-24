@@ -30,7 +30,10 @@ pub fn parse_stats(json: &str) -> Result<Vec<RtcStats>, RtcError> {
         error_type: RtcErrorType::Internal,
         message: format!("stats report: {error}"),
     })?;
-    Ok(entries.into_iter().filter_map(|entry| serde_json::from_value(entry).ok()).collect())
+    Ok(entries
+        .into_iter()
+        .filter_map(|entry| serde_json::from_value(entry).ok())
+        .collect())
 }
 
 /// Values from https://www.w3.org/TR/webrtc-stats/ (NOTE: Some of the structs are not in the SPEC
