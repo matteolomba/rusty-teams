@@ -115,6 +115,12 @@ use crate::video_receive::{
 use crate::video_send::{LocalVideo, SendSource, VideoMode};
 use crate::whiteboard;
 
+/// A pre-negotiated share line can be flipped with updateMediaDescriptions, like the Teams web
+/// client does. A line Teams answered with port 0 is stopped and must not be reused.
+fn share_flip_available(has_line: bool, rejected: bool, has_link: bool) -> bool {
+    has_line && !rejected && has_link
+}
+
 /// Every mid of the current peer, so a media flip can send the whole line list Teams expects.
 fn media_mids(peer: &PeerConnection) -> Vec<String> {
     peer.transceivers()
@@ -2322,6 +2328,28 @@ async fn drive(
                             } else if direct && (same_peer.is_some() || glare_resend.is_some()) {
                                 control.send(CallUpdate::Notice(CHANGE_RUNNING_NOTICE.into()));
                             } else if direct
+                                && share_flip_available(
+                                    local_video.has_share_line(),
+                                    local_video.share_line_rejected(),
+                                    media_links.contains_key("updateMediaDescriptions"),
+                                )
+                            {
+                                match local_video.start_share(&source) {
+                                    Ok(()) => {
+                                        announce_share(control, &source);
+                                        tell_media_descriptions(
+                                            &remote,
+                                            &media_links,
+                                            media_descriptions(&media_mids(&current.peer), MediaDescription::share_line(local_video.share_mid().unwrap_or_else(|| SHARE_MID.to_owned()), true)),
+                                            Some(negotiation_tag(&remote.participant.participant_id, ";ss_1")),
+                                            &mut media_description_request,
+                                            timeline,
+                                        );
+                                        sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), false, &mut software_audio, mic_settings, control, timeline);
+                                    }
+                                    Err(error) => control.send(CallUpdate::Notice(notice_with_detail(SHARING_START_NOTICE, error))),
+                                }
+                            } else if direct
                                 && !local_video.has_share_line()
                                 && let Err(error) = attach_share_line(&current.peer, &factory, &mut local_video, direct_video_mid.as_deref())
                             {
@@ -2388,6 +2416,25 @@ async fn drive(
                                 local_video.stop_share();
                             } else if direct && local_video.sharing() && (same_peer.is_some() || glare_resend.is_some()) {
                                 control.send(CallUpdate::Notice(CHANGE_RUNNING_NOTICE.into()));
+                            } else if direct
+                                && local_video.sharing()
+                                && share_flip_available(
+                                    local_video.has_share_line(),
+                                    local_video.share_line_rejected(),
+                                    media_links.contains_key("updateMediaDescriptions"),
+                                )
+                            {
+                                local_video.stop_share();
+                                clear_share(control);
+                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), false, &mut software_audio, mic_settings, control, timeline);
+                                tell_media_descriptions(
+                                    &remote,
+                                    &media_links,
+                                    media_descriptions(&media_mids(&current.peer), MediaDescription::share_line(local_video.share_mid().unwrap_or_else(|| SHARE_MID.to_owned()), false)),
+                                    Some(negotiation_tag(&remote.participant.participant_id, ";ss_1")),
+                                    &mut media_description_request,
+                                    timeline,
+                                );
                             } else if direct && local_video.sharing() {
                                 local_video.stop_share();
                                 clear_share(control);
@@ -3447,5 +3494,18 @@ mod tests {
             meeting_data: None,
         });
         assert!(meeting.is_meeting() && !meeting.is_people());
+    }
+}
+
+#[cfg(test)]
+mod share_flip_tests {
+    use super::share_flip_available;
+
+    #[test]
+    fn a_prenegotiated_line_is_flipped_but_a_rejected_one_is_not() {
+        assert!(share_flip_available(true, false, true));
+        assert!(!share_flip_available(false, false, true));
+        assert!(!share_flip_available(true, true, true));
+        assert!(!share_flip_available(true, false, false));
     }
 }
