@@ -70,9 +70,9 @@ pub(super) const AVATAR_SIZE: f32 = 28.;
 pub(super) const AVATAR_GAP: f32 = 8.;
 const SERIES_START_GAP: f32 = 8.;
 const SERIES_GAP: f32 = 2.;
-const COMPACT_SERIES_START_GAP: f32 = 4.;
-const COMPACT_SERIES_GAP: f32 = 1.;
-const COMPACT_BUBBLE_PADDING_Y: f32 = 4.;
+const COMPACT_SERIES_START_GAP: f32 = 2.;
+const COMPACT_SERIES_GAP: f32 = 0.;
+const COMPACT_BUBBLE_PADDING_Y: f32 = 3.;
 pub(super) const BODY_SIZE: f32 = 13.5;
 const MAX_WIDTH_RATIO: f32 = 0.7;
 const NARROW_BUBBLE_WIDTH: f32 = 300.;
@@ -999,10 +999,20 @@ mod highlight_tests {
 
 #[cfg(test)]
 mod density_tests {
-    use super::{META_BOTTOM_INSET, bubble_padding_y, row_spacing, runway_width};
+    use super::{
+        BUBBLE_PADDING_Y, COMPACT_BUBBLE_PADDING_Y, COMPACT_SERIES_GAP, COMPACT_SERIES_START_GAP,
+        META_BOTTOM_INSET, SERIES_GAP, SERIES_START_GAP, bubble_padding_y, row_spacing,
+        runway_width,
+    };
 
     #[test]
     fn compact_density_tightens_gaps_and_bubble_padding() {
+        assert_eq!(row_spacing(false, false), SERIES_START_GAP);
+        assert_eq!(row_spacing(true, false), SERIES_GAP);
+        assert_eq!(bubble_padding_y(false), BUBBLE_PADDING_Y);
+        assert_eq!(row_spacing(false, true), COMPACT_SERIES_START_GAP);
+        assert_eq!(row_spacing(true, true), COMPACT_SERIES_GAP);
+        assert_eq!(bubble_padding_y(true), COMPACT_BUBBLE_PADDING_Y);
         assert!(row_spacing(false, true) < row_spacing(false, false));
         assert!(row_spacing(true, true) < row_spacing(true, false));
         assert!(bubble_padding_y(true) < bubble_padding_y(false));

@@ -87,6 +87,15 @@ const NEW_CHAT_BUTTON_SIZE: f32 = 32.;
 const NOTIFICATION_ICON_SIZE: f32 = 13.;
 const MENTION_ICON_SIZE: f32 = 15.;
 const IMPORTANCE_MARKER_SIZE: f32 = 16.;
+const ROW_HEIGHT_NO_PREVIEW: f32 = 36.;
+
+fn chat_row_height(show_preview: bool) -> f32 {
+    if show_preview {
+        ROW_HEIGHT
+    } else {
+        ROW_HEIGHT_NO_PREVIEW
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SidebarTab {
@@ -980,7 +989,9 @@ impl SidebarView {
         proposal_agent: Option<&'static str>,
         directory: &Directory,
         menu: &MenuContext,
+        show_preview: bool,
     ) -> AnyElement {
+        let row_height = chat_row_height(show_preview);
         let ring = if selected {
             theme::surface_raised()
         } else {
@@ -1028,61 +1039,84 @@ impl SidebarView {
         } else {
             theme::text_muted()
         };
-        let preview = match (proposal_agent, local_preview) {
-            (Some(agent), _) => Some(
-                h_flex()
-                    .flex_1()
-                    .min_w_0()
-                    .overflow_hidden()
-                    .text_size(theme::text_small())
-                    .text_color(theme::accent_text())
-                    .child(div().truncate().child(format!("Proposal from {agent}"))),
-            ),
-            (None, Some(local)) => Some(local_preview_row(local, preview_color)),
-            (None, None) => preview_text(&item.preview).map(|(text, italic)| {
-                h_flex()
-                    .flex_1()
-                    .min_w_0()
-                    .overflow_hidden()
-                    .gap(px(4.))
-                    .items_center()
-                    .text_size(theme::text_small())
-                    .when(italic, |preview| preview.italic())
-                    .text_color(preview_color)
-                    .child(div().truncate().child(text))
-            }),
+        let preview = if show_preview {
+            match (proposal_agent, local_preview) {
+                (Some(agent), _) => Some(
+                    h_flex()
+                        .flex_1()
+                        .min_w_0()
+                        .overflow_hidden()
+                        .text_size(theme::text_small())
+                        .text_color(theme::accent_text())
+                        .child(div().truncate().child(format!("Proposal from {agent}"))),
+                ),
+                (None, Some(local)) => Some(local_preview_row(local, preview_color)),
+                (None, None) => preview_text(&item.preview).map(|(text, italic)| {
+                    h_flex()
+                        .flex_1()
+                        .min_w_0()
+                        .overflow_hidden()
+                        .gap(px(4.))
+                        .items_center()
+                        .text_size(theme::text_small())
+                        .when(italic, |preview| preview.italic())
+                        .text_color(preview_color)
+                        .child(div().truncate().child(text))
+                }),
+            }
+        } else {
+            None
         };
-        let lines = v_flex()
-            .flex_1()
-            .min_w_0()
-            .gap(px(2.))
-            .child(
+        let markers = || {
+            h_flex()
+                .flex_none()
+                .gap(px(4.))
+                .children(importance_marker(item.importance))
+                .children(match proposal_agent {
+                    Some(_) => Some(
+                        div()
+                            .size(px(PROPOSAL_DOT_SIZE))
+                            .flex_none()
+                            .rounded_full()
+                            .bg(theme::accent())
+                            .into_any_element(),
+                    ),
+                    None => {
+                        unread_marker(item.unread, item.muted).map(IntoElement::into_any_element)
+                    }
+                })
+        };
+        let lines = if show_preview {
+            v_flex()
+                .flex_1()
+                .min_w_0()
+                .gap(px(2.))
+                .child(
+                    h_flex()
+                        .gap(px(8.))
+                        .items_baseline()
+                        .child(name)
+                        .child(time),
+                )
+                .child(
+                    h_flex()
+                        .h(px(18.))
+                        .gap(px(8.))
+                        .items_center()
+                        .child(preview.unwrap_or_else(|| div().flex_1()))
+                        .child(markers()),
+                )
+        } else {
+            v_flex().flex_1().min_w_0().child(
                 h_flex()
-                    .gap(px(8.))
-                    .items_baseline()
-                    .child(name)
-                    .child(time),
-            )
-            .child(
-                h_flex()
-                    .h(px(18.))
+                    .min_w_0()
                     .gap(px(8.))
                     .items_center()
-                    .child(preview.unwrap_or_else(|| div().flex_1()))
-                    .children(importance_marker(item.importance))
-                    .children(match proposal_agent {
-                        Some(_) => Some(
-                            div()
-                                .size(px(PROPOSAL_DOT_SIZE))
-                                .flex_none()
-                                .rounded_full()
-                                .bg(theme::accent())
-                                .into_any_element(),
-                        ),
-                        None => unread_marker(item.unread, item.muted)
-                            .map(IntoElement::into_any_element),
-                    }),
-            );
+                    .child(name)
+                    .child(time)
+                    .child(markers()),
+            )
+        };
         let state = self.state.clone();
         let chat_id = item.id.clone();
         let (warm_state, warm_chat_id) = (self.state.clone(), item.id.clone());
@@ -1129,7 +1163,7 @@ impl SidebarView {
             .group(row_group)
             .relative()
             .mx(px(6.))
-            .h(px(ROW_HEIGHT))
+            .h(px(row_height))
             .flex_none()
             .px(px(10.))
             .gap(px(12.))
@@ -1212,6 +1246,12 @@ impl SidebarView {
             window_height.max(FALLBACK_VIEWPORT)
         };
         let (visible_from, visible_to) = (top - VIEWPORT_MARGIN, top + height + VIEWPORT_MARGIN);
+        let show_message_preview = self
+            .state
+            .read(cx)
+            .account_chat_settings()
+            .show_message_preview;
+        let row_height = chat_row_height(show_message_preview);
 
         let (selected, drafting) = {
             let state = self.state.read(cx);
@@ -1247,7 +1287,7 @@ impl SidebarView {
                 continue;
             }
             for item in &section.items {
-                let on_screen = y + ROW_HEIGHT >= visible_from && y <= visible_to;
+                let on_screen = y + row_height >= visible_from && y <= visible_to;
                 if on_screen {
                     collect_faces(&item.avatar, &mut faces);
                     presence_users.extend(item.presence_user.clone());
@@ -1264,11 +1304,12 @@ impl SidebarView {
                         proposal_agents.get(&item.id).copied(),
                         directory,
                         &menu,
+                        show_message_preview,
                     ));
                 } else {
-                    skipped_height += ROW_HEIGHT;
+                    skipped_height += row_height;
                 }
-                y += ROW_HEIGHT;
+                y += row_height;
             }
             if section.kind == SectionKind::Others {
                 others_end = Some(y);
@@ -2196,7 +2237,10 @@ impl Render for SidebarView {
 mod tests {
     use std::collections::HashSet;
 
-    use super::{drop_target, parse_collapsed_teams, serialize_collapsed_teams, team_expanded};
+    use super::{
+        ROW_HEIGHT, chat_row_height, drop_target, parse_collapsed_teams, serialize_collapsed_teams,
+        team_expanded,
+    };
     use crate::data::PENDING_FOLDER_PREFIX;
     use crate::sidebar_model::{Section, SectionKind};
 
@@ -2248,5 +2292,11 @@ mod tests {
         assert_eq!(json, r#"["a","b"]"#);
         assert_eq!(parse_collapsed_teams(&json), collapsed);
         assert!(parse_collapsed_teams("garbage").is_empty());
+    }
+
+    #[test]
+    fn hiding_the_preview_gives_one_line_chat_rows() {
+        assert_eq!(chat_row_height(true), ROW_HEIGHT);
+        assert!(chat_row_height(false) < ROW_HEIGHT);
     }
 }

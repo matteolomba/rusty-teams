@@ -5,6 +5,7 @@ use teams_core::{ChatSection, ChatSettingChange};
 use super::account::{DENSITY, ENTER_KEY, account_select};
 use super::rows::{caption, toggle_row};
 use crate::app_state::AppState;
+use crate::i18n::tr;
 use crate::theme;
 
 const MARKDOWN_DETAIL: &str = "Use mark-down language to define the structure and appearance of messages. Your formatting will take effect once you send your message. When this is on, the formatting options menu won't be visible.";
@@ -17,8 +18,13 @@ pub fn render(app: &Entity<AppState>, cx: &App) -> Div {
     let settings = state.account_chat_settings();
     let markdown_mode = state.markdown_mode;
     let actions_on_right_click = state.actions_on_right_click;
-    let (section_app, markdown_app, receipts_app, actions_app) =
-        (app.clone(), app.clone(), app.clone(), app.clone());
+    let (section_app, preview_app, markdown_app, receipts_app, actions_app) = (
+        app.clone(),
+        app.clone(),
+        app.clone(),
+        app.clone(),
+        app.clone(),
+    );
     v_flex()
         .w_full()
         .child(caption("CHAT LIST"))
@@ -33,6 +39,23 @@ pub fn render(app: &Entity<AppState>, cx: &App) -> Div {
             .on_click(move |_, _, cx| {
                 section_app.update(cx, |state, cx| {
                     state.set_chat_section(ChatSection::Muted, !muted_section, cx)
+                })
+            }),
+        )
+        .child(
+            toggle_row(
+                "settings-show-message-preview",
+                tr("settings.chats.message_preview"),
+                tr("settings.chats.message_preview_detail"),
+                theme::text_muted(),
+                settings.show_message_preview,
+            )
+            .on_click(move |_, _, cx| {
+                preview_app.update(cx, |state, cx| {
+                    state.save_chat_setting(
+                        ChatSettingChange::ShowMessagePreview(!settings.show_message_preview),
+                        cx,
+                    )
                 })
             }),
         )

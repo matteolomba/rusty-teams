@@ -7,6 +7,7 @@ use crate::settings::UserSettings;
 
 const READ_RECEIPTS_KEY: &str = "readReceiptsEnabled";
 const MESSAGE_DENSITY_KEY: &str = "messageDensity";
+const SHOW_MESSAGE_PREVIEW_KEY: &str = "showMessagePreview";
 const COMPOSE_SETTINGS_KEY: &str = "composeUserSettings";
 const PERSONAL_SETTINGS_KEY: &str = "userPersonalSettings";
 const ENTER_KEY_FIELD: &str = "enterKeyBehavior";
@@ -23,9 +24,10 @@ const CHAT_MESSAGES_FIELD: &str = "Chat";
 const PERSONAL_MENTIONS_FIELD: &str = "MentionInChat_Person_v2";
 const EVERYONE_MENTIONS_FIELD: &str = "MentionInChat_Everyone";
 const LIKES_FIELD: &str = "LikeInChat_v2";
-const ACCOUNT_KEYS: [&str; 4] = [
+const ACCOUNT_KEYS: [&str; 5] = [
     READ_RECEIPTS_KEY,
     MESSAGE_DENSITY_KEY,
+    SHOW_MESSAGE_PREVIEW_KEY,
     COMPOSE_SETTINGS_KEY,
     PERSONAL_SETTINGS_KEY,
 ];
@@ -228,6 +230,7 @@ impl Default for NotificationAccountSettings {
 pub struct ChatAccountSettings {
     pub read_receipts: bool,
     pub message_density: MessageDensity,
+    pub show_message_preview: bool,
     pub enter_key: EnterKeyBehavior,
     pub up_arrow: UpArrowBehavior,
     pub notifications: NotificationAccountSettings,
@@ -238,6 +241,7 @@ impl Default for ChatAccountSettings {
         ChatAccountSettings {
             read_receipts: true,
             message_density: MessageDensity::default(),
+            show_message_preview: true,
             enter_key: EnterKeyBehavior::default(),
             up_arrow: UpArrowBehavior::default(),
             notifications: NotificationAccountSettings::default(),
@@ -249,6 +253,7 @@ impl Default for ChatAccountSettings {
 pub enum ChatSettingChange {
     ReadReceipts(bool),
     MessageDensity(MessageDensity),
+    ShowMessagePreview(bool),
     EnterKey(EnterKeyBehavior),
     UpArrow(UpArrowBehavior),
     Preset(NotificationPreset),
@@ -301,6 +306,11 @@ impl ChatSettingsDocument {
                 .and_then(Value::as_str)
                 .and_then(MessageDensity::from_property)
                 .unwrap_or(defaults.message_density),
+            show_message_preview: self
+                .properties
+                .get(SHOW_MESSAGE_PREVIEW_KEY)
+                .and_then(flag)
+                .unwrap_or(defaults.show_message_preview),
             enter_key: text_at(&compose, &[ENTER_KEY_FIELD])
                 .and_then(EnterKeyBehavior::from_property)
                 .unwrap_or(defaults.enter_key),
@@ -321,6 +331,9 @@ impl ChatSettingsDocument {
                 MESSAGE_DENSITY_KEY,
                 Value::String(density.property_value().to_owned()),
             ),
+            ChatSettingChange::ShowMessagePreview(enabled) => {
+                (SHOW_MESSAGE_PREVIEW_KEY, Value::String(enabled.to_string()))
+            }
             ChatSettingChange::EnterKey(behavior) => {
                 let mut compose = self.json_property(COMPOSE_SETTINGS_KEY);
                 compose.insert(ENTER_KEY_FIELD.to_owned(), json!(behavior.property_value()));
@@ -483,6 +496,7 @@ fn apply_personal(personal: &mut Map<String, Value>, change: ChatSettingChange) 
         ),
         ChatSettingChange::ReadReceipts(_)
         | ChatSettingChange::MessageDensity(_)
+        | ChatSettingChange::ShowMessagePreview(_)
         | ChatSettingChange::EnterKey(_) => {}
     }
 }
@@ -553,6 +567,7 @@ mod tests {
         assert_eq!(settings, ChatAccountSettings::default());
         assert!(settings.read_receipts);
         assert_eq!(settings.message_density, MessageDensity::Comfy);
+        assert!(settings.show_message_preview);
         assert_eq!(settings.enter_key, EnterKeyBehavior::Send);
         assert_eq!(settings.up_arrow, UpArrowBehavior::EditLastMessage);
         assert_eq!(
@@ -577,6 +592,7 @@ mod tests {
         let document = ChatSettingsDocument::from_properties(&json!({
             "readReceiptsEnabled": "false",
             "messageDensity": "COMPACT",
+            "showMessagePreview": "false",
             "composeUserSettings": "{\"enterKeyBehavior\":\"CreateNewLine\"}",
             "userPersonalSettings": personal.to_string(),
             "unrelated": "dropped",
@@ -584,6 +600,7 @@ mod tests {
         let settings = document.settings();
         assert!(!settings.read_receipts);
         assert_eq!(settings.message_density, MessageDensity::Compact);
+        assert!(!settings.show_message_preview);
         assert_eq!(settings.enter_key, EnterKeyBehavior::NewLine);
         assert_eq!(settings.up_arrow, UpArrowBehavior::StayInCompose);
         let notifications = settings.notifications;
@@ -611,6 +628,20 @@ mod tests {
         assert!(!read(json!(" False ")));
         assert!(!read(json!(false)));
         assert!(read(json!("anything")));
+    }
+
+    #[test]
+    fn message_preview_uses_the_account_key_and_round_trips() {
+        let mut document = ChatSettingsDocument::default();
+        assert_eq!(
+            document.apply(ChatSettingChange::ShowMessagePreview(false)),
+            ("showMessagePreview", json!("false"))
+        );
+        let restored = ChatSettingsDocument::from_text(&document.to_text());
+        assert!(!restored.settings().show_message_preview);
+        assert_eq!(restored, document);
+        document.apply(ChatSettingChange::ShowMessagePreview(true));
+        assert!(document.settings().show_message_preview);
     }
 
     #[test]

@@ -142,6 +142,19 @@ pub struct IcsSubscription {
     pub selected: bool,
 }
 
+/// Someone in the organization whose calendar is shown read-only beside the own one.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PersonCalendar {
+    /// SMTP address, the key free/busy lookups take.
+    pub mail: String,
+    pub name: String,
+    #[serde(default = "default_true")]
+    pub selected: bool,
+    /// Palette index the user picked; none follows the list position.
+    #[serde(default)]
+    pub color: Option<usize>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CalendarAccounts {
     #[serde(default = "CalendarRef::outlook")]
@@ -158,6 +171,8 @@ pub struct CalendarAccounts {
     pub caldav_accounts: Vec<CalDavAccount>,
     #[serde(default)]
     pub ics_subscriptions: Vec<IcsSubscription>,
+    #[serde(default)]
+    pub people_calendars: Vec<PersonCalendar>,
 }
 
 impl Default for CalendarAccounts {
@@ -169,6 +184,7 @@ impl Default for CalendarAccounts {
             google_accounts: Vec::new(),
             caldav_accounts: Vec::new(),
             ics_subscriptions: Vec::new(),
+            people_calendars: Vec::new(),
         }
     }
 }
@@ -229,6 +245,42 @@ impl CalendarAccounts {
     pub fn disconnect_ics(&mut self, subscription_id: &str) {
         self.ics_subscriptions
             .retain(|subscription| subscription.id != subscription_id);
+    }
+
+    pub fn has_people(&self) -> bool {
+        !self.people_calendars.is_empty()
+    }
+
+    /// Adds the person once; adding them again only shows their calendar again.
+    pub fn add_person_calendar(&mut self, mail: &str, name: &str) {
+        match self
+            .people_calendars
+            .iter_mut()
+            .find(|person| person.mail.eq_ignore_ascii_case(mail))
+        {
+            Some(person) => person.selected = true,
+            None => self.people_calendars.push(PersonCalendar {
+                mail: mail.to_owned(),
+                name: name.to_owned(),
+                selected: true,
+                color: None,
+            }),
+        }
+    }
+
+    pub fn set_person_color(&mut self, mail: &str, color: usize) {
+        if let Some(person) = self
+            .people_calendars
+            .iter_mut()
+            .find(|person| person.mail.eq_ignore_ascii_case(mail))
+        {
+            person.color = Some(color);
+        }
+    }
+
+    pub fn remove_person_calendar(&mut self, mail: &str) {
+        self.people_calendars
+            .retain(|person| !person.mail.eq_ignore_ascii_case(mail));
     }
 
     fn clear_refs_for(&mut self, provider: CalendarProvider, account_id: &str) {
@@ -402,6 +454,54 @@ mod tests {
         }
     }
 
+    #[test]
+    fn a_person_is_added_once_and_removed_by_mail() {
+        let mut accounts = CalendarAccounts::default();
+        accounts.add_person_calendar("mara@example.com", "Mara");
+        accounts.people_calendars[0].selected = false;
+        accounts.add_person_calendar("Mara@Example.com", "Mara");
+        assert_eq!(accounts.people_calendars.len(), 1);
+        assert!(accounts.people_calendars[0].selected);
+        let restored = CalendarAccounts::from_json(&accounts.to_json()).unwrap();
+        assert_eq!(restored.people_calendars, accounts.people_calendars);
+        accounts.set_person_color("mara@example.com", 3);
+        assert_eq!(accounts.people_calendars[0].color, Some(3));
+        accounts.remove_person_calendar("MARA@example.com");
+        assert!(!accounts.has_people());
+        assert!(
+            CalendarAccounts::from_json("{}")
+                .unwrap()
+                .people_calendars
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn older_accounts_without_people_keep_their_settings() {
+        let accounts = CalendarAccounts::from_json(
+            r#"{"outlook_selected":false,"ics_subscriptions":[{"id":"i1","url":"https://example/holidays.ics","summary":"Holidays"}]}"#,
+        )
+        .unwrap();
+        assert!(!accounts.outlook_selected);
+        assert_eq!(accounts.ics_subscriptions.len(), 1);
+        assert!(accounts.people_calendars.is_empty());
+
+        let with_person = CalendarAccounts::from_json(
+            r#"{"people_calendars":[{"mail":"mara@example.com","name":"Mara"}]}"#,
+        )
+        .unwrap();
+        assert_eq!(with_person.people_calendars[0].mail, "mara@example.com");
+        assert!(with_person.people_calendars[0].selected);
+        assert_eq!(with_person.people_calendars[0].color, None);
+        let serialized = with_person.to_json();
+        assert!(
+            CalendarAccounts::from_json(&serialized)
+                .unwrap()
+                .people_calendars
+                == with_person.people_calendars
+        );
+    }
+
     /// Regression: access and refresh tokens were stored in plain text in the cache database.
     #[test]
     fn google_tokens_are_kept_in_the_vault_not_in_the_database() {
@@ -516,6 +616,7 @@ mod tests {
             }],
             caldav_accounts: Vec::new(),
             ics_subscriptions: Vec::new(),
+            people_calendars: Vec::new(),
         };
         accounts.disconnect_google("g1");
         assert!(!accounts.has_google());
@@ -540,6 +641,7 @@ mod tests {
                 schedule_outbox: None,
             }],
             ics_subscriptions: Vec::new(),
+            people_calendars: Vec::new(),
         };
         accounts.disconnect_caldav("c1");
         assert!(!accounts.has_caldav());

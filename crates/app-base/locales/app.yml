@@ -274,6 +274,9 @@ settings:
     section_ics:
       en: ICS SUBSCRIPTIONS
       de: ICS-ABOS
+    section_people:
+      en: PEOPLE'S CALENDARS
+      de: KALENDER VON PERSONEN
     section_home:
       en: HOME CALENDAR
       de: HAUPTKALENDER
@@ -340,6 +343,21 @@ settings:
     ics_connect_failed:
       en: ICS subscription failed
       de: ICS-Abo fehlgeschlagen
+    people_title:
+      en: Add from directory
+      de: Aus dem Verzeichnis hinzufügen
+    people_hint:
+      en: Read-only. Shows titles where the person shares them, otherwise free/busy.
+      de: Nur lesen. Zeigt Titel, wo die Person sie freigibt, sonst nur frei/gebucht.
+    people_add:
+      en: Add
+      de: Hinzufügen
+    people_remove:
+      en: Remove
+      de: Entfernen
+    people_no_mail:
+      en: This person has no email address for a calendar.
+      de: Diese Person hat keine E-Mail-Adresse für einen Kalender.
     connect_button:
       en: Connect Google
       de: Google verbinden
@@ -736,6 +754,12 @@ settings:
     density:
       en: Message density
       de: Nachrichtendichte
+    message_preview:
+      en: Show message preview
+      de: Nachrichtenvorschau anzeigen
+    message_preview_detail:
+      en: Show the last message in the chat list. Turn off for a one-line chat list.
+      de: Letzte Nachricht in der Chatliste anzeigen. Ausschalten für eine einzeilige Chatliste.
     read_receipts:
       en: Read receipts
       de: Lesebestätigungen
@@ -1603,6 +1627,21 @@ calendar:
     my_calendars:
       en: My calendars
       de: Meine Kalender
+    people_calendars:
+      en: People's calendars
+      de: Kalender von Personen
+    person_busy:
+      en: Busy
+      de: Gebucht
+    person_tentative:
+      en: Tentative
+      de: Mit Vorbehalt
+    person_away:
+      en: Away
+      de: Abwesend
+    person_elsewhere:
+      en: Working elsewhere
+      de: An anderem Ort tätig
     show_all:
       en: Show all
       de: Alle anzeigen
