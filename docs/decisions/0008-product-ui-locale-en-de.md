@@ -1,7 +1,8 @@
 ---
-status: accepted
+status: superseded
 date: 2026-11-12
 ---
+Superseded by [0024](0024-product-ui-locale-italian.md).
 
 # ADR 0008: Product UI is English and German
 

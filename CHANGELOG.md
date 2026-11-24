@@ -11,6 +11,7 @@
 - Calendari delle persone da free/busy, con gruppo dedicato nelle impostazioni e colori personalizzabili.
 - Rilevamento inattività di sistema su Linux tramite Wayland `ext-idle-notify-v1` e fallback X11.
 - Picker nativo macOS per la condivisione di una finestra (da provare su macOS 14+).
+- Traduzione italiana dell'interfaccia, selezionabile dalle impostazioni e applicata automaticamente quando la lingua del sistema è italiana.
 
 ### Fixed
 - VAAPI non viene più scelto come encoder predefinito; la selezione esplicita resta disponibile.

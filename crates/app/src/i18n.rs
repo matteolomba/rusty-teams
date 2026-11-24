@@ -23,6 +23,18 @@ mod tests {
     }
 
     #[test]
+    fn ui_locale_italian_keys_resolve() {
+        let _guard = locale_test_lock();
+        apply_locale("it");
+        assert_eq!(tr("common.cancel"), "Annulla");
+        assert_eq!(tr("settings.nav.general"), "Generale");
+        assert_eq!(tr("rail.activity"), "Attività");
+        assert_eq!(tr("calls.page.title"), "Chiamate");
+        assert_eq!(tr("auth.sign_in"), "Accedi");
+        assert_eq!(tr("sidebar.pinned"), "In evidenza");
+    }
+
+    #[test]
     fn ui_locale_chrome_rail_and_nav_keys() {
         let _guard = locale_test_lock();
         apply_locale("en");

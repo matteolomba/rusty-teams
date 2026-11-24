@@ -36,6 +36,7 @@ fn language_label(pref: LocalePreference) -> String {
         LocalePreference::Auto => tr("settings.appearance.language.follow_system"),
         LocalePreference::English => tr("settings.appearance.language.english"),
         LocalePreference::German => tr("settings.appearance.language.german"),
+        LocalePreference::Italian => tr("settings.appearance.language.italian"),
     }
 }
 fn accent_label(preset: AccentPreset) -> String {
