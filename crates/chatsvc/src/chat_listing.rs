@@ -8,6 +8,7 @@ use crate::pins::{CSA_RESOURCE, CSA_SCOPE, CsaTransport, DEFAULT_REGION, Session
 const VIEW: &str = "view=msnp24Equivalent";
 const NEWEST_ANCHOR_SLACK_MS: i64 = 60_000;
 const MESSAGES_SEGMENT: &str = "messages";
+const NOTES_CHAT_ID: &str = "48:notes";
 const SYNC_CURSOR_PREFIX: &str = "syncState:";
 const EPOCH_SEGMENT: &str = "epochTimeStamp";
 
@@ -141,6 +142,14 @@ impl<T: MessageTransport> ChatListing<T> {
         before_ms: Option<i64>,
         page_size: usize,
     ) -> Result<MessagePage> {
+        // The notes chat answers LocationLookupFailed to locationType=Primary on an older-page
+        // anchor; Teams' own link for it does not carry that parameter.
+        let cleaned = if conversation_id == NOTES_CHAT_ID {
+            without_primary_location(cursor)
+        } else {
+            cursor.to_owned()
+        };
+        let cursor = cleaned.as_str();
         let url = if let Some(sync_state) = cursor.strip_prefix(SYNC_CURSOR_PREFIX) {
             if sync_state.is_empty() || sync_state.len() > 4_096 {
                 return Err(Error::UnexpectedAnswer("invalid syncState cursor".into()));
@@ -232,6 +241,17 @@ fn older_cursor(link: &str) -> Option<String> {
         Some(query) => format!("{EPOCH_SEGMENT}/{anchor}?{query}"),
         None => format!("{EPOCH_SEGMENT}/{anchor}"),
     })
+}
+
+fn without_primary_location(cursor: &str) -> String {
+    let Some((path, query)) = cursor.split_once('?') else {
+        return cursor.to_owned();
+    };
+    let kept: Vec<&str> = query
+        .split('&')
+        .filter(|part| !part.starts_with("locationType="))
+        .collect();
+    format!("{path}?{}", kept.join("&"))
 }
 
 /// Consumer chats answer with `_metadata.syncState`, a `msgapi.teams.live.com` URL carrying the
@@ -427,6 +447,24 @@ mod tests {
             transport.requests.lock().unwrap()[0],
             "https://teams.cloud.microsoft/api/chatsvc/emea/v1/users/ME/conversations/48%3Anotes/messages?view=msnp24Equivalent&pageSize=20&startTime=1000&syncState=abc%2F123%3D"
         );
+    }
+
+    #[tokio::test]
+    async fn the_notes_chat_drops_location_type_from_an_older_cursor() {
+        let transport = canned(vec![json!({"messages": [{"id": "5"}], "_metadata": {}})]);
+        let listing = ChatListing::with_transport(&transport, "emea");
+        listing
+            .messages_at(
+                "48:notes",
+                "epochTimeStamp/1791368000009?pageSize=20&direction=BACKWARD&locationType=Primary",
+                None,
+                20,
+            )
+            .await
+            .unwrap();
+        let requests = transport.requests.lock().unwrap();
+        assert!(!requests[0].contains("locationType"));
+        assert!(requests[0].contains("direction=BACKWARD"));
     }
 
     #[tokio::test]
