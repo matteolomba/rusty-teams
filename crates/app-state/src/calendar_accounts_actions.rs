@@ -215,7 +215,11 @@ impl AppState {
                     if !known {
                         accounts.set_person_color(&mail, color);
                     }
-                    let _ = save_calendar_accounts(&state.store, &accounts);
+                    if let Err(error) = save_calendar_accounts(&state.store, &accounts) {
+                        log::warn!(
+                            "account calendario non salvato dopo l'aggiunta di {mail}: {error}"
+                        );
+                    }
                     state.load_calendar_week(cx);
                     cx.notify();
                 }
@@ -229,14 +233,18 @@ impl AppState {
     pub fn set_person_calendar_color(&mut self, mail: &str, color: usize, cx: &mut Context<Self>) {
         let mut accounts = load_calendar_accounts(&self.store);
         accounts.set_person_color(mail, color);
-        let _ = save_calendar_accounts(&self.store, &accounts);
+        if let Err(error) = save_calendar_accounts(&self.store, &accounts) {
+            log::warn!("colore della persona {mail} non salvato: {error}");
+        }
         cx.notify();
     }
 
     pub fn remove_person_calendar(&mut self, mail: &str, cx: &mut Context<Self>) {
         let mut accounts = load_calendar_accounts(&self.store);
         accounts.remove_person_calendar(mail);
-        let _ = save_calendar_accounts(&self.store, &accounts);
+        if let Err(error) = save_calendar_accounts(&self.store, &accounts) {
+            log::warn!("rimozione della persona {mail} non salvata: {error}");
+        }
         self.load_calendar_week(cx);
         cx.notify();
     }
@@ -250,7 +258,9 @@ impl AppState {
         {
             person.selected = !person.selected;
         }
-        let _ = save_calendar_accounts(&self.store, &accounts);
+        if let Err(error) = save_calendar_accounts(&self.store, &accounts) {
+            log::warn!("selezione della persona {mail} non salvata: {error}");
+        }
         self.load_calendar_week(cx);
         cx.notify();
     }
@@ -260,7 +270,9 @@ impl AppState {
         for person in &mut accounts.people_calendars {
             person.selected = selected;
         }
-        let _ = save_calendar_accounts(&self.store, &accounts);
+        if let Err(error) = save_calendar_accounts(&self.store, &accounts) {
+            log::warn!("selezione delle persone non salvata: {error}");
+        }
         self.load_calendar_week(cx);
         cx.notify();
     }

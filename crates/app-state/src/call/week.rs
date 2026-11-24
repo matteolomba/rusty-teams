@@ -1,8 +1,5 @@
+use std::sync::Arc;
 use std::time::Instant;
-
-use chatsvc::{Calendar, CalendarEvent, CalendarSource, ResponseType, ShowAs};
-use chrono::{Duration, FixedOffset, Local, NaiveDate, Offset, Weekday};
-use gpui_kit::Context;
 
 use super::agenda::demo_events;
 use super::calendar::demo_anchor;
@@ -11,6 +8,10 @@ use super::week_grid::{
     CalendarSpan, WeekLayout, dates_range, local_midnight, visible_dates, week_start,
 };
 use crate::app_state::AppState;
+use crate::backend::Engine;
+use chatsvc::{Calendar, CalendarEvent, CalendarSource, ResponseType, ShowAs};
+use chrono::{DateTime, Duration, FixedOffset, Local, NaiveDate, Offset, Utc, Weekday};
+use gpui_kit::Context;
 
 pub const CALENDAR_LOAD_FAILURE: &str = "We couldn't load your calendar.";
 
@@ -19,6 +20,40 @@ pub const CALENDAR_LOAD_FAILURE: &str = "We couldn't load your calendar.";
 pub struct CalendarLoadFailure {
     pub source: CalendarSource,
     pub message: String,
+}
+
+#[derive(Default)]
+struct CalendarFetch {
+    events: Vec<CalendarEvent>,
+    failures: Vec<CalendarLoadFailure>,
+}
+
+impl CalendarFetch {
+    /// Adds one source's events and partial failures, or a failure with its own source.
+    fn collect<T, E>(
+        &mut self,
+        source: CalendarSource,
+        result: Result<T, E>,
+        outcome: impl FnOnce(T) -> (Vec<CalendarEvent>, Vec<String>),
+    ) where
+        E: ToString,
+    {
+        match result {
+            Ok(value) => {
+                let (events, partial) = outcome(value);
+                self.events.extend(events);
+                self.failures.extend(
+                    partial
+                        .into_iter()
+                        .map(|message| CalendarLoadFailure { source, message }),
+                );
+            }
+            Err(error) => self.failures.push(CalendarLoadFailure {
+                source,
+                message: error.to_string(),
+            }),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -214,21 +249,16 @@ impl AppState {
         let offset = Local::now().offset().fix();
         let (from, to) = dates_range(&self.calendar_dates(), offset);
         if self.mode.demo {
-            let mut events = demo_events(demo_anchor());
-            // Demo meetings sit Monday to Friday of the week the grid shows.
-            // The Monday inside the first shown week, whatever day the week starts on.
-            let dates = self.calendar_dates();
-            let anchor = dates.get(6).or(dates.last()).copied().unwrap_or(start);
-            events.extend(demo_week(week_start(anchor, Weekday::Mon), offset));
-            events.extend(demo_people_week(
-                &store::load_calendar_accounts(&self.store),
-                week_start(anchor, Weekday::Mon),
+            let accounts = store::load_calendar_accounts(&self.store);
+            self.calendar_week.events = demo_week_events(
+                start,
+                &self.calendar_dates(),
+                from,
+                to,
                 offset,
-            ));
-            events.extend(self.demo_meetings.iter().cloned());
-            events.retain(|event| event.end > from && event.start < to);
-            events.sort_by_key(|event| (event.start, event.end));
-            self.calendar_week.events = events;
+                &accounts,
+                &self.demo_meetings,
+            );
             cx.notify();
             return;
         }
@@ -242,148 +272,191 @@ impl AppState {
         self.calendar_week.loading = true;
         cx.notify();
         let store = self.store.clone();
-        let receiver = crate::runtime::spawn(async move {
-            let started = Instant::now();
-            let accounts = store::load_calendar_accounts(&store);
-            let mut fetched_accounts = accounts.clone();
-            let mut combined = Vec::new();
-            let mut failures = Vec::new();
-            let mut outlook_count = None;
-            if accounts.outlook_selected {
-                match Calendar::new(engine.remote().session())
-                    .calendar_view(from, to)
-                    .await
-                {
-                    Ok(events) => {
-                        outlook_count = Some(events.len());
-                        combined.extend(events);
-                    }
-                    Err(error) => failures.push(CalendarLoadFailure {
-                        source: CalendarSource::Outlook,
-                        message: error.to_string(),
-                    }),
-                }
-            }
-            let mut google_count = None;
-            if accounts.has_google() {
-                match crate::google_calendar_sync::fetch_google_events(
-                    &mut fetched_accounts,
-                    from,
-                    to,
-                )
-                .await
-                {
-                    Ok(events) => {
-                        // Keep only refreshed tokens: a toggle made meanwhile must survive.
-                        let _ = store::merge_google_tokens(&store, &fetched_accounts);
-                        google_count = Some(events.len());
-                        combined.extend(events);
-                    }
-                    Err(error) => failures.push(CalendarLoadFailure {
-                        source: CalendarSource::Google,
-                        message: error,
-                    }),
-                }
-            }
-            let mut caldav_count = None;
-            if accounts.has_caldav() {
-                match crate::caldav_sync::fetch_caldav_events(&mut fetched_accounts, from, to).await
-                {
-                    Ok((events, partial)) => {
-                        let _ = store::merge_caldav_metadata(&store, &fetched_accounts);
-                        caldav_count = Some(events.len());
-                        combined.extend(events);
-                        for message in partial {
-                            failures.push(CalendarLoadFailure {
-                                source: CalendarSource::CalDav,
-                                message,
-                            });
-                        }
-                    }
-                    Err(error) => failures.push(CalendarLoadFailure {
-                        source: CalendarSource::CalDav,
-                        message: error,
-                    }),
-                }
-            }
-            if accounts.has_people() {
-                let calendar = Calendar::new(engine.remote().session());
-                match crate::people_calendar_sync::fetch_people_events(
-                    &calendar, &accounts, from, to,
-                )
-                .await
-                {
-                    Ok((events, partial)) => {
-                        combined.extend(events);
-                        for message in partial {
-                            failures.push(CalendarLoadFailure {
-                                source: CalendarSource::Person,
-                                message,
-                            });
-                        }
-                    }
-                    Err(error) => failures.push(CalendarLoadFailure {
-                        source: CalendarSource::Person,
-                        message: error,
-                    }),
-                }
-            }
-            if accounts.has_ics() {
-                match crate::ics_sync::fetch_ics_events(&accounts, from, to).await {
-                    Ok((events, partial)) => {
-                        combined.extend(events);
-                        for message in partial {
-                            failures.push(CalendarLoadFailure {
-                                source: CalendarSource::Ics,
-                                message,
-                            });
-                        }
-                    }
-                    Err(error) => failures.push(CalendarLoadFailure {
-                        source: CalendarSource::Ics,
-                        message: error,
-                    }),
-                }
-            }
-            crate::diagnostics::record(load_summary(
-                from,
-                to,
-                outlook_count,
-                google_count,
-                caldav_count,
-                started.elapsed().as_millis(),
-                &failures,
-            ));
-            let home = home_calendar(&accounts);
-            (chatsvc::merge_calendar_events(combined, home), failures)
-        });
+        let receiver =
+            crate::runtime::spawn(
+                async move { load_calendar_sources(engine, store, from, to).await },
+            );
         cx.spawn(async move |this, cx| {
-            let loaded = receiver.await.unwrap_or_else(|_| {
-                (
-                    Vec::new(),
-                    vec![CalendarLoadFailure {
-                        source: CalendarSource::Outlook,
-                        message: CALENDAR_LOAD_FAILURE.to_owned(),
-                    }],
-                )
-            });
-            this.update(cx, |state, cx| {
-                if state.calendar_week.request != request {
-                    return;
+            let loaded = match receiver.await {
+                Ok(loaded) => Some(loaded),
+                Err(error) => {
+                    // A panic in any fetch fails the whole load, not one named source.
+                    crate::diagnostics::record(format!("{CALENDAR_LOAD_FAILURE}: {error}"));
+                    None
                 }
-                state.calendar_week.loading = false;
-                let (events, failures) = loaded;
-                let previous = std::mem::take(&mut state.calendar_week.events);
-                let mut events = keep_failed_sources(&previous, events, &failures);
-                retain_peek_details(&previous, &mut events);
-                state.calendar_week.events = events;
-                state.calendar_week.failures = failures;
-                cx.notify();
+            };
+            this.update(cx, |state, cx| {
+                apply_calendar_load(state, request, loaded, cx)
             })
             .ok();
         })
         .detach();
     }
+}
+
+fn apply_calendar_load(
+    state: &mut AppState,
+    request: u64,
+    loaded: Option<(Vec<CalendarEvent>, Vec<CalendarLoadFailure>)>,
+    cx: &mut Context<AppState>,
+) {
+    if state.calendar_week.request != request {
+        return;
+    }
+    state.calendar_week.loading = false;
+    if let Some((events, failures)) = loaded {
+        let previous = std::mem::take(&mut state.calendar_week.events);
+        let mut events = keep_failed_sources(&previous, events, &failures);
+        retain_peek_details(&previous, &mut events);
+        state.calendar_week.events = events;
+        state.calendar_week.failures = failures;
+    } else {
+        state.calendar_week.failures.clear();
+    }
+    cx.notify();
+}
+
+fn demo_week_events(
+    start: NaiveDate,
+    dates: &[NaiveDate],
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    offset: FixedOffset,
+    accounts: &store::CalendarAccounts,
+    demo_meetings: &[CalendarEvent],
+) -> Vec<CalendarEvent> {
+    let mut events = demo_events(demo_anchor());
+    // Demo meetings sit Monday to Friday of the week the grid shows.
+    // The Monday inside the first shown week, whatever day the week starts on.
+    let anchor = dates.get(6).or(dates.last()).copied().unwrap_or(start);
+    let monday = week_start(anchor, Weekday::Mon);
+    events.extend(demo_week(monday, offset));
+    events.extend(demo_people_week(accounts, monday, offset));
+    events.extend(demo_meetings.iter().cloned());
+    events.retain(|event| event.end > from && event.start < to);
+    events.sort_by_key(|event| (event.start, event.end));
+    events
+}
+
+async fn load_calendar_sources(
+    engine: Arc<Engine>,
+    store: Arc<store::Store>,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+) -> (Vec<CalendarEvent>, Vec<CalendarLoadFailure>) {
+    let started = Instant::now();
+    let accounts = store::load_calendar_accounts(&store);
+    let mut fetched_accounts = accounts.clone();
+    let mut fetched = CalendarFetch::default();
+    let outlook_count = if accounts.outlook_selected {
+        fetch_outlook(&engine, from, to, &mut fetched).await
+    } else {
+        None
+    };
+    let google_count = if accounts.has_google() {
+        fetch_google(&store, &mut fetched_accounts, from, to, &mut fetched).await
+    } else {
+        None
+    };
+    let caldav_count = if accounts.has_caldav() {
+        fetch_caldav(&store, &mut fetched_accounts, from, to, &mut fetched).await
+    } else {
+        None
+    };
+    if accounts.has_people() {
+        fetch_people(&engine, &accounts, from, to, &mut fetched).await;
+    }
+    if accounts.has_ics() {
+        fetch_ics(&accounts, from, to, &mut fetched).await;
+    }
+    crate::diagnostics::record(load_summary(
+        from,
+        to,
+        outlook_count,
+        google_count,
+        caldav_count,
+        started.elapsed().as_millis(),
+        &fetched.failures,
+    ));
+    let home = home_calendar(&accounts);
+    (
+        chatsvc::merge_calendar_events(fetched.events, home),
+        fetched.failures,
+    )
+}
+
+async fn fetch_outlook(
+    engine: &Engine,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    fetched: &mut CalendarFetch,
+) -> Option<usize> {
+    let result = Calendar::new(engine.remote().session())
+        .calendar_view(from, to)
+        .await;
+    let count = result.as_ref().ok().map(Vec::len);
+    fetched.collect(CalendarSource::Outlook, result, |events| {
+        (events, Vec::new())
+    });
+    count
+}
+
+async fn fetch_google(
+    store: &store::Store,
+    accounts: &mut store::CalendarAccounts,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    fetched: &mut CalendarFetch,
+) -> Option<usize> {
+    let result = crate::google_calendar_sync::fetch_google_events(accounts, from, to).await;
+    // Keep only refreshed tokens: a toggle made meanwhile must survive.
+    if result.is_ok() {
+        let _ = store::merge_google_tokens(store, accounts);
+    }
+    let count = result.as_ref().ok().map(Vec::len);
+    fetched.collect(CalendarSource::Google, result, |events| {
+        (events, Vec::new())
+    });
+    count
+}
+
+async fn fetch_caldav(
+    store: &store::Store,
+    accounts: &mut store::CalendarAccounts,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    fetched: &mut CalendarFetch,
+) -> Option<usize> {
+    let result = crate::caldav_sync::fetch_caldav_events(accounts, from, to).await;
+    if result.is_ok() {
+        let _ = store::merge_caldav_metadata(store, accounts);
+    }
+    let count = result.as_ref().ok().map(|(events, _)| events.len());
+    fetched.collect(CalendarSource::CalDav, result, |outcome| outcome);
+    count
+}
+
+async fn fetch_people(
+    engine: &Engine,
+    accounts: &store::CalendarAccounts,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    fetched: &mut CalendarFetch,
+) {
+    let calendar = Calendar::new(engine.remote().session());
+    let result =
+        crate::people_calendar_sync::fetch_people_events(&calendar, accounts, from, to).await;
+    fetched.collect(CalendarSource::Person, result, |outcome| outcome);
+}
+
+async fn fetch_ics(
+    accounts: &store::CalendarAccounts,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    fetched: &mut CalendarFetch,
+) {
+    let result = crate::ics_sync::fetch_ics_events(accounts, from, to).await;
+    fetched.collect(CalendarSource::Ics, result, |outcome| outcome);
 }
 
 /// A source that failed keeps its previous events on screen instead of blanking the week.

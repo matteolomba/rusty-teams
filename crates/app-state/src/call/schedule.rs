@@ -12,6 +12,7 @@ const AGENDA_KEYS: [&str; 4] = ["body", "bodyContent", "bodyContentType", "bodyP
 const HALF_HOUR_MINUTES: i64 = 30;
 const DEFAULT_LENGTH_MINUTES: i64 = 30;
 const READ_ONLY_MESSAGE: &str = "Meetings cannot be scheduled in read-only mode.";
+const PERSON_CALENDAR_READ_ONLY_MESSAGE: &str = "Other people's calendars are read-only";
 const RESPONSE_FAILED_NOTICE: &str = "Could not send your response";
 const DELETE_FAILED_NOTICE: &str = "Could not delete the meeting";
 const DELETE_READ_ONLY_NOTICE: &str = "Meetings cannot be deleted in read-only mode.";
@@ -337,7 +338,7 @@ impl AppState {
                         Err("Read-only ICS subscriptions cannot delete events".into())
                     }
                     chatsvc::CalendarSource::Person => {
-                        Err("Other people's calendars are read-only".into())
+                        Err(PERSON_CALENDAR_READ_ONLY_MESSAGE.to_owned())
                     }
                 }
             }
@@ -587,7 +588,7 @@ impl AppState {
                         Err("Read-only ICS subscriptions cannot RSVP".into())
                     }
                     chatsvc::CalendarSource::Person => {
-                        Err("Other people's calendars are read-only".into())
+                        Err(PERSON_CALENDAR_READ_ONLY_MESSAGE.to_owned())
                     }
                 }
             }

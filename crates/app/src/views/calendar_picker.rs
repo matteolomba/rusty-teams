@@ -17,7 +17,10 @@ use super::calendar_mini_month::mini_month_grid;
 use crate::app_state::AppState;
 use crate::call::calendar_list::{GroupCheck, group_check, listed_calendars, offers_show_all};
 use crate::call::calendar_prefs::OUTLOOK_GROUP;
-use crate::call::week_grid::{google_calendar_index, person_calendar_index};
+use crate::call::week_grid::{
+    FIRST_PALETTE_INDEX, ICS_CALENDAR_INDEX, calendar_offsets, google_calendar_index,
+    person_calendar_index,
+};
 use crate::i18n::tr;
 use crate::settings_section::SettingsSection;
 use crate::theme;
@@ -326,12 +329,8 @@ fn caldav_group(
     for calendar in &account.calendars {
         let toggle = app.clone();
         let (account_id, calendar_id) = (account.id.clone(), calendar.id.clone());
-        let color_index = accounts
-            .google_accounts
-            .iter()
-            .map(|account| account.calendars.len())
-            .sum::<usize>()
-            + 1
+        let (_, caldav_offset, _) = calendar_offsets(accounts);
+        let color_index = caldav_offset
             + accounts
                 .caldav_accounts
                 .iter()
@@ -360,7 +359,7 @@ fn ics_row(app: &Entity<AppState>, subscription: &IcsSubscription) -> Stateful<D
         format!("calendar-picker-ics-{}", subscription.id),
         subscription.summary.clone(),
         subscription.selected,
-        theme::calendar_color(8),
+        theme::calendar_color(ICS_CALENDAR_INDEX),
         move |cx| {
             toggle.update(cx, |state, cx| {
                 state.toggle_ics_subscription_selected(&id, cx)
@@ -424,7 +423,7 @@ fn people_group(app: &Entity<AppState>, accounts: &CalendarAccounts, collapsed: 
 
 /// Calendar indices start at 1 (0 is the accent colour); palette colours start at 0.
 fn palette_color_index(calendar_index: Option<usize>) -> Option<usize> {
-    calendar_index.and_then(|index| index.checked_sub(1))
+    calendar_index.and_then(|index| index.checked_sub(FIRST_PALETTE_INDEX))
 }
 
 /// Right-click on a person: pick their colour or remove them, as in Teams.

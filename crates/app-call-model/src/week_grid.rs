@@ -6,7 +6,13 @@ use chrono::{
 };
 
 pub const MINUTES_PER_DAY: i64 = 24 * 60;
+/// Last minute of a local day, shared by the grid, the slot clamp and end-of-day checks.
+pub const END_OF_DAY_MINUTE: i64 = MINUTES_PER_DAY - 1;
 pub const MONTH_GRID_DAYS: i64 = 42;
+/// Calendar 0 is Outlook's accent colour; every other calendar starts at palette index 0.
+pub const FIRST_PALETTE_INDEX: usize = 1;
+/// Fixed colour index of ICS subscriptions in the calendar picker.
+pub const ICS_CALENDAR_INDEX: usize = 8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WeekBlock {
@@ -225,6 +231,26 @@ pub fn week_range(
     )
 }
 
+/// Calendar-list indices of the first Google, CalDAV and ICS calendar after Outlook.
+/// The next index after the ICS one is where people's calendars start.
+pub fn calendar_offsets(accounts: &store::CalendarAccounts) -> (usize, usize, usize) {
+    let google = accounts
+        .google_accounts
+        .iter()
+        .map(|account| account.calendars.len())
+        .sum::<usize>();
+    let caldav = accounts
+        .caldav_accounts
+        .iter()
+        .map(|account| account.calendars.len())
+        .sum::<usize>();
+    (
+        FIRST_PALETTE_INDEX,
+        FIRST_PALETTE_INDEX + google,
+        FIRST_PALETTE_INDEX + google + caldav,
+    )
+}
+
 /// Position of a Google calendar in the calendar list; Outlook is 0.
 pub fn google_calendar_index(
     accounts: &store::CalendarAccounts,
@@ -241,7 +267,7 @@ pub fn google_calendar_index(
                 .map(move |calendar| (account.id.as_str(), calendar.id.as_str()))
         })
         .position(|(account, calendar)| account == account_id && calendar == calendar_id)
-        .map(|position| position + 1)
+        .map(|position| position + FIRST_PALETTE_INDEX)
 }
 
 /// Colour index of a person's calendar: the picked palette colour, else its position after
@@ -252,20 +278,10 @@ pub fn person_calendar_index(accounts: &store::CalendarAccounts, mail: &str) -> 
         .iter()
         .find(|person| person.mail.eq_ignore_ascii_case(mail))?;
     if let Some(color) = person.color {
-        return Some(color + 1);
+        return Some(color + FIRST_PALETTE_INDEX);
     }
-    let offset = 1
-        + accounts
-            .google_accounts
-            .iter()
-            .map(|account| account.calendars.len())
-            .sum::<usize>()
-        + accounts
-            .caldav_accounts
-            .iter()
-            .map(|account| account.calendars.len())
-            .sum::<usize>()
-        + accounts.ics_subscriptions.len();
+    let (_, _, ics_offset) = calendar_offsets(accounts);
+    let offset = ics_offset + accounts.ics_subscriptions.len();
     accounts
         .people_calendars
         .iter()
@@ -275,25 +291,16 @@ pub fn person_calendar_index(accounts: &store::CalendarAccounts, mail: &str) -> 
 
 /// First palette colour no calendar uses yet; with every colour taken, the least used one.
 pub fn free_palette_color(accounts: &store::CalendarAccounts, palette_len: usize) -> usize {
-    let google = accounts
-        .google_accounts
-        .iter()
-        .map(|account| account.calendars.len())
-        .sum::<usize>();
-    let caldav = accounts
-        .caldav_accounts
-        .iter()
-        .map(|account| account.calendars.len())
-        .sum::<usize>();
-    let fixed = google + caldav + accounts.ics_subscriptions.len();
+    let (_, _, ics_offset) = calendar_offsets(accounts);
+    let fixed = ics_offset + accounts.ics_subscriptions.len() - FIRST_PALETTE_INDEX;
     let palette_len = palette_len.max(1);
     let mut uses = vec![0usize; palette_len];
     let people = accounts
         .people_calendars
         .iter()
         .filter_map(|person| person_calendar_index(accounts, &person.mail));
-    for index in (1..=fixed).chain(people) {
-        uses[(index - 1) % palette_len] += 1;
+    for index in (FIRST_PALETTE_INDEX..=fixed).chain(people) {
+        uses[(index - FIRST_PALETTE_INDEX) % palette_len] += 1;
     }
     (0..palette_len)
         .min_by_key(|&color| uses[color])
@@ -309,13 +316,9 @@ pub fn calendar_index(event: &CalendarEvent, accounts: &store::CalendarAccounts)
             .as_deref()
             .zip(event.calendar_id.as_deref())
             .and_then(|(account, calendar)| google_calendar_index(accounts, account, calendar))
-            .unwrap_or(1),
+            .unwrap_or(FIRST_PALETTE_INDEX),
         chatsvc::CalendarSource::CalDav => {
-            let google_len = accounts
-                .google_accounts
-                .iter()
-                .map(|account| account.calendars.len())
-                .sum::<usize>();
+            let (_, caldav_offset, _) = calendar_offsets(accounts);
             event
                 .account_id
                 .as_deref()
@@ -333,22 +336,12 @@ pub fn calendar_index(event: &CalendarEvent, accounts: &store::CalendarAccounts)
                         .position(|(account, calendar)| {
                             account == account_id && calendar == calendar_id
                         })
-                        .map(|position| position + 1 + google_len)
+                        .map(|position| position + caldav_offset)
                 })
-                .unwrap_or(1 + google_len)
+                .unwrap_or(caldav_offset)
         }
         chatsvc::CalendarSource::Ics => {
-            let offset = 1
-                + accounts
-                    .google_accounts
-                    .iter()
-                    .map(|account| account.calendars.len())
-                    .sum::<usize>()
-                + accounts
-                    .caldav_accounts
-                    .iter()
-                    .map(|account| account.calendars.len())
-                    .sum::<usize>();
+            let (_, _, ics_offset) = calendar_offsets(accounts);
             event
                 .account_id
                 .as_deref()
@@ -357,9 +350,9 @@ pub fn calendar_index(event: &CalendarEvent, accounts: &store::CalendarAccounts)
                         .ics_subscriptions
                         .iter()
                         .position(|subscription| subscription.id == id)
-                        .map(|position| position + offset)
+                        .map(|position| position + ics_offset)
                 })
-                .unwrap_or(offset)
+                .unwrap_or(ics_offset)
         }
         chatsvc::CalendarSource::Person => event
             .account_id
@@ -387,9 +380,13 @@ pub fn is_effective_all_day(event: &CalendarEvent, offset: FixedOffset) -> bool 
     if end.time() == NaiveTime::MIN {
         return true;
     }
-    // Multi-day blocks that run from midnight through end-of-day (e.g. 23:59).
-    end.date_naive() > start.date_naive()
-        && end.time() >= NaiveTime::from_hms_opt(23, 59, 0).unwrap()
+    let end_of_day = NaiveTime::from_hms_opt(
+        (END_OF_DAY_MINUTE / 60) as u32,
+        (END_OF_DAY_MINUTE % 60) as u32,
+        0,
+    )
+    .unwrap_or(NaiveTime::MIN);
+    end.date_naive() > start.date_naive() && end.time() >= end_of_day
 }
 
 pub fn week_days(

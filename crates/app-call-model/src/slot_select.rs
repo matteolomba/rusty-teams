@@ -5,7 +5,7 @@
 
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 
-use crate::week_grid::MINUTES_PER_DAY;
+use crate::week_grid::{END_OF_DAY_MINUTE, MINUTES_PER_DAY};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SlotSelection {
@@ -31,15 +31,19 @@ impl SlotSelection {
         self.date == date && (self.start_minute..self.end_minute).contains(&minute)
     }
 
+    /// Time of a minute on the grid, clamped like the meeting form's 23:59 end.
+    pub fn time_of(minute: i64) -> NaiveTime {
+        let minute = minute.clamp(0, END_OF_DAY_MINUTE);
+        NaiveTime::from_hms_opt((minute / 60) as u32, (minute % 60) as u32, 0).unwrap_or_default()
+    }
+
     /// Start and end for the meeting form. A block that runs to midnight ends at
     /// 23:59, since the form keeps start and end on the same date.
     pub fn times(&self) -> (NaiveTime, NaiveTime) {
-        let time = |minute: i64| {
-            let minute = minute.clamp(0, MINUTES_PER_DAY - 1);
-            NaiveTime::from_hms_opt((minute / 60) as u32, (minute % 60) as u32, 0)
-                .unwrap_or_default()
-        };
-        (time(self.start_minute), time(self.end_minute))
+        (
+            Self::time_of(self.start_minute),
+            Self::time_of(self.end_minute),
+        )
     }
 
     pub fn window(&self) -> (NaiveDateTime, NaiveDateTime) {

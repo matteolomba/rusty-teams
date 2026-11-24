@@ -28,8 +28,8 @@ use crate::call::calendar_now::{
 use crate::call::slot_select::{SlotSelection, minute_at};
 use crate::call::week::CalendarLoadFailure;
 use crate::call::week_grid::{
-    CalendarSpan, EventLook, MINUTES_PER_DAY, WeekBlock, WeekDay, WeekLayout, calendar_index,
-    event_look, hour_label, month_shown, week_days,
+    CalendarSpan, EventLook, WeekBlock, WeekDay, WeekLayout, calendar_index, event_look,
+    hour_label, month_shown, week_days,
 };
 use crate::i18n::tr;
 use crate::theme;
@@ -1000,14 +1000,12 @@ impl CalendarView {
 /// Label of a picked block, clamped like `SlotSelection::times()` so a block to midnight
 /// reads 23:00 – 23:59 rather than wrapping to 00:00.
 fn selection_label(start_minute: i64, end_minute: i64) -> String {
-    let clock = |minute: i64| {
-        let minute = minute.clamp(0, MINUTES_PER_DAY - 1);
-        chrono::NaiveTime::from_hms_opt((minute / 60) as u32, (minute % 60) as u32, 0)
-            .unwrap_or_default()
+    let format = |minute: i64| {
+        SlotSelection::time_of(minute)
             .format(clock_format())
             .to_string()
     };
-    format!("{} – {}", clock(start_minute), clock(end_minute))
+    format!("{} – {}", format(start_minute), format(end_minute))
 }
 
 /// Loading line and one notice per failed source, under the calendar header.
@@ -1299,7 +1297,8 @@ mod tests {
     use app_base::format::clock_format;
     use chrono::NaiveDate;
 
-    use super::{MINUTES_PER_DAY, SlotSelection, header_labels, selection_label};
+    use super::{SlotSelection, header_labels, selection_label};
+    use crate::call::week_grid::MINUTES_PER_DAY;
 
     #[test]
     fn header_buttons_drop_their_text_as_the_header_narrows() {
