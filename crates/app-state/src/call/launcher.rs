@@ -8,7 +8,7 @@ use calling::meeting::{LiveMeeting, fetch_live_meeting};
 use calling::{
     AcceptMode, BackgroundCache, CallControl, CallEngine, CallHandle, CallSpec, CallState,
     CallUpdate, DefaultBackground, DeviceChoice, EndReason, EngineConfig, EngineEvent,
-    MeetingTarget, call_channel,
+    MeetingTarget, MicSettings, call_channel,
 };
 use session::{Session, SessionConfig, Transport};
 
@@ -27,6 +27,7 @@ const READY_WAIT: Duration = Duration::from_secs(30);
 pub struct CallLauncher {
     engine: watch::Sender<Option<CallEngine>>,
     default_camera: Mutex<DeviceChoice>,
+    default_mic: Mutex<MicSettings>,
 }
 
 impl CallLauncher {
@@ -38,6 +39,7 @@ impl CallLauncher {
         let launcher = Arc::new(CallLauncher {
             engine: watch::channel(None).0,
             default_camera: Mutex::new(DeviceChoice::SystemDefault),
+            default_mic: Mutex::new(MicSettings::default()),
         });
         let running = launcher.clone();
         crate::runtime::handle().spawn(async move {
@@ -54,6 +56,12 @@ impl CallLauncher {
                     .lock()
                     .unwrap_or_else(|poisoned| poisoned.into_inner())
                     .clone(),
+            );
+            engine.set_default_mic(
+                *running
+                    .default_mic
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner()),
             );
             running.engine.send_replace(Some(engine));
             while let Some(event) = events.recv().await {
@@ -85,6 +93,13 @@ impl CallLauncher {
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = camera.clone();
         if let Some(engine) = self.engine() {
             engine.set_default_camera(camera);
+        }
+    }
+
+    pub fn set_default_mic(&self, mic: MicSettings) {
+        *self.default_mic.lock().expect("mic lock") = mic;
+        if let Some(engine) = self.engine() {
+            engine.set_default_mic(mic);
         }
     }
 
@@ -455,6 +470,7 @@ mod tests {
         let launcher = CallLauncher {
             engine: watch::channel(None).0,
             default_camera: Mutex::new(DeviceChoice::SystemDefault),
+            default_mic: Mutex::new(MicSettings::default()),
         };
         let camera = &launcher.default_camera;
         let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {

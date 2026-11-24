@@ -843,8 +843,6 @@ fn with_full_hd_level(fmtp: &str) -> String {
     let Some(range) = range else {
         return fmtp.to_owned();
     };
-    // A level that is not two hex digits (or a range cutting a multibyte character) is left alone:
-    // replace_range would panic on a non-boundary, and an unknown value is not ours to rewrite.
     let Some(current) = fmtp
         .get(range.clone())
         .and_then(|level| u8::from_str_radix(level, 16).ok())

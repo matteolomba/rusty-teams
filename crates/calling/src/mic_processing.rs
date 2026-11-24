@@ -89,6 +89,10 @@ impl MicSettings {
         }
     }
 
+    /// Auto and Low use the native WebRTC platform ADM device track on every desktop OS
+    /// (WASAPI2/CoreAudio on Windows, Pulse/PipeWire on Linux, CoreAudio on macOS), matching
+    /// Web Teams and avoiding software-feeder jitter and unsynchronized AEC.
+    /// Music mode and Off run the software chain.
     pub fn uses_device_track(self) -> bool {
         self.uses_device_track_on(cfg!(windows))
     }
