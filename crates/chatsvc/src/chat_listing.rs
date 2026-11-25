@@ -6,6 +6,7 @@ use crate::messages::{MessageTransport, SessionMessageTransport, encode, ensure_
 use crate::pins::{CSA_RESOURCE, CSA_SCOPE, CsaTransport, DEFAULT_REGION, SessionTransport};
 
 const VIEW: &str = "view=msnp24Equivalent";
+const TARGET_TYPE: &str = "targetType=Passport%7CSkype%7CLync%7CThread%7CPSTN%7CAgent";
 const NEWEST_ANCHOR_SLACK_MS: i64 = 60_000;
 const MESSAGES_SEGMENT: &str = "messages";
 const NOTES_CHAT_ID: &str = "48:notes";
@@ -68,7 +69,10 @@ impl<T: MessageTransport> ChatListing<T> {
     }
 
     pub fn first_page_url(&self, page_size: usize) -> String {
-        format!("{}?{VIEW}&pageSize={page_size}", self.conversations_url())
+        format!(
+            "{}?{VIEW}&pageSize={page_size}&startTime=0&{TARGET_TYPE}",
+            self.conversations_url()
+        )
     }
 
     pub async fn page(&self, url: &str) -> Result<ConversationPage> {
@@ -326,8 +330,17 @@ mod tests {
         assert_eq!(page.next_url.as_deref(), Some("https://next"));
         assert_eq!(
             transport.requests.lock().unwrap()[0],
-            "https://teams.cloud.microsoft/api/chatsvc/emea/v1/users/ME/conversations?view=msnp24Equivalent&pageSize=50"
+            "https://teams.cloud.microsoft/api/chatsvc/emea/v1/users/ME/conversations?view=msnp24Equivalent&pageSize=50&startTime=0&targetType=Passport%7CSkype%7CLync%7CThread%7CPSTN%7CAgent"
         );
+    }
+
+    #[test]
+    fn first_page_carries_start_time_and_target_type() {
+        let transport = canned(vec![]);
+        let listing = ChatListing::with_transport(&transport, "emea");
+        let url = listing.first_page_url(50);
+        assert!(url.contains("startTime=0"));
+        assert!(url.contains(TARGET_TYPE));
     }
 
     #[tokio::test]
