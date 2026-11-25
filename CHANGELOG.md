@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Condivisione remota invisibile: slot della riga `applicationsharing-video` piegata, indicatore e routing anche senza link di sottoscrizione, e riga già attiva all'apertura della chiamata.
 
 ## [0.7.0-rc.3] - 2026-11-25
 
