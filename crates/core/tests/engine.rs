@@ -2434,6 +2434,23 @@ async fn a_home_drive_file_reports_members_it_could_not_share_with() {
 }
 
 #[tokio::test]
+async fn a_home_drive_file_is_not_sent_as_shared_when_nobody_has_an_email() {
+    let fake = Arc::new(Fake::default());
+    *fake.omit_member_email.lock().unwrap() = true;
+    let engine = chat_engine(&fake, small_pages()).await;
+    let file = UploadedFile {
+        home_drive: true,
+        ..uploaded()
+    };
+    let error = engine.share_attachment(CHAT, &file).await.unwrap_err();
+    assert!(matches!(
+        error,
+        Error::Graph(graph::Error::SharingDenied(_))
+    ));
+    assert!(fake.calls().iter().all(|call| !call.starts_with("share")));
+}
+
+#[tokio::test]
 async fn sharing_fails_loudly_when_the_chat_members_are_unknown() {
     let fake = Arc::new(Fake::default());
     let engine = chat_engine(&fake, small_pages()).await;

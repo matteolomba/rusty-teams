@@ -1237,6 +1237,14 @@ install:
     en: Install Rusty Teams first (Application menu > Install), then it can update itself
     de: Installiere Rusty Teams zuerst (Anwendungsmenü > Installieren), dann kann es sich selbst aktualisieren
     it: Installi prima Rusty Teams (Menu applicazioni > Installa), poi potrà aggiornarsi da solo
+  updates_detail_dev:
+    en: "%{version}. This build does not look for releases"
+    de: "%{version}. Dieser Build sucht nicht nach Releases"
+    it: "%{version}. Questa build non cerca release"
+  updates_dev_build:
+    en: This build does not look for releases
+    de: Dieser Build sucht nicht nach Releases
+    it: Questa build non cerca release
   check_now:
     en: Check now
     de: Jetzt prüfen
@@ -1273,6 +1281,14 @@ install:
     en: "Release page — never download"
     de: "Release-Seite — niemals herunterladen"
     it: "Pagina release — nessun download"
+  auto_updates:
+    en: Updates
+    de: Updates
+    it: Aggiornamenti
+  auto_updates_detail:
+    en: Look for new releases. An installed copy updates itself; other copies open the release page
+    de: Nach neuen Releases suchen. Eine Installation aktualisiert sich, sonst öffnet sich die Release-Seite
+    it: Cerca nuove release. Una copia installata si aggiorna da sola; le altre aprono la pagina release
   update_available_title:
     en: Update available
     de: Update verfügbar
@@ -1309,6 +1325,10 @@ install:
     en: Restart now
     de: Jetzt neu starten
     it: Riavvia ora
+  open_release:
+    en: Open release
+    de: Release öffnen
+    it: Apri release
   up_to_date:
     en: Rusty Teams is up to date
     de: Rusty Teams ist aktuell

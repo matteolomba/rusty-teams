@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+
+### Changed
+- Sincronizzato con `danieldaeschle/rusty-teams` fino a `797e287e`; mantenute le scelte del fork su aggiornamenti, localizzazione e gate delle PR.
+
 ### Fixed
 - Condivisione remota invisibile: slot della riga `applicationsharing-video` piegata, indicatore e routing anche senza link di sottoscrizione, e riga già attiva all'apertura della chiamata.
 

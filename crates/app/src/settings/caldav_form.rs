@@ -313,6 +313,7 @@ mod tests {
             user_id: "u1".into(),
             name: "Ada".into(),
             mail: mail.map(|mail| mail.to_owned()),
+            organization: None,
         }
     }
 

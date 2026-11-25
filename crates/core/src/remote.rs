@@ -979,8 +979,8 @@ impl Remote for Graph {
                     .edit_message(&conversation, target.message_id(), &html)
                     .await?)
             }
-            Some(conversation @ ConversationRef::Chat { .. }) => {
-                // Channel, team and tag mentions have no chatsvc `mentions` entry;
+            Some(conversation) => {
+                // Team and tag mentions have no chatsvc `mentions` entry;
                 // Graph writes them with their conversation or tag identity.
                 let Some(entries) = crate::teams_quote::mention_entries(mentions) else {
                     return Ok(Graph::edit_message(self, target, html, mentions, extras).await?);
@@ -1000,7 +1000,7 @@ impl Remote for Graph {
                     )
                     .await?)
             }
-            Some(_) | None => Ok(Graph::edit_message(self, target, html, mentions, extras).await?),
+            None => Ok(Graph::edit_message(self, target, html, mentions, extras).await?),
         }
     }
 

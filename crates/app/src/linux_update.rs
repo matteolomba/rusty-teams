@@ -1,7 +1,10 @@
-//! Linux self-update, always with consent: a newer release from the fork is offered in a
-//! dialog; "Update" downloads it with progress and "Restart now" swaps the binary
-//! and relaunches. Nothing restarts without a click. Settings > General selects the
-//! update mode; "Check now" follows it without ever downloading in `off`/`release-page`.
+//! Release handling for every install kind. An installed Linux copy asks before
+//! downloading and swapping: a newer release from the fork is offered in a dialog,
+//! "Update" downloads it with progress and "Restart now" swaps the binary and
+//! relaunches. Nothing restarts without a click. Other release builds open the
+//! release page and leave the binary in place; Flatpak and untagged builds stay
+//! quiet. Settings > General selects the update mode; "Check now" follows it
+//! without ever downloading in `off`/`release-page`.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -34,6 +37,7 @@ enum Stage {
         progress: Arc<AtomicU64>,
     },
     Ready(String),
+    Notice(String),
     Failed(String),
 }
 
@@ -67,6 +71,31 @@ fn with_store<R>(cx: &App, read: impl FnOnce(&store::Store) -> R) -> Option<R> {
 /// The persisted mode; without a store (e.g. a demo session) no update work runs.
 fn current_mode(cx: &App) -> UpdateMode {
     with_store(cx, updater::load_update_mode).unwrap_or(UpdateMode::Off)
+}
+
+/// Flatpak updates through the package. A build without a release tag does not look.
+pub fn checks_releases() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        let flatpak = std::env::var_os("FLATPAK_ID");
+        if flatpak.is_some_and(|id| !id.is_empty()) {
+            return false;
+        }
+    }
+    app_base::version::release_tag().is_some()
+}
+
+/// Linux under `~/.local` replaces itself after the user agrees. Windows does that
+/// quietly from the shell poll, so this module does not download there.
+fn installed_release() -> Option<&'static str> {
+    #[cfg(target_os = "linux")]
+    {
+        crate::linux_install::updatable_release()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        None
+    }
 }
 
 fn declined(cx: &App) -> Option<String> {
@@ -120,18 +149,21 @@ fn ensure_state(cx: &mut App) {
     }
 }
 
+/// The old auto-updates toggle maps to `automatic` mode; `manual` keeps manual
+/// checks available without unattended polling.
+pub fn enabled(cx: &App) -> bool {
+    current_mode(cx).polls()
+}
+
 /// Starts update handling. `off` and `release-page` do nothing; `manual` only picks up
 /// a staged update from a previous run, while `automatic` also polls the feed.
 pub fn start(cx: &mut App) {
     let mode = current_mode(cx);
-    if !mode.downloads() {
-        return;
-    }
-    if crate::linux_install::updatable_release().is_none() {
+    if !mode.downloads() || cfg!(windows) || !checks_releases() {
         return;
     }
     ensure_state(cx);
-    if let Some(running_tag) = crate::linux_install::updatable_release()
+    if let Some(running_tag) = installed_release()
         && let Some(tag) = staged_update(running_tag)
     {
         set_stage(Stage::Ready(tag), cx);
@@ -160,10 +192,15 @@ pub fn start(cx: &mut App) {
 /// Looks for a newer release. `manual` (Settings > Check now) also offers a version
 /// declined with "Not now" in this run and reports "up to date" and errors.
 pub fn check(manual: bool, cx: &mut App) {
-    let Some(running_tag) = crate::linux_install::updatable_release() else {
-        if manual {
-            notice(tr("install.updates_need_install"), cx);
-        }
+    if !checks_releases() {
+        return;
+    }
+    if cfg!(windows) {
+        check_windows(manual, cx);
+        return;
+    }
+    let Some(running_tag) = installed_release() else {
+        check_notice(manual, cx);
         return;
     };
     ensure_state(cx);
@@ -175,7 +212,7 @@ pub fn check(manual: bool, cx: &mut App) {
             open_dialog(cx);
             return;
         }
-        Stage::Idle | Stage::Offer(_) | Stage::Failed(_) => {}
+        Stage::Idle | Stage::Offer(_) | Stage::Notice(_) | Stage::Failed(_) => {}
     }
     if manual {
         notice(tr("install.update_checking"), cx);
@@ -186,6 +223,70 @@ pub fn check(manual: bool, cx: &mut App) {
         cx.update(|cx| match found {
             Ok(Some(update)) if manual || declined(cx).as_deref() != Some(&update.tag) => {
                 offer(update, cx)
+            }
+            Ok(Some(_)) => {}
+            Ok(None) if manual => notice(tr("install.up_to_date"), cx),
+            Ok(None) => {}
+            Err(error) if manual => {
+                notice(tr_args("install.update_failed", &args("detail", error)), cx)
+            }
+            Err(error) => log::warn!("update check failed: {error}"),
+        });
+    })
+    .detach();
+}
+
+fn check_windows(manual: bool, cx: &mut App) {
+    if !manual && !enabled(cx) {
+        return;
+    }
+    let Some(running_tag) = app_base::version::release_tag() else {
+        return;
+    };
+    let Some(paths) = updater::current_paths() else {
+        return;
+    };
+    if manual {
+        notice(tr("install.update_checking"), cx);
+    }
+    let fetch = release_feed::fetch_update(running_tag, paths, cx);
+    cx.spawn(async move |cx| {
+        let found = fetch.await;
+        cx.update(|cx| match found {
+            Ok(Some(tag)) if manual => notice(
+                tr_args("install.update_ready_body", &args("version", tag)),
+                cx,
+            ),
+            Ok(_) if manual => notice(tr("install.up_to_date"), cx),
+            Ok(_) => {}
+            Err(error) if manual => {
+                notice(tr_args("install.update_failed", &args("detail", error)), cx)
+            }
+            Err(error) => log::warn!("update check failed: {error}"),
+        });
+    })
+    .detach();
+}
+
+fn check_notice(manual: bool, cx: &mut App) {
+    let Some(running_tag) = app_base::version::release_tag() else {
+        return;
+    };
+    ensure_state(cx);
+    if matches!(stage(cx), Stage::Notice(_)) {
+        open_dialog(cx);
+        return;
+    }
+    if manual {
+        notice(tr("install.update_checking"), cx);
+    }
+    let find = release_feed::find_release(running_tag, cx);
+    cx.spawn(async move |cx| {
+        let found = find.await;
+        cx.update(|cx| match found {
+            Ok(Some(update)) if manual || declined(cx).as_deref() != Some(&update.tag) => {
+                set_stage(Stage::Notice(update.tag), cx);
+                show_when_window_is_open(cx);
             }
             Ok(Some(_)) => {}
             Ok(None) if manual => notice(tr("install.up_to_date"), cx),
@@ -212,7 +313,10 @@ fn show_when_window_is_open(cx: &mut App) {
             cx.background_executor().timer(WINDOW_WAIT).await;
         }
         cx.update(|cx| {
-            if matches!(stage(cx), Stage::Offer(_) | Stage::Ready(_)) {
+            if matches!(
+                stage(cx),
+                Stage::Offer(_) | Stage::Ready(_) | Stage::Notice(_)
+            ) {
                 open_dialog(cx);
             }
         });
@@ -346,6 +450,37 @@ fn build_dialog(dialog: Dialog, cx: &App) -> Dialog {
                         .label(tr("install.hide"))
                         .on_click(|_, window, cx| close_dialog(window, cx)),
                 ),
+            )
+        }
+        Stage::Notice(tag) => {
+            let mut text_args = args("version", tag.clone());
+            text_args.insert("current".to_owned(), running.to_owned());
+            let open = tag.clone();
+            (
+                tr("install.update_available_title"),
+                tr_args("install.update_available_body", &text_args),
+                DialogFooter::new()
+                    .child(
+                        Button::new("update-not-now")
+                            .label(tr("install.not_now"))
+                            .on_click(move |_, window, cx| {
+                                decline(&tag, cx);
+                                set_stage(Stage::Idle, cx);
+                                close_dialog(window, cx);
+                            }),
+                    )
+                    .child(
+                        Button::new("update-open-release")
+                            .primary()
+                            .label(tr("install.open_release"))
+                            .on_click(move |_, window, cx| {
+                                let url = release_feed::release_page_url(&open);
+                                decline(&open, cx);
+                                set_stage(Stage::Idle, cx);
+                                close_dialog(window, cx);
+                                cx.open_url(&url);
+                            }),
+                    ),
             )
         }
         Stage::Ready(tag) => (

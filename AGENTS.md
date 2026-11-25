@@ -28,7 +28,7 @@ Code under `cfg(windows)` is not compiled by tests on Linux or macOS. CI builds 
 
 ## Before the PR leaves draft
 
-Do this without being asked, before you mark the PR ready for review. Leave it a draft until every item below is in the description. The PR template's HTML comments do not count: a section that is only a comment is empty. The fork does not run the upstream PR gate bot; apply the same list manually (CONTRIBUTING.md, "When a PR is ready for review"). `gate: no visual` and `gate: skip` are maintainer-only labels upstream.
+Do this without being asked, before you mark the PR ready for review. Leave it a draft until every item below is in the description. The PR template's HTML comments do not count: a section that is only a comment is empty. The PR gate check enforces the same list, and it does not replace doing it yourself (CONTRIBUTING.md, "When a PR is ready for review"). `gate: no visual` and `gate: skip` are for maintainers only.
 
 The body has `## Summary`, `## AI model`, `## Tests` and `## Review`, plus `## Problem` when item 4 applies and `## Screenshot` when item 6 applies.
 
@@ -41,3 +41,4 @@ The body has `## Summary`, `## AI model`, `## Tests` and `## Review`, plus `## P
 7. In `## Tests`, say what ran and what did not. If the diff touches Windows-only code, say whether you built it on Windows.
 8. No planning folders in the diff (`openspec/`, `.specify/`, `.kiro/`). A `vendor/` change says why in the summary. At most 5 open PRs, drafts included.
 9. Title: `type(scope): message`. Type is one of `feat fix perf refactor docs test chore ci build`, the scope is lowercase, no emoji. Write it from the user's view. It becomes the release note line.
+10. Run `python3 .github/scripts/pr_gate.py --dry-run <PR number>`. It must print "ready for review". Only then mark the PR ready.

@@ -101,6 +101,7 @@ pub fn render(center: &Entity<NotificationCenter>, app: &Entity<AppState>, cx: &
             ))
         })
         .children(external_browser_rows(app, cx))
+        .children(install_rows(cx))
         .children(update_rows(app, cx))
         .child(caption(tr("settings.caption.compose_box")))
         .child(account_select(
@@ -139,6 +140,8 @@ fn install_rows(cx: &App) -> Vec<AnyElement> {
     }
     #[cfg(target_os = "linux")]
     {
+        use crate::linux_install::{self, Installation};
+
         let folder = linux_install::install_folder();
         let installation = linux_install::installation();
         let detail = match installation {
@@ -199,11 +202,12 @@ fn update_mode_label(mode: UpdateMode) -> String {
     }
 }
 
-/// Updates section shown on Windows and Linux. Only `off` disables the check button;
-/// `release-page` keeps it active but it opens the fork instead of downloading.
+/// Updates section shown on Windows and Linux. `off` and builds without a release
+/// feed disable the check button; `release-page` keeps it active but opens the fork.
 #[cfg(any(windows, target_os = "linux"))]
 fn update_rows(app: &Entity<AppState>, cx: &App) -> Vec<AnyElement> {
     let mode = crate::updater::load_update_mode(&app.read(cx).store);
+    let release_checks = crate::linux_update::checks_releases();
     let choices = UpdateMode::ALL
         .into_iter()
         .map(|choice| {
@@ -229,17 +233,21 @@ fn update_rows(app: &Entity<AppState>, cx: &App) -> Vec<AnyElement> {
         tr_with("install.updates_detail_not_installed", "version", version)
     };
     #[cfg(windows)]
-    let detail = tr_with("install.updates_detail", "version", version);
+    let detail = if release_checks {
+        tr_with("install.updates_detail", "version", version)
+    } else {
+        tr_with("install.updates_detail_dev", "version", version)
+    };
     let button_label = if mode == UpdateMode::ReleasePage {
         tr("install.open_releases")
     } else {
         tr("install.check_now")
     };
     let check = text_button("settings-check-updates", button_label)
-        .when(mode == UpdateMode::Off, |button| {
+        .when(mode == UpdateMode::Off || !release_checks, |button| {
             button.opacity(DISABLED_OPACITY)
         })
-        .when(mode != UpdateMode::Off, |button| {
+        .when(mode != UpdateMode::Off && release_checks, |button| {
             let check_app = app.clone();
             button.on_click(move |_, _, cx| check_now(&check_app, cx))
         });

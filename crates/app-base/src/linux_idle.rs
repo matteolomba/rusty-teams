@@ -119,7 +119,9 @@ fn watch_wayland(state: &Arc<Mutex<WaylandIdle>>) -> bool {
         Ok(notifier) => notifier,
         Err(_) => return false,
     };
-    let timeout = NOTIFY_AFTER.as_millis() as u32;
+    let Ok(timeout) = u32::try_from(NOTIFY_AFTER.as_millis()) else {
+        return false;
+    };
     // Version 2 counts input only, like Windows' last-input time; version 1 also honours
     // idle inhibitors such as a playing video.
     let _notification = if notifier.version() >= INPUT_IDLE_VERSION {

@@ -34,7 +34,7 @@ pub fn release_page_url(tag: &str) -> String {
     format!("{RELEASE_TAG_URL}{tag}")
 }
 
-/// The release asset this platform installs.
+/// The release asset this platform installs, and the magic bytes it must start with.
 #[cfg(test)]
 fn asset_suffix_for(os: &str, arch: &str) -> &'static str {
     match (os, arch) {
@@ -157,6 +157,27 @@ pub fn is_newer(tag: &str, running_tag: &str) -> bool {
         (parse_version(tag), parse_version(running_tag)),
         (Some(tag), Some(running)) if tag > running
     )
+}
+
+/// A newer tag, even when this platform has no installable asset.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TaggedRelease {
+    pub tag: String,
+}
+
+/// The newest release newer than `running_tag`, ignoring whether an asset exists.
+pub fn newest_release<'a>(running_tag: &str, releases: &'a [Release]) -> Option<&'a Release> {
+    let running = parse_version(running_tag)?;
+    let follows_pre_releases = !running.pre_release.is_empty();
+    releases
+        .iter()
+        .filter(|release| !release.draft && (follows_pre_releases || !release.prerelease))
+        .filter_map(|release| {
+            let version = parse_version(&release.tag_name).filter(|version| *version > running)?;
+            Some((version, release))
+        })
+        .max_by(|left, right| left.0.cmp(&right.0))
+        .map(|(_, release)| release)
 }
 
 /// Pre-releases are offered only to a build that runs a pre-release itself.
@@ -357,6 +378,32 @@ async fn get(
     Err("too many redirects".to_owned())
 }
 
+/// Looks for a newer tag, without requiring an asset and without downloading.
+pub fn find_release(
+    running_tag: &'static str,
+    cx: &App,
+) -> Task<Result<Option<TaggedRelease>, String>> {
+    let client = cx.http_client();
+    cx.background_executor().spawn(async move {
+        let releases: Vec<Release> = serde_json::from_slice(
+            &get(
+                &client,
+                RELEASES_URL,
+                &METADATA_HOSTS,
+                None,
+                MAX_METADATA_SIZE,
+            )
+            .await?,
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(
+            newest_release(running_tag, &releases).map(|release| TaggedRelease {
+                tag: release.tag_name.clone(),
+            }),
+        )
+    })
+}
+
 /// Looks for a release newer than `running_tag`, without downloading it.
 pub fn find_update(
     running_tag: &'static str,
@@ -545,7 +592,11 @@ mod tests {
     fn a_release_without_a_windows_exe_or_a_dev_build_gets_nothing() {
         let mut bare = release("v0.2.0", false);
         bare.assets.clear();
-        assert!(newest_update("v0.1.0", &[bare]).is_none());
+        assert!(newest_update("v0.1.0", &[bare.clone()]).is_none());
+        assert_eq!(
+            newest_release("v0.1.0", &[bare]).map(|release| release.tag_name.as_str()),
+            Some("v0.2.0")
+        );
         assert!(newest_update("0356d1d-20261107T101752Z", &[release("v0.2.0", false)]).is_none());
     }
 
