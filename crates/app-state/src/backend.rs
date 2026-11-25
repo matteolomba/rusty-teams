@@ -189,6 +189,7 @@ async fn supervise(
     };
     tokio::spawn(org_list(home.clone(), guest_tenant.clone(), events.clone()));
     // Calls stay on the home tenant's registration, like rings for the home org while a guest org is open.
+    // Chat files of a guest org go to the home OneDrive: the guest tenant has none.
     let (session, home_drive) = match &guest_tenant {
         Some(tenant) => (home.in_tenant(tenant), Some(home.clone())),
         None => (home.clone(), None),
