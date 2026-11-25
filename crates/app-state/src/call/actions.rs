@@ -1326,11 +1326,7 @@ impl AppState {
         let Some(entry) = self.rings.get(ring_id).cloned() else {
             return;
         };
-        let conversation_id = entry.ring.thread_id.clone().or_else(|| {
-            (!entry.ring.is_group)
-                .then(|| self.one_on_one_chat_with_mri(&entry.ring.caller.mri))
-                .flatten()
-        });
+        let conversation_id = self.conversation_of_ring(&entry.ring);
         let title = conversation_id
             .as_deref()
             .and_then(|id| self.sidebar.chats.iter().find(|chat| chat.id == id))
@@ -1404,6 +1400,14 @@ impl AppState {
             return Some(thread_id.clone());
         }
         self.one_on_one_chat_with_mri(&missed.caller_mri)
+    }
+
+    fn conversation_of_ring(&self, ring: &calling::IncomingRing) -> Option<String> {
+        ring.thread_id.clone().or_else(|| {
+            (!ring.is_group)
+                .then(|| self.one_on_one_chat_with_mri(&ring.caller.mri))
+                .flatten()
+        })
     }
 
     fn one_on_one_chat_with_mri(&self, mri: &str) -> Option<String> {
@@ -2904,7 +2908,7 @@ mod tests {
     fn an_accepted_one_on_one_ring_gets_the_chat_with_the_caller(cx: &mut TestAppContext) {
         let app = app_with_chats(cx);
         cx.update(|cx| {
-            app.update(cx, |state, cx| {
+            app.update(cx, |state, _| {
                 let ring = calling::IncomingRing {
                     caller: calling::Caller {
                         mri: "8:orgid:bea-id".into(),
@@ -2913,13 +2917,15 @@ mod tests {
                     thread_id: None,
                     ..demo_ring()
                 };
-                let ring_id = ring.ring_id;
-                state.push_ring(ring, true, cx);
-                state.accept_ring(ring_id, calling::AcceptMode::Audio, cx);
                 assert_eq!(
-                    state.call.as_ref().unwrap().chat_thread(),
+                    state.conversation_of_ring(&ring).as_deref(),
                     Some("19:dm@unq.gbl.spaces")
                 );
+                let group = calling::IncomingRing {
+                    is_group: true,
+                    ..ring
+                };
+                assert_eq!(state.conversation_of_ring(&group), None);
             })
         });
     }
