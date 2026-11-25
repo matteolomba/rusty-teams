@@ -7,9 +7,9 @@ use chatsvc::substrate_search::{
     QueryRequest, QueryResults, SearchIdentity, SearchSession, SubstrateSearch, Suggestions,
 };
 use chatsvc::{
-    parse_app_consumption_horizon, ActivityFeed, ActivitySnapshot, AppConsumptionHorizon,
-    ChatNotificationMode, ChatNotificationWrite, ChatSettingChange, ChatSettingsClient,
-    ChatSettingsDocument, DesktopNotifications, UserSettings,
+    ActivityFeed, ActivitySnapshot, AppConsumptionHorizon, ChatNotificationMode,
+    ChatNotificationWrite, ChatSettingChange, ChatSettingsClient, ChatSettingsDocument,
+    DesktopNotifications, UserSettings, parse_app_consumption_horizon,
 };
 use chatsvc::{
     BotProfile, BotProfiles, CallLogEntry, CardActions, ChatApp, ConversationRef,

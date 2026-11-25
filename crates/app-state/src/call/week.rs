@@ -44,14 +44,13 @@ impl CalendarFetch {
             Ok(value) => {
                 let (events, partial) = outcome(value);
                 self.events.extend(events);
-                self.failures.extend(partial.into_iter().map(|message| {
-                    CalendarLoadFailure {
+                self.failures
+                    .extend(partial.into_iter().map(|message| CalendarLoadFailure {
                         sign_in: source == CalendarSource::Google
                             && crate::google_calendar_sync::needs_sign_in(&message),
                         source,
                         message,
-                    }
-                }));
+                    }));
             }
             Err(error) => {
                 let message = error.to_string();
@@ -426,9 +425,11 @@ async fn fetch_google(
         let _ = store::merge_google_tokens(store, accounts);
     }
     let count = result.as_ref().ok().map(|(events, _)| events.len());
-    fetched.collect(CalendarSource::Google, result, |(events, account_errors)| {
-        (events, account_errors)
-    });
+    fetched.collect(
+        CalendarSource::Google,
+        result,
+        |(events, account_errors)| (events, account_errors),
+    );
     count
 }
 
