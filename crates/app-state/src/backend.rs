@@ -65,6 +65,7 @@ pub enum BackendEvent {
     Calls(Arc<CallLauncher>),
     Calendar(Vec<CalendarEvent>),
     CalendarNudge(mpsc::UnboundedSender<()>),
+    CalendarRefresh,
     Ring(EngineEvent),
     ThreadChanged(String),
     Core(CoreEvent),
@@ -86,6 +87,7 @@ impl BackendEvent {
             BackendEvent::Calls(_) => "Calls".into(),
             BackendEvent::Calendar(_) => "Calendar".into(),
             BackendEvent::CalendarNudge(_) => "CalendarNudge".into(),
+            BackendEvent::CalendarRefresh => "CalendarRefresh".into(),
             BackendEvent::Ring(_) => "Ring".into(),
             BackendEvent::ThreadChanged(_) => "ThreadChanged".into(),
             BackendEvent::Core(event) => {
@@ -372,6 +374,10 @@ async fn realtime_loop(
                     match event {
                         RealtimeEvent::Message(message) => {
                             let _ = events.send(BackendEvent::Live(LiveState::Live));
+                            if message.kind == EventKind::Calendar {
+                                let _ = events.send(BackendEvent::CalendarRefresh);
+                                continue;
+                            }
                             if let Some(conversation_id) = thread_signal(&message) {
                                 let _ = events.send(BackendEvent::ThreadChanged(conversation_id));
                             }

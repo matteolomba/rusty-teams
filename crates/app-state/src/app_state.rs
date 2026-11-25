@@ -1232,6 +1232,11 @@ impl AppState {
                 self.refresh_visible_calendar(cx);
             }
             BackendEvent::CalendarNudge(nudge) => self.calendar_nudge = Some(nudge),
+            BackendEvent::CalendarRefresh => {
+                if let Some(nudge) = &self.calendar_nudge {
+                    let _ = nudge.send(());
+                }
+            }
             BackendEvent::Ring(event) => self.on_engine_event(event, cx),
             BackendEvent::ThreadChanged(conversation_id) => {
                 self.on_thread_changed(&conversation_id, cx)

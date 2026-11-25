@@ -4,6 +4,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use futures_util::{SinkExt, StreamExt};
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, percent_decode_str, utf8_percent_encode};
+use rand::Rng;
 use serde_json::{Map, Value, json};
 use session::{App, Method, Request, Session};
 use tokio::net::TcpStream;
@@ -14,7 +15,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, client_async_tls_with_c
 
 use super::RealtimeConfig;
 use super::callback::{CallbackReply, decode_callback};
-use super::event::{RealtimeEvent, StatusEvent, StatusKind, decode_payload};
+use super::event::{EventKind, RealtimeEvent, StatusEvent, StatusKind, decode_payload};
 use super::host::ic3_scope;
 use super::runner::CallbackPipes;
 
@@ -26,7 +27,9 @@ const SILENCE_LIMIT: Duration = Duration::from_secs(100);
 const REREGISTER_AFTER: Duration = Duration::from_secs(40 * 60);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(20);
 const ADDRESS_TIMEOUT: Duration = Duration::from_secs(5);
-const MAX_BACKOFF: Duration = Duration::from_secs(30);
+const FIRST_BACKOFF: Duration = Duration::from_secs(5);
+const MAX_BACKOFF: Duration = Duration::from_secs(5 * 60);
+const BACKOFF_JITTER: Duration = Duration::from_millis(500);
 const ACTIVITY_DEBOUNCE: Duration = Duration::from_secs(1);
 const ACTIVITY_ACK_TIMEOUT: Duration = Duration::from_secs(10);
 const CALLBACK_REPLY_TIMEOUT: Duration = Duration::from_secs(5);
@@ -146,6 +149,19 @@ fn request_path(url: &str) -> String {
     }
 }
 
+fn backoff_base(retry: u32) -> Duration {
+    FIRST_BACKOFF
+        .saturating_mul(1u32 << retry.min(6))
+        .min(MAX_BACKOFF)
+}
+
+fn reconnect_delay(retry: u32) -> Duration {
+    let jitter_ms = rand::rng().random_range(0..=BACKOFF_JITTER.as_millis() as u64);
+    backoff_base(retry)
+        .saturating_add(Duration::from_millis(jitter_ms))
+        .min(MAX_BACKOFF)
+}
+
 fn conversation_of(resource: &Value) -> String {
     let link = ["conversationLink", "to", "id"]
         .iter()
@@ -252,7 +268,9 @@ pub(super) fn notification_payload(
         .and_then(|resource| resource.get("messagetype"))
         .and_then(Value::as_str)
         .unwrap_or("");
-    let event_kind = if path == "messaging" {
+    let event_kind = if path.ends_with("tpsUpdate/calendar") {
+        "calendar"
+    } else if path == "messaging" {
         classify(&resource_type, message_type)
     } else {
         "other"
@@ -412,7 +430,7 @@ impl NativeTrouter {
                         self.forward(&status_payload("disconnected", "closed"));
                     }
                     self.retry += 1;
-                    let delay = Duration::from_secs(1u64 << self.retry.min(5)).min(MAX_BACKOFF);
+                    let delay = reconnect_delay(self.retry);
                     tokio::select! {
                         _ = sleep(delay) => {}
                         done = &mut stop => {
@@ -897,6 +915,28 @@ mod tests {
         assert_eq!(request_path("/v4/f/abc123/messaging"), "messaging");
         assert_eq!(request_path("/v4/f/abc/callAgent/x/y"), "callAgent/x/y");
         assert_eq!(request_path("messaging"), "messaging");
+    }
+
+    #[test]
+    fn reconnect_backoff_grows_from_five_seconds_to_five_minutes() {
+        assert_eq!(backoff_base(0), Duration::from_secs(5));
+        assert_eq!(backoff_base(1), Duration::from_secs(10));
+        assert_eq!(backoff_base(6), Duration::from_secs(300));
+        assert_eq!(backoff_base(u32::MAX), Duration::from_secs(300));
+        let delayed = reconnect_delay(0);
+        assert!(delayed >= Duration::from_secs(5));
+        assert!(delayed <= Duration::from_millis(5500));
+    }
+
+    #[test]
+    fn a_calendar_push_becomes_a_calendar_event() {
+        let payload = notification_payload("/v4/f/abc/tpsUpdate/calendar", Some(&json!({})), 5)
+            .expect("calendar push");
+        assert_eq!(payload["eventKind"], "calendar");
+        assert!(matches!(
+            decode_payload(&payload.to_string()),
+            Ok(RealtimeEvent::Message(event)) if event.kind == EventKind::Calendar
+        ));
     }
 
     #[test]

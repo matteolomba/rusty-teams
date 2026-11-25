@@ -21,6 +21,7 @@ pub enum EventKind {
     PinsChanged,
     ThreadActivity,
     Control,
+    Calendar,
     #[serde(other)]
     Other,
 }
