@@ -20,6 +20,8 @@ pub const CALENDAR_LOAD_FAILURE: &str = "We couldn't load your calendar.";
 pub struct CalendarLoadFailure {
     pub source: CalendarSource,
     pub message: String,
+    /// The user must sign in again. Retry would use the same rejected token.
+    pub sign_in: bool,
 }
 
 #[derive(Default)]
@@ -42,16 +44,24 @@ impl CalendarFetch {
             Ok(value) => {
                 let (events, partial) = outcome(value);
                 self.events.extend(events);
-                self.failures.extend(
-                    partial
-                        .into_iter()
-                        .map(|message| CalendarLoadFailure { source, message }),
-                );
+                self.failures.extend(partial.into_iter().map(|message| {
+                    CalendarLoadFailure {
+                        sign_in: source == CalendarSource::Google
+                            && crate::google_calendar_sync::needs_sign_in(&message),
+                        source,
+                        message,
+                    }
+                }));
             }
-            Err(error) => self.failures.push(CalendarLoadFailure {
-                source,
-                message: error.to_string(),
-            }),
+            Err(error) => {
+                let message = error.to_string();
+                self.failures.push(CalendarLoadFailure {
+                    sign_in: source == CalendarSource::Google
+                        && crate::google_calendar_sync::needs_sign_in(&message),
+                    source,
+                    message,
+                });
+            }
         }
     }
 }
@@ -415,9 +425,9 @@ async fn fetch_google(
     if result.is_ok() {
         let _ = store::merge_google_tokens(store, accounts);
     }
-    let count = result.as_ref().ok().map(Vec::len);
-    fetched.collect(CalendarSource::Google, result, |events| {
-        (events, Vec::new())
+    let count = result.as_ref().ok().map(|(events, _)| events.len());
+    fetched.collect(CalendarSource::Google, result, |(events, account_errors)| {
+        (events, account_errors)
     });
     count
 }
@@ -892,6 +902,7 @@ mod tests {
         let failures = [CalendarLoadFailure {
             source: CalendarSource::Outlook,
             message: "HTTP 503".into(),
+            sign_in: false,
         }];
         let ids: Vec<_> = keep_failed_sources(&previous, fresh.clone(), &failures)
             .into_iter()
@@ -915,6 +926,7 @@ mod tests {
         let failures = [CalendarLoadFailure {
             source: CalendarSource::CalDav,
             message: "CalDAV Work: timeout".into(),
+            sign_in: false,
         }];
         let ids: Vec<_> = keep_failed_sources(&previous, fresh, &failures)
             .into_iter()
@@ -930,6 +942,7 @@ mod tests {
         let failures = [CalendarLoadFailure {
             source: CalendarSource::Google,
             message: "client_secret is missing".into(),
+            sign_in: false,
         }];
         assert_eq!(
             load_summary(from, to, Some(3), None, None, 412, &failures),
