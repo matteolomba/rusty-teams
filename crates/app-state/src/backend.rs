@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
 
 use calling::EngineEvent;
@@ -108,11 +108,65 @@ impl BackendEvent {
 
 type EventSender = mpsc::UnboundedSender<BackendEvent>;
 
+/// Interactive MFA requested while the guest org was open. The detail is the first line
+/// of the token endpoint's `error_description`, which the session keeps on its login errors.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GuestMfa {
+    pub detail: String,
+}
+
+static GUEST_MFA: LazyLock<Mutex<Option<GuestMfa>>> = LazyLock::new(|| Mutex::new(None));
+
+/// The MFA challenge that currently blocks the open guest org.
+pub fn guest_mfa() -> Option<GuestMfa> {
+    GUEST_MFA.lock().ok().and_then(|guard| guard.clone())
+}
+
+pub fn guest_mfa_pending() -> bool {
+    guest_mfa().is_some()
+}
+
+pub fn clear_guest_mfa() {
+    if let Ok(mut guard) = GUEST_MFA.lock() {
+        *guard = None;
+    }
+}
+
+/// Only a guest tenant can be blocked by its own MFA policy; the home tenant's login
+/// window is still the right answer to other `LoginRequired` failures.
+fn note_session_failure(error: &session::Error, guest_tenant: Option<&str>) {
+    if guest_tenant.is_some() && error.requires_interactive_mfa() {
+        let detail = error.login_detail().unwrap_or_default().to_owned();
+        if let Ok(mut guard) = GUEST_MFA.lock() {
+            *guard = Some(GuestMfa { detail });
+        }
+        return;
+    }
+    // A retry can no longer carry the detail once the browser shows a login page;
+    // keep the last guest challenge until the session actually recovers.
+    let is_login_error = matches!(
+        error,
+        session::Error::LoginRequired { .. } | session::Error::NoFreshToken { .. }
+    );
+    if guest_tenant.is_none() || !is_login_error {
+        clear_guest_mfa();
+    }
+}
+
+fn note_core_failure(error: &teams_core::Error, guest_tenant: Option<&str>) {
+    match error {
+        teams_core::Error::Graph(graph::Error::Session(inner)) => {
+            note_session_failure(inner, guest_tenant)
+        }
+        _ => clear_guest_mfa(),
+    };
+}
+
 pub fn classify_session_error(error: &session::Error) -> ConnectionState {
     match error {
         session::Error::NoBrowser { .. } => ConnectionState::NoBrowser,
         session::Error::NoAppTab => ConnectionState::NoAppTab,
-        session::Error::LoginRequired(_) | session::Error::NoFreshToken { .. } => {
+        session::Error::LoginRequired { .. } | session::Error::NoFreshToken { .. } => {
             ConnectionState::LoginRequired
         }
         other => ConnectionState::Failed(shorten(&other.to_string())),
@@ -179,11 +233,13 @@ async fn supervise(
     guest_tenant: Option<String>,
     events: EventSender,
 ) {
+    clear_guest_mfa();
     let _ = events.send(BackendEvent::Connection(ConnectionState::Connecting));
     let home = loop {
         match Session::with_transport(transport.clone(), SessionConfig::for_app()).await {
             Ok(session) => break session,
             Err(error) => {
+                note_session_failure(&error, guest_tenant.as_deref());
                 let _ = events.send(BackendEvent::Connection(classify_session_error(&error)));
                 tokio::time::sleep(CONNECT_RETRY).await;
             }
@@ -239,7 +295,7 @@ async fn supervise(
     tokio::spawn(calendar_loop(home, store.clone(), events.clone()));
     tokio::spawn(pins_loop(session, events.clone()));
     tokio::spawn(presence_resubscribe_loop(engine.clone()));
-    refresh_loop(engine, events, nudges).await;
+    refresh_loop(engine, events, nudges, guest_tenant).await;
 }
 
 /// Fetches the account's organizations once per start, retried a few times while sign-in settles,
@@ -303,6 +359,7 @@ async fn refresh_loop(
     engine: Arc<Engine>,
     events: EventSender,
     mut nudges: mpsc::UnboundedReceiver<()>,
+    guest_tenant: Option<String>,
 ) {
     let mut interval = tokio::time::interval(REFRESH_INTERVAL);
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
@@ -329,10 +386,12 @@ async fn refresh_loop(
                         "sync: chat folders and channel layout not refreshed: {error}"
                     ));
                 }
+                clear_guest_mfa();
                 let _ = events.send(BackendEvent::Connection(ConnectionState::Online));
                 let _ = events.send(BackendEvent::Synced(Utc::now()));
             }
             Err(error) => {
+                note_core_failure(&error, guest_tenant.as_deref());
                 let _ = events.send(BackendEvent::Connection(classify_core_error(&error)));
                 tokio::time::sleep(CONNECT_RETRY).await;
             }
@@ -734,7 +793,7 @@ mod tests {
             ConnectionState::NoAppTab
         );
         assert_eq!(
-            classify_session_error(&session::Error::LoginRequired("x".into())),
+            classify_session_error(&session::Error::LoginRequired { detail: None }),
             ConnectionState::LoginRequired
         );
         assert_eq!(live_state_for(StatusKind::Connected), LiveState::Live);
@@ -752,5 +811,46 @@ mod tests {
         );
         assert_eq!(link_signal_for(StatusKind::MessageLoss), None);
         assert_eq!(link_signal_for(StatusKind::Error), None);
+    }
+
+    #[test]
+    fn guest_mfa_keeps_the_refresh_detail_only_for_a_guest_tenant() {
+        let detail = format!(
+            "invalid_grant: {}: finish MFA in the browser",
+            session::INTERACTIVE_MFA_CODE
+        );
+        let error = session::Error::NoFreshToken {
+            scope: "scope".into(),
+            detail: detail.clone(),
+        };
+        note_session_failure(&error, Some("guest-tenant"));
+        assert_eq!(
+            guest_mfa(),
+            Some(GuestMfa {
+                detail: detail.clone()
+            })
+        );
+        assert_eq!(
+            classify_session_error(&error),
+            ConnectionState::LoginRequired
+        );
+
+        let plain = session::Error::LoginRequired {
+            detail: Some("invalid_grant".into()),
+        };
+        note_session_failure(&plain, Some("guest-tenant"));
+        assert_eq!(
+            guest_mfa(),
+            Some(GuestMfa {
+                detail: detail.clone()
+            })
+        );
+
+        note_session_failure(&error, None);
+        assert_eq!(guest_mfa(), None);
+
+        note_session_failure(&plain, Some("guest-tenant"));
+        assert_eq!(guest_mfa(), None);
+        clear_guest_mfa();
     }
 }

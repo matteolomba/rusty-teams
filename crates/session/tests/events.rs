@@ -213,5 +213,5 @@ async fn run_with_token_maps_missing_token_to_typed_errors() {
         .run_with_token(App::Teams, &scope, "return 1;", &json!({}), false)
         .await
         .unwrap_err();
-    assert!(matches!(error, Error::LoginRequired(_)), "{error}");
+    assert!(matches!(error, Error::LoginRequired { .. }), "{error}");
 }

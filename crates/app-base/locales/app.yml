@@ -2554,6 +2554,14 @@ status_menu:
     en: "%{name} (Guest)"
     de: "%{name} (Gast)"
     it: "%{name} (Ospite)"
+  guest_mfa_hint:
+    en: Interactive MFA is required for the guest org; return to your home org.
+    de: Für die Gastorganisation ist interaktive MFA erforderlich; kehren Sie zu Ihrer Heimatorganisation zurück.
+    it: Per l'org ospite è richiesta la MFA interattiva; torna alla tua org principale.
+  guest_mfa_return_home:
+    en: Return to home org
+    de: Zur Heimatorganisation zurückkehren
+    it: Torna all'org principale
   view_account:
     en: View account
     de: Konto anzeigen

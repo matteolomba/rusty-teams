@@ -200,9 +200,16 @@ pub fn load_sessions(environment: &Environment, demo: bool) -> SessionLoad {
         desktop: if demo {
             Vec::new()
         } else {
-            desktop_dir()
-                .map(|directory| agents::desktop_sessions(&directory))
-                .unwrap_or_default()
+            match desktop_dir() {
+                Some(directory) => match agents::desktop_sessions(&directory) {
+                    Ok(sessions) => sessions,
+                    Err(error) => {
+                        crate::diagnostics::record(format!("desktop sessions not loaded: {error}"));
+                        Vec::new()
+                    }
+                },
+                None => Vec::new(),
+            }
         },
         running: agents::running_sessions(&sessions_dir),
         sessions_dir,

@@ -44,6 +44,25 @@ impl AppState {
         }
         let mut next = self.orgs.clone();
         next.activate(org);
+        self.restart_on(next, open_conversation, cx);
+    }
+
+    /// A guest MFA challenge cannot complete the home tenant's sign-in; leaving guest needs no new token.
+    pub fn can_return_home(&self) -> bool {
+        self.orgs.active_guest().is_some()
+    }
+
+    /// Restarts on the home tenant after a guest org asked for interactive MFA.
+    /// Returns `false` when no guest org is open, so callers never restart in a loop.
+    pub fn return_to_home_org(&mut self, cx: &mut Context<Self>) -> bool {
+        let Some(next) = return_home_orgs(&self.orgs) else {
+            return false;
+        };
+        self.restart_on(next, None, cx);
+        true
+    }
+
+    fn restart_on(&mut self, next: Orgs, open_conversation: Option<&str>, cx: &mut Context<Self>) {
         if !self.save_orgs(&next) {
             return;
         }
@@ -82,6 +101,14 @@ impl AppState {
     }
 }
 
+/// The home tenant needs no row in the org list: clearing `active` leaves the guest cache.
+fn return_home_orgs(orgs: &Orgs) -> Option<Orgs> {
+    orgs.active_guest()?;
+    let mut next = orgs.clone();
+    next.activate_home();
+    Some(next)
+}
+
 /// The process's own flags without an earlier open target, plus the chat to open now.
 fn restart_arguments(
     current: impl Iterator<Item = std::ffi::OsString>,
@@ -114,5 +141,30 @@ mod tests {
             restart_arguments(current.into_iter(), Some("19:new")),
             ["--endpoint", "x", OPEN_CONVERSATION_FLAG, "19:new"].map(std::ffi::OsString::from)
         );
+    }
+
+    #[test]
+    fn leaving_a_guest_org_reopens_the_home_cache() {
+        let mut orgs = Orgs {
+            active: None,
+            list: vec![
+                Org {
+                    id: "aaaa-01".into(),
+                    name: "Home".into(),
+                    guest: false,
+                },
+                Org {
+                    id: "bbbb-02".into(),
+                    name: "Guest".into(),
+                    guest: true,
+                },
+            ],
+        };
+        orgs.activate(&orgs.list[1].clone());
+        let next = return_home_orgs(&orgs).expect("an open guest org can return home");
+        assert_eq!(next.active, None);
+        assert_eq!(next.database_file(), "cache.sqlite3");
+        assert!(next.is_active(&next.list[0]));
+        assert!(return_home_orgs(&next).is_none());
     }
 }

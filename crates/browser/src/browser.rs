@@ -18,6 +18,7 @@ use crate::targets::{self, APPS, App, LoginState, Mode, Tab, VersionInfo};
 const HTTP_TIMEOUT: Duration = Duration::from_secs(5);
 const OPEN_TAB_TIMEOUT: Duration = Duration::from_secs(10);
 const CDP_TIMEOUT: Duration = Duration::from_secs(5);
+const MSAL_KEY_STOP_BUDGET: Duration = Duration::from_millis(500);
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Status {
@@ -501,7 +502,18 @@ impl Browser {
             let port = self.inner.config.port;
             let _ = tokio::task::spawn_blocking(move || launcher.terminate_listener(port)).await;
         } else if let Some(info) = self.version().await {
-            keep_msal_cache_key(&info.websocket_url).await;
+            match tokio::time::timeout(
+                MSAL_KEY_STOP_BUDGET,
+                keep_msal_cache_key(&info.websocket_url),
+            )
+            .await
+            {
+                Ok(()) => {}
+                Err(_) => log::warn!(
+                    "MSAL cache key persistence timed out after {} ms",
+                    MSAL_KEY_STOP_BUDGET.as_millis()
+                ),
+            }
             close_over_cdp(&info.websocket_url).await;
         }
     }
@@ -633,5 +645,11 @@ mod tests {
     #[test]
     fn only_teams_starts() {
         assert_eq!(start_urls(), ["https://teams.cloud.microsoft/"]);
+    }
+
+    #[test]
+    fn msal_key_stop_budget_is_bounded_by_the_stop_timeout() {
+        assert_eq!(MSAL_KEY_STOP_BUDGET, Duration::from_millis(500));
+        assert!(MSAL_KEY_STOP_BUDGET < Timeouts::default().stop);
     }
 }

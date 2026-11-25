@@ -36,6 +36,8 @@ fn audio_error(what: &str, error: impl std::fmt::Display) -> Error {
 }
 
 fn open_device(choice: &DeviceChoice) -> Result<IMMDevice> {
+    // SAFETY: callers initialise COM on this thread before calling; all COM interfaces returned
+    // here are owned wrappers that are dropped while COM is still initialised.
     unsafe {
         let enumerator: IMMDeviceEnumerator =
             CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)
@@ -68,6 +70,8 @@ fn open_device(choice: &DeviceChoice) -> Result<IMMDevice> {
 }
 
 pub fn friendly_name_for_id(id: &str) -> Option<String> {
+    // SAFETY: COM is initialised here or was already initialised on this thread; CoUninitialize
+    // runs only for our own successful initialisation and after the COM values are dropped.
     unsafe {
         let initialized = CoInitializeEx(None, COINIT_MULTITHREADED).is_ok();
         let name =
@@ -84,6 +88,8 @@ pub fn friendly_name_for_id(id: &str) -> Option<String> {
 }
 
 fn friendly_name(device: &IMMDevice) -> String {
+    // SAFETY: `device` is a live IMMDevice and `value` is a live owned PROPVARIANT out-param that
+    // is cleared exactly once, before returning the copied name.
     unsafe {
         let Ok(store) = device.OpenPropertyStore(STGM_READ) else {
             return String::new();
@@ -118,6 +124,9 @@ fn initialise(
     };
     // Omit AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY so WASAPI uses Windows' higher-quality resampler.
     let flags = AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM;
+    // SAFETY: COM is initialised on this thread by the caller and `device` is live; `properties`
+    // and `format` are live stack values passed by pointer only for their calls, and the returned
+    // COM interfaces and event handle are owned by the caller.
     unsafe {
         let client: IAudioClient = device
             .Activate(CLSCTX_ALL, None)
@@ -159,6 +168,8 @@ fn initialise(
 }
 
 fn drain(capture: &IAudioCaptureClient, queue: &SampleQueue) -> windows::core::Result<()> {
+    // SAFETY: `capture` is a live IAudioCaptureClient; the buffer pointer from GetBuffer is used
+    // only until the matching ReleaseBuffer, and the samples are copied before that release.
     unsafe {
         while capture.GetNextPacketSize()? > 0 {
             let mut data = std::ptr::null_mut();
@@ -185,6 +196,8 @@ pub fn start_communications_microphone(
     let (ready_sender, ready) = mpsc::channel::<Result<(String, Vec<MicEffect>)>>();
     let choice = choice.clone();
     let capture = Capture::spawn_thread("mic-communications", move |stop| {
+        // SAFETY: this is a freshly spawned thread with no COM initialised; the CoUninitialize at
+        // the end of this closure pairs with this call.
         unsafe {
             let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
         }
@@ -197,11 +210,15 @@ pub fn start_communications_microphone(
             Ok((name, effects, client, capture, event)) => {
                 let _ = ready_sender.send(Ok((name, effects)));
                 while !stop.load(Ordering::SeqCst) {
+                    // SAFETY: `event` is the owned handle created in initialise and stays open
+                    // until the cleanup after this loop.
                     let waited = unsafe { WaitForSingleObject(event, EVENT_WAIT_MS) };
                     if waited == WAIT_OBJECT_0 && drain(&capture, &queue).is_err() {
                         break;
                     }
                 }
+                // SAFETY: `client` and `event` are the owned values from initialise, not used after
+                // this point; Stop and CloseHandle each run once while the values are still valid.
                 unsafe {
                     let _ = client.Stop();
                     let _ = CloseHandle(event);
@@ -211,6 +228,8 @@ pub fn start_communications_microphone(
                 let _ = ready_sender.send(Err(error));
             }
         }
+        // SAFETY: pairs with the CoInitializeEx at the start of this closure; every COM object
+        // created in it has been dropped by the time this runs.
         unsafe { CoUninitialize() };
     })
     .map_err(|error| audio_error("microphone thread", error))?;
@@ -222,6 +241,8 @@ pub fn start_communications_microphone(
 
 /// Switches the Windows effects on this stream to what our chain expects and returns the resulting effect list.
 fn apply_effect_policy(client: &IAudioClient) -> Vec<MicEffect> {
+    // SAFETY: COM is initialised on this thread by the caller and `client` is live; the effects
+    // manager and its arrays are owned COM values used only within this block.
     unsafe {
         let Ok(manager) = client.GetService::<IAudioEffectsManager>() else {
             return Vec::new();
@@ -241,6 +262,8 @@ fn apply_effect_policy(client: &IAudioClient) -> Vec<MicEffect> {
 }
 
 fn list_effects(manager: &IAudioEffectsManager) -> Result<Vec<MicEffect>> {
+    // SAFETY: `manager` is a live IAudioEffectsManager and `effects`/`count` are live out-params;
+    // the returned array is copied before CoTaskMemFree frees it exactly once.
     unsafe {
         let mut effects: *mut AUDIO_EFFECT = std::ptr::null_mut();
         let mut count = 0u32;
@@ -265,17 +288,23 @@ fn list_effects(manager: &IAudioEffectsManager) -> Result<Vec<MicEffect>> {
 
 /// Opens the microphone the way a call does and lists the Windows effects running on that stream.
 pub fn probe_effects(choice: &DeviceChoice) -> Result<(String, Vec<MicEffect>)> {
+    // SAFETY: COM is initialised here on the calling thread and paired with the CoUninitialize at
+    // the end of this function; all COM objects are used within that scope.
     unsafe {
         let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
     }
     let probed = open_device(choice).and_then(|device| {
         let (client, _capture, event, effects) = initialise(&device)?;
+        // SAFETY: `client` and `event` are owned values from initialise, not used afterwards; Stop
+        // and CloseHandle each run once while they are valid.
         unsafe {
             let _ = client.Stop();
             let _ = CloseHandle(event);
         }
         Ok((friendly_name(&device), effects))
     });
+    // SAFETY: pairs with the CoInitializeEx at the start of probe_effects; the device, client and
+    // capture interface pointers have all been dropped by this point.
     unsafe { CoUninitialize() };
     probed
 }

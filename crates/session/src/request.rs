@@ -423,4 +423,29 @@ mod tests {
             "page hidden, 3 plain / 40 sealed cache entries (38 opened)"
         );
     }
+
+    #[test]
+    fn keeps_the_mfa_description_from_refresh_error() {
+        let description = format!(
+            "invalid_grant: {}: complete MFA in the browser",
+            crate::INTERACTIVE_MFA_CODE
+        );
+        let outcome: Outcome = serde_json::from_value(json!({
+            "noToken": true,
+            "refreshError": description,
+        }))
+        .unwrap();
+        let detail = outcome.refresh_error.expect("refresh detail");
+        assert!(detail.contains(crate::INTERACTIVE_MFA_CODE));
+        let error = crate::Error::NoFreshToken {
+            scope: "scope".into(),
+            detail: format!(" (token refresh failed in Teams: {detail})"),
+        };
+        assert!(error.requires_interactive_mfa());
+        assert!(
+            error
+                .login_detail()
+                .is_some_and(|text| text.contains(detail.as_str()))
+        );
+    }
 }

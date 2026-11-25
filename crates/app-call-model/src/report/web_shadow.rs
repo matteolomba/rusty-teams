@@ -3,7 +3,7 @@ use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use super::Document;
 
@@ -15,14 +15,33 @@ const MAX_EVENTS: usize = 20_000;
 const MAX_TIMELINE_ROWS: usize = 300;
 const STATS_EVENT: &str = "stats";
 const REQUEST_EVENT: &str = "request";
+const MAX_RAW_BYTES: usize = 64 * 1024;
+const KNOWN_EVENTS: [&str; 11] = [
+    "peer",
+    "ice",
+    "connection",
+    "gathering",
+    "candidate",
+    "track",
+    "local",
+    "remote",
+    "close",
+    STATS_EVENT,
+    REQUEST_EVENT,
+];
+
+fn is_known_event(event: &str) -> bool {
+    KNOWN_EVENTS.contains(&event)
+}
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct Incoming {
     kind: String,
     at: i64,
     event: String,
     #[serde(default)]
-    data: Value,
+    data: Map<String, Value>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -81,21 +100,30 @@ impl WebShadow {
     }
 
     pub fn observe(&mut self, raw: &str) -> bool {
+        if raw.len() > MAX_RAW_BYTES {
+            return false;
+        }
         let Ok(incoming) = serde_json::from_str::<Incoming>(raw) else {
             return false;
         };
-        if incoming.kind != SHADOW_KIND {
+        if incoming.kind != SHADOW_KIND || !is_known_event(&incoming.event) || incoming.at < 0 {
+            return false;
+        }
+        let first_at = *self.first_at.get_or_insert(incoming.at);
+        let Some(at_ms) = incoming.at.checked_sub(first_at) else {
+            return false;
+        };
+        if at_ms < 0 {
             return false;
         }
         if self.events.len() >= MAX_EVENTS {
             self.dropped += 1;
             return true;
         }
-        let first_at = *self.first_at.get_or_insert(incoming.at);
         self.events.push(ShadowEvent {
-            at_ms: incoming.at - first_at,
+            at_ms,
             event: incoming.event,
-            data: incoming.data,
+            data: Value::Object(incoming.data),
         });
         true
     }
@@ -417,5 +445,28 @@ mod tests {
         assert!(document.markdown.contains("| Codecs | audio/opus |"));
         assert!(document.markdown.contains("1 requests, 1 failed"));
         assert!(document.json.contains("\"engine\": \"teams-web\""));
+    }
+
+    #[test]
+    fn malformed_or_unknown_shadow_messages_are_ignored() {
+        let mut shadow = WebShadow::new(started());
+        assert!(!shadow.observe(&message(0, "", serde_json::json!({}))));
+        assert!(!shadow.observe(&message(0, "unknown", serde_json::json!({}))));
+        assert!(!shadow.observe(&message(-1, "peer", serde_json::json!({"peer": 1}))));
+        assert!(
+            !shadow.observe(r#"{"kind":"callShadow","at":0,"event":"peer","data":{},"extra":1}"#)
+        );
+        assert!(!shadow.observe(r#"{"kind":"callShadow","at":0,"event":"peer","data":[]}"#));
+        assert!(!shadow.observe(&"x".repeat(MAX_RAW_BYTES + 1)));
+        assert!(shadow.is_empty());
+    }
+
+    #[test]
+    fn out_of_order_timestamps_are_ignored_and_missing_data_defaults_to_an_object() {
+        let mut shadow = WebShadow::new(started());
+        assert!(shadow.observe(r#"{"kind":"callShadow","at":5000,"event":"peer"}"#));
+        assert!(!shadow.observe(&message(4_000, "peer", serde_json::json!({"peer": 1}))));
+        assert_eq!(shadow.events.len(), 1);
+        assert_eq!(shadow.events[0].data, serde_json::json!({}));
     }
 }

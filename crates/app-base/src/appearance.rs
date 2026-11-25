@@ -175,6 +175,8 @@ pub fn system_high_contrast() -> bool {
         cbSize: std::mem::size_of::<HIGHCONTRASTW>() as u32,
         ..Default::default()
     };
+    // SAFETY: `info` is a live, correctly sized HIGHCONTRASTW with `cbSize` set above, so the
+    // SPI_GETHIGHCONTRAST call can write to it for the duration of the call.
     let read = unsafe {
         SystemParametersInfoW(
             SPI_GETHIGHCONTRAST,

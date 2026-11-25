@@ -53,6 +53,15 @@ pub enum Phase {
 }
 
 pub fn phase(facts: &StartupFacts) -> Phase {
+    phase_for(facts, crate::backend::guest_mfa_pending())
+}
+
+fn phase_for(facts: &StartupFacts, guest_mfa: bool) -> Phase {
+    // A guest MFA challenge cannot be satisfied by reopening the same login window.
+    // Show the shell so the account menu stays reachable to return to the home org.
+    if guest_mfa && matches!(facts.connection, ConnectionState::LoginRequired) {
+        return Phase::Ready;
+    }
     // Managed-browser phases must win over a warm cache, or re-auth would
     // skip the splash and never show opening/awaiting/finishing/failed copy.
     if let Some(phase) = browser_phase(facts) {
@@ -299,7 +308,7 @@ fn status_line(status: String, still: bool) -> AnyElement {
 mod tests {
     use std::time::Duration;
 
-    use super::{ConnectionState, Phase, StartupFacts, phase};
+    use super::{ConnectionState, Phase, StartupFacts, phase, phase_for};
     use crate::browser_sign_in::BrowserSignInState;
 
     fn facts(elapsed_ms: u64, connection: &ConnectionState) -> StartupFacts<'_> {
@@ -435,5 +444,17 @@ mod tests {
         };
         assert!(!running);
         assert_translated(&status);
+    }
+
+    #[test]
+    fn guest_mfa_does_not_hide_the_org_switcher_behind_the_splash() {
+        let login = ConnectionState::LoginRequired;
+        let awaiting = BrowserSignInState::AwaitingSignIn;
+        let facts = facts_with(60_000, &login, &awaiting);
+        assert_eq!(phase_for(&facts, true), Phase::Ready);
+        let Phase::Loading { running, .. } = phase_for(&facts, false) else {
+            panic!("a plain login still keeps the splash up")
+        };
+        assert!(!running);
     }
 }

@@ -38,6 +38,7 @@ const OWN_STATUS_BUTTON_SIZE: f32 =
 const PRESENCE_ICON_SIZE: f32 = 14.;
 const ICON_COLUMN: f32 = 16.;
 const HEADER_INSET: f32 = 24.;
+const MFA_DETAIL_CHARS: usize = 120;
 
 #[derive(Clone)]
 struct MenuContext {
@@ -50,7 +51,10 @@ struct MenuContext {
 }
 
 pub fn own_status_button(app: &Entity<AppState>, state: &AppState) -> Option<AnyElement> {
-    let person = state.directory.me.clone()?;
+    let mfa_tooltip = guest_mfa_tooltip(state);
+    let Some(person) = state.directory.me.clone() else {
+        return mfa_tooltip.map(|tooltip| guest_mfa_button(app, tooltip));
+    };
     let presence = state.directory.presence_of(&person.user_id);
     let summary = state_summary(&state.own_status, state.own_presence_kind(), &Local::now());
     let context = MenuContext {
@@ -102,6 +106,58 @@ pub fn own_status_button(app: &Entity<AppState>, state: &AppState) -> Option<Any
             )
             .into_any_element(),
     )
+}
+
+/// Guest MFA leaves no usable token in that tenant; offer the way back even when the
+/// account card has not loaded yet.
+fn guest_mfa_tooltip(state: &AppState) -> Option<String> {
+    if !state.can_return_home() {
+        return None;
+    }
+    let mfa = crate::backend::guest_mfa()?;
+    let detail: String = mfa.detail.chars().take(MFA_DETAIL_CHARS).collect();
+    let hint = tr("status_menu.guest_mfa_hint");
+    Some(if detail.is_empty() {
+        hint
+    } else {
+        format!("{hint}\n{detail}")
+    })
+}
+
+fn guest_mfa_button(app: &Entity<AppState>, tooltip: String) -> AnyElement {
+    let home_app = app.clone();
+    div()
+        .debug_selector(|| "shell/title-bar/guest-mfa".into())
+        .flex_none()
+        .child(
+            Button::new("title-guest-mfa-home")
+                .ghost()
+                .icon(IconName::House)
+                .tooltip(tooltip)
+                .dropdown_menu_with_anchor(Anchor::TopRight, move |popup, _, cx| {
+                    guest_mfa_menu(popup, &home_app, cx)
+                }),
+        )
+        .into_any_element()
+}
+
+fn guest_mfa_menu(
+    popup: PopupMenu,
+    app: &Entity<AppState>,
+    _cx: &mut Context<PopupMenu>,
+) -> PopupMenu {
+    popup.min_w(px(MENU_WIDTH)).item(return_home_item(app))
+}
+
+fn return_home_item(app: &Entity<AppState>) -> PopupMenuItem {
+    let home_app = app.clone();
+    PopupMenuItem::new(tr("status_menu.guest_mfa_return_home"))
+        .icon(menu_icon(IconName::House))
+        .on_click(move |_, _, cx| {
+            home_app.update(cx, |state, cx| {
+                state.return_to_home_org(cx);
+            });
+        })
 }
 
 fn version_tooltip() -> String {
@@ -202,6 +258,11 @@ fn status_menu(
             header(&header_context, cx)
         }))
         .separator();
+    let popup = if context.app.read(cx).can_return_home() && crate::backend::guest_mfa_pending() {
+        popup.item(return_home_item(&context.app))
+    } else {
+        popup
+    };
     org_items(popup, &context.app, cx)
         .submenu_with_icon(
             Some(status_icon(context.summary.presence)),

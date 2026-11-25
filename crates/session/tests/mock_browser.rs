@@ -217,7 +217,7 @@ async fn ungranted_scope_is_login_required() {
         )
         .await
         .unwrap_err();
-    assert!(matches!(error, Error::LoginRequired(_)));
+    assert!(matches!(error, Error::LoginRequired { .. }));
 }
 
 #[tokio::test]
@@ -259,7 +259,7 @@ async fn missing_token_with_login_tab_is_login_required() {
         )
         .await
         .unwrap_err();
-    assert!(matches!(error, Error::LoginRequired(_)), "{error}");
+    assert!(matches!(error, Error::LoginRequired { .. }), "{error}");
 }
 
 #[tokio::test]

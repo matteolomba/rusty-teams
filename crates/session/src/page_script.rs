@@ -76,9 +76,9 @@ impl Session {
                 .map_err(|error| Error::Cdp(format!("unexpected page answer: {error}")))?;
             let reason = outcome.refresh_error.unwrap_or_default();
             if reason.starts_with(NOT_GRANTED_PREFIX) {
-                return Err(Error::LoginRequired(format!(
-                    "{app} app is not granted {scope}"
-                )));
+                return Err(Error::LoginRequired {
+                    detail: Some(format!("{app} app is not granted {scope}")),
+                });
             }
             let mut detail = if reason.is_empty() {
                 String::new()

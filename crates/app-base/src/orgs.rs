@@ -76,6 +76,11 @@ impl Orgs {
     pub fn activate(&mut self, org: &Org) {
         self.active = org.guest.then(|| org.id.clone());
     }
+
+    /// Leaves any guest tenant; home needs no org row because it owns the default cache.
+    pub fn activate_home(&mut self) {
+        self.active = None;
+    }
 }
 
 /// Tenant ids are GUIDs; anything else must not end up in a file name.
@@ -123,5 +128,19 @@ mod tests {
         orgs.active = Some("bbbb-02".into());
         orgs.replace_list(vec![org("aaaa-01", false)]);
         assert_eq!(orgs.active, None);
+    }
+
+    #[test]
+    fn returning_home_reopens_the_home_cache() {
+        let mut orgs = Orgs {
+            active: None,
+            list: vec![org("aaaa-01", false), org("bbbb-02", true)],
+        };
+        orgs.activate(&org("bbbb-02", true));
+        assert_eq!(orgs.database_file(), "cache-bbbb-02.sqlite3");
+        orgs.activate_home();
+        assert_eq!(orgs.active, None);
+        assert_eq!(orgs.database_file(), "cache.sqlite3");
+        assert!(orgs.is_active(&org("aaaa-01", false)));
     }
 }

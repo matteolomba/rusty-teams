@@ -111,6 +111,8 @@ pub fn start(config: HostConfig) -> Arc<WebViewTransport> {
     };
     let waker = Arc::new(move || {
         if let Some(raw) = window {
+            // SAFETY: `raw` round-trips the HWND sent by the UI thread; PostMessageW only copies
+            // handle/value arguments and reports failure if the window is already gone.
             unsafe {
                 let _ = PostMessageW(Some(HWND(raw as *mut _)), WM_DRAIN, WPARAM(0), LPARAM(0));
             }
@@ -126,6 +128,8 @@ fn run(
     window_sender: mpsc::Sender<isize>,
 ) {
     let fail = |reason: String| state.send_modify(|state| state.failure = Some(reason));
+    // SAFETY: this is a freshly spawned thread with no COM initialised, and every COM call below
+    // runs on it only after this succeeds.
     if let Err(error) = unsafe { CoInitializeEx(None, COINIT_APARTMENTTHREADED) }.ok() {
         return fail(format!("COM: {error}"));
     }
@@ -154,6 +158,8 @@ fn run(
     });
     SHARED.with(|slot| *slot.borrow_mut() = Some(shared.clone()));
     load(&shared);
+    // SAFETY: the HWND was created on this thread and stays valid throughout this message loop;
+    // the timer ID belongs to this window.
     unsafe {
         SetTimer(
             Some(shared.windows[&App::Teams]),
@@ -163,7 +169,11 @@ fn run(
         )
     };
     let mut message = MSG::default();
+    // SAFETY: `message` is a live default-initialized MSG out-param and the filter accepts all
+    // windows, so GetMessageW can write it.
     while unsafe { GetMessageW(&mut message, None, 0, 0) }.as_bool() {
+        // SAFETY: `message` is the live MSG filled by the GetMessageW call above; dispatching it
+        // delivers a valid message to the window procedure.
         unsafe {
             let _ = TranslateMessage(&message);
             DispatchMessageW(&message);
@@ -172,6 +182,7 @@ fn run(
 }
 
 fn create_windows(title: &str) -> windows::core::Result<HashMap<App, HWND>> {
+    // SAFETY: no pointers are passed in; a module handle is valid for the process lifetime.
     let instance = HINSTANCE(unsafe { GetModuleHandleW(None) }?.0);
     let class = WNDCLASSW {
         lpfnWndProc: Some(window_procedure),
@@ -179,6 +190,8 @@ fn create_windows(title: &str) -> windows::core::Result<HashMap<App, HWND>> {
         lpszClassName: WINDOW_CLASS,
         ..Default::default()
     };
+    // SAFETY: `class` is a live WNDCLASSW with a static class name and a valid window procedure;
+    // the registration stays valid for the process lifetime.
     if unsafe { RegisterClassW(&class) } == 0 {
         return Err(windows::core::Error::new(
             HRESULT(-1),
@@ -188,6 +201,8 @@ fn create_windows(title: &str) -> windows::core::Result<HashMap<App, HWND>> {
     let title = HSTRING::from(title);
     let mut windows = HashMap::new();
     for app in App::ALL {
+        // SAFETY: WINDOW_CLASS was registered above, `instance` is the process module handle, and
+        // `title` is a live HSTRING for the duration of the call.
         let window = unsafe {
             CreateWindowExW(
                 WINDOW_EX_STYLE::default(),
@@ -235,6 +250,8 @@ fn post_deferred(shared: &Shared, deferred: Deferred) {
     .into_iter()
     .flatten()
     {
+        // SAFETY: `window` is an HWND created on this UI thread and still alive; posting only
+        // copies handle/value arguments and ignores failure.
         unsafe {
             let _ = PostMessageW(Some(window), message, WPARAM(0), LPARAM(0));
         }
@@ -258,6 +275,8 @@ fn create_views(
 pub(crate) fn environment_options() -> ICoreWebView2EnvironmentOptions {
     let options = CoreWebView2EnvironmentOptions::default();
     let sso = std::env::var(ENV_OS_SSO).ok();
+    // SAFETY: `options` is a live owned COM wrapper; the option values are passed by value and
+    // remain valid for the call.
     unsafe {
         options.set_additional_browser_arguments(BROWSER_ARGUMENTS.to_owned());
         options.set_allow_single_sign_on_using_os_primary_account(env_flag(sso.as_deref()));
@@ -272,6 +291,8 @@ fn create_environment(
     let folder = HSTRING::from(user_data_folder.as_os_str());
     let (sender, receiver) = mpsc::channel();
     CreateCoreWebView2EnvironmentCompletedHandler::wait_for_async_operation(
+        // SAFETY: called on the COM-initialized UI thread; `folder` and `options` stay alive for
+        // the call, and `handler` keeps its channel sender alive until the callback runs.
         Box::new(move |handler| unsafe {
             CreateCoreWebView2EnvironmentWithOptions(PCWSTR::null(), &folder, &options, &handler)
                 .map_err(webview2_com::Error::WindowsError)
@@ -299,6 +320,8 @@ fn create_view(
     let (sender, receiver) = mpsc::channel();
     let creator = environment.clone();
     CreateCoreWebView2ControllerCompletedHandler::wait_for_async_operation(
+        // SAFETY: `creator` is a live environment, `window` is an HWND created on this thread, and
+        // `handler` keeps its channel sender alive until the callback runs.
         Box::new(move |handler| unsafe {
             creator
                 .CreateCoreWebView2Controller(window, &handler)
@@ -319,8 +342,12 @@ fn create_view(
         .map_err(|_| windows::core::Error::new(HRESULT(-1), "no controller in time"))?
         .ok_or_else(|| windows::core::Error::new(HRESULT(-1), "no controller"))?;
 
+    // SAFETY: `controller` is a live owned controller from the async creation above; the webview
+    // returned here is an owned COM pointer.
     let webview = unsafe { controller.CoreWebView2() }?;
     fit(window, &controller);
+    // SAFETY: `controller` and `webview` are live owned pointers; the settings interface returned
+    // by Settings() is used only within this statement.
     unsafe {
         controller.SetIsVisible(true)?;
         webview.Settings()?.SetIsStatusBarEnabled(false)?;
@@ -330,6 +357,7 @@ fn create_view(
     watch_loads(&webview, app, &mut subscriptions)?;
     watch_failures(&webview, app, &mut subscriptions)?;
     forward_events(&webview, app, &mut subscriptions)?;
+    // SAFETY: `webview` is live and the temporary HSTRING stays alive until Navigate returns.
     unsafe { webview.Navigate(&HSTRING::from(first_url)) }?;
     Ok(View {
         controller,
@@ -350,8 +378,12 @@ fn watch_source(
         }
         Ok(())
     }));
+    // SAFETY: `webview` is live, `handler` is a valid COM handler held by the webview, and `token`
+    // lives in the caller's subscription until removal.
     unsafe { webview.add_SourceChanged(&handler, &mut token) }?;
     let source = webview.clone();
+    // SAFETY: `source` is an owned clone of the live webview and `token` is the registration token
+    // returned by add_SourceChanged, still valid when this cleanup runs.
     subscriptions.add(move || unsafe {
         let _ = source.remove_SourceChanged(token);
     });
@@ -374,6 +406,8 @@ fn watch_loads(
             call(&shared, app, command);
         }
         if is_running_app(app, &url) {
+            // SAFETY: the HWND comes from `shared.windows` on this UI thread; the WM_TIMER handler
+            // kills this timer before it acts.
             unsafe { SetTimer(Some(shared.windows[&app]), PARK_TIMER, PARK_DELAY_MS, None) };
             if shared.park_gate.borrow().held(app) {
                 set_memory_level(&sender, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW);
@@ -384,8 +418,12 @@ fn watch_loads(
         }
         Ok(())
     }));
+    // SAFETY: `webview` is live, `handler` is a valid COM handler held by the webview, and `token`
+    // lives in the caller's subscription until removal.
     unsafe { webview.add_NavigationCompleted(&handler, &mut token) }?;
     let source = webview.clone();
+    // SAFETY: `source` is an owned clone of the live webview and `token` is the registration token
+    // returned by add_NavigationCompleted, still valid when this cleanup runs.
     subscriptions.add(move || unsafe {
         let _ = source.remove_NavigationCompleted(token);
     });
@@ -401,6 +439,8 @@ fn park(shared: &Shared, app: App) {
         && is_running_app(app, &current_url(shared, app))
     {
         set_memory_level(&webview, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW);
+        // SAFETY: `webview` is the live owned webview from webview_of and the park URL HSTRING
+        // stays alive until Navigate returns.
         unsafe {
             let _ = webview.Navigate(&HSTRING::from(app.park_url()));
         }
@@ -424,6 +464,8 @@ fn hold(shared: &Rc<Shared>, app: App, held: bool) {
 
 fn set_memory_level(webview: &ICoreWebView2, level: COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL) {
     if let Ok(webview) = webview.cast::<ICoreWebView2_19>() {
+        // SAFETY: a successful cast yields a live ICoreWebView2_19 from the owned webview; the
+        // level is a plain enum value.
         unsafe {
             let _ = webview.SetMemoryUsageTargetLevel(level);
         }
@@ -433,6 +475,8 @@ fn set_memory_level(webview: &ICoreWebView2, level: COREWEBVIEW2_MEMORY_USAGE_TA
 // The park page stays same-site, so the renderer keeps the app heap until it is told to shrink.
 fn release_memory(webview: &ICoreWebView2) {
     let ignore = CallDevToolsProtocolMethodCompletedHandler::create(Box::new(|_, _| Ok(())));
+    // SAFETY: `webview` is live; both JSON arguments are static strings and the local completion
+    // handler stays alive until the call completes.
     unsafe {
         let _ = webview.CallDevToolsProtocolMethod(
             w!("Memory.simulatePressureNotification"),
@@ -453,12 +497,16 @@ fn watch_failures(
             return Ok(());
         };
         let mut kind = COREWEBVIEW2_PROCESS_FAILED_KIND::default();
+        // SAFETY: `arguments` is a live COM interface reference from this callback and `kind` is a
+        // live out-param.
         unsafe { arguments.ProcessFailedKind(&mut kind) }?;
         if shared.sleep.borrow().asleep() {
             return Ok(());
         }
         if kind == COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED {
             if !shared.restarting.replace(true) {
+                // SAFETY: the HWND comes from `shared.windows` on this UI thread; PostMessageW only
+                // copies arguments and reports failure if the window is gone.
                 unsafe {
                     PostMessageW(Some(shared.windows[&app]), WM_RESTART, WPARAM(0), LPARAM(0))
                 }?;
@@ -466,12 +514,17 @@ fn watch_failures(
         } else if kind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED
             || kind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_UNRESPONSIVE
         {
+            // SAFETY: `sender` is the live ICoreWebView2 reference supplied with this callback.
             unsafe { sender.Reload() }?;
         }
         Ok(())
     }));
+    // SAFETY: `webview` is live, `handler` is a valid COM handler held by the webview, and `token`
+    // remains alive in the subscription until removal.
     unsafe { webview.add_ProcessFailed(&handler, &mut token) }?;
     let source = webview.clone();
+    // SAFETY: `source` is an owned clone of the live webview and `token` is the token returned by
+    // add_ProcessFailed, still valid at cleanup time.
     subscriptions.add(move || unsafe {
         let _ = source.remove_ProcessFailed(token);
     });
@@ -484,6 +537,8 @@ fn forward_events(
     subscriptions: &mut EventSubscriptions,
 ) -> windows::core::Result<()> {
     for name in FORWARDED_EVENTS {
+        // SAFETY: `webview` is live and the event-name HSTRING stays alive for the call; the
+        // receiver returned is an owned COM pointer.
         let receiver = unsafe { webview.GetDevToolsProtocolEventReceiver(&HSTRING::from(name)) }?;
         let mut token = 0;
         let handler =
@@ -492,6 +547,8 @@ fn forward_events(
                     return Ok(());
                 };
                 let mut parameters = PWSTR::null();
+                // SAFETY: `arguments` is a live callback reference and `parameters` is a live
+                // PWSTR out-param consumed by take_pwstr.
                 unsafe { arguments.ParameterObjectAsJson(&mut parameters) }?;
                 let event = TabEvent {
                     method: name.to_owned(),
@@ -500,7 +557,11 @@ fn forward_events(
                 shared.subscribers.borrow_mut().publish(app, &event);
                 Ok(())
             }));
+        // SAFETY: `receiver` is a live owned pointer, `handler` is a valid COM handler held by the
+        // receiver, and `token` stays alive in the subscription until removal.
         unsafe { receiver.add_DevToolsProtocolEventReceived(&handler, &mut token) }?;
+        // SAFETY: `receiver` is owned by this closure and `token` is the token returned by the
+        // matching add call.
         subscriptions.add(move || unsafe {
             let _ = receiver.remove_DevToolsProtocolEventReceived(token);
         });
@@ -510,6 +571,7 @@ fn forward_events(
 
 fn source_of(webview: &ICoreWebView2) -> String {
     let mut source = PWSTR::null();
+    // SAFETY: `webview` is live and `source` is a live PWSTR out-param consumed by take_pwstr.
     match unsafe { webview.Source(&mut source) } {
         Ok(()) => take_pwstr(source),
         Err(_) => String::new(),
@@ -523,6 +585,8 @@ fn on_source_changed(shared: &Shared, app: App, url: String) {
     shared.state.send_modify(|state| {
         state.urls.insert(app, url);
     });
+    // SAFETY: `window` is a live HWND from `shared.windows` on this UI thread; the calls take the
+    // handle by value, and the login timer is killed once it is no longer needed.
     unsafe {
         if login {
             SetTimer(Some(window), LOGIN_TIMER, LOGIN_SHOW_DELAY_MS, None);
@@ -613,6 +677,8 @@ fn call(shared: &Rc<Shared>, app: App, command: TabCommand) {
             Ok(())
         }));
     if let Err(error) =
+        // SAFETY: `webview` is a live owned pointer; `method`, `parameters` and `handler` stay alive
+        // until the call returns, and the handler owns the pending command.
         unsafe { webview.CallDevToolsProtocolMethod(&method, &parameters, &handler) }
         && let Some(command) = pending.borrow_mut().take()
     {
@@ -665,6 +731,7 @@ fn wake(shared: &Rc<Shared>, app: App) {
         return;
     }
     set_memory_level(&webview, COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL);
+    // SAFETY: `webview` is live and any temporary HSTRING for the URL lives until the call returns.
     unsafe {
         let _ = if is_running_app(app, &url) {
             webview.Reload()
@@ -679,6 +746,8 @@ fn prompt_login(shared: &Shared, app: App) {
         .last_login_prompt
         .get()
         .is_some_and(|shown| shown.elapsed() < LOGIN_PROMPT_INTERVAL);
+    // SAFETY: `shared.windows[&app]` is a live HWND on this UI thread; IsWindowVisible does not
+    // dereference the handle.
     let visible = unsafe { IsWindowVisible(shared.windows[&app]) }.as_bool();
     if !recently && !visible {
         shared.last_login_prompt.set(Some(Instant::now()));
@@ -688,6 +757,7 @@ fn prompt_login(shared: &Shared, app: App) {
 
 fn show(shared: &Shared, app: App) {
     let window = shared.windows[&app];
+    // SAFETY: `window` is a live HWND from `shared.windows` on this UI thread.
     unsafe {
         let _ = ShowWindow(window, SW_SHOW);
         let _ = SetForegroundWindow(window);
@@ -706,6 +776,8 @@ fn close_views(shared: &Rc<Shared>) {
         .collect();
     for mut view in views {
         view.subscriptions.clear();
+        // SAFETY: each view was drained from `shared.views` and its subscriptions cleared first, so
+        // `controller` is a live owned pointer that is not used after closing.
         unsafe {
             let _ = view.controller.Close();
         }
@@ -808,6 +880,8 @@ fn wake_views(shared: &Rc<Shared>, full: Option<App>) {
 
 pub(crate) fn fit(window: HWND, controller: &ICoreWebView2Controller) {
     let mut bounds = RECT::default();
+    // SAFETY: `window` is a live HWND and `bounds` is a live RECT out-param passed to
+    // GetClientRect; SetBounds receives the filled bounds.
     unsafe {
         if GetClientRect(window, &mut bounds).is_ok() {
             let _ = controller.SetBounds(bounds);
@@ -829,6 +903,8 @@ extern "system" fn window_procedure(
     lparam: LPARAM,
 ) -> LRESULT {
     let Some(shared) = shared() else {
+        // SAFETY: these are the exact window/message/wparam/lparam values Windows passed to this
+        // window procedure; DefWindowProcW only forwards them.
         return unsafe { DefWindowProcW(window, message, wparam, lparam) };
     };
     let initializing = match message {
@@ -850,6 +926,8 @@ extern "system" fn window_procedure(
             }
         }
         WM_TIMER if wparam.0 == LOGIN_TIMER => {
+            // SAFETY: `window` is the live HWND delivered with this WM_TIMER message and the timer
+            // ID was set on this thread.
             unsafe {
                 let _ = KillTimer(Some(window), LOGIN_TIMER);
             }
@@ -862,6 +940,8 @@ extern "system" fn window_procedure(
         }
         WM_TIMER if wparam.0 == SLEEP_TIMER => maybe_sleep(&shared),
         WM_TIMER if wparam.0 == PARK_TIMER => {
+            // SAFETY: `window` is the live HWND delivered with this WM_TIMER message; PARK_TIMER is
+            // owned by this thread's message loop.
             unsafe {
                 let _ = KillTimer(Some(window), PARK_TIMER);
             }
@@ -869,15 +949,21 @@ extern "system" fn window_procedure(
                 let decision = shared.park_gate.borrow_mut().decide(app);
                 match decision {
                     ParkDecision::Park => park(&shared, app),
+                    // SAFETY: `window` is the live HWND from this WM_TIMER message; re-arming the
+                    // same timer ID is safe on this thread.
                     ParkDecision::Wait => unsafe {
                         SetTimer(Some(window), PARK_TIMER, PARK_DELAY_MS, None);
                     },
                 }
             }
         }
+        // SAFETY: `window` is the live HWND delivered with WM_CLOSE; hiding rather than destroying
+        // it keeps the window map valid for this thread.
         WM_CLOSE => unsafe {
             let _ = ShowWindow(window, SW_HIDE);
         },
+        // SAFETY: the arguments are the exact values Windows passed to this window procedure;
+        // DefWindowProcW only forwards them.
         _ => return unsafe { DefWindowProcW(window, message, wparam, lparam) },
     }
     LRESULT(0)

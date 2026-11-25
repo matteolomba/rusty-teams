@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use serde::de::Error as _;
 use serde::{Deserialize, Serialize};
 
 use crate::action::AgentAction;
@@ -26,6 +27,7 @@ pub enum SettingsProblem {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
+#[serde(deny_unknown_fields)]
 pub struct AgentSettings {
     pub agents: Vec<AgentProfile>,
     pub actions: Vec<AgentAction>,
@@ -82,6 +84,17 @@ impl AgentSettings {
         let mut settings: Self = serde_json::from_str(json)?;
         for agent in &mut settings.agents {
             agent.migrate_open_session_command();
+        }
+        let problems = settings.validate();
+        if !problems.is_empty() {
+            let message = problems
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("; ");
+            return Err(serde_json::Error::custom(format!(
+                "invalid agent settings: {message}"
+            )));
         }
         Ok(settings)
     }
@@ -159,7 +172,7 @@ mod tests {
     #[test]
     fn from_json_migrates_legacy_wsl_open_session_commands_only() {
         let legacy = AgentSettings::from_json(&format!(
-            r#"{{"agents":[{{"id":"claude","open_session_command":"{}"}},{{"id":"copilot","open_session_command":"{}"}},{{"id":"mine","open_session_command":"wt.exe wsl.exe -e claude --resume {{session_id}}"}}]}}"#,
+            r#"{{"agents":[{{"id":"claude","command":"claude -p","open_session_command":"{}"}},{{"id":"copilot","command":"copilot -p","open_session_command":"{}"}},{{"id":"mine","command":"claude -p","open_session_command":"wt.exe wsl.exe -e claude --resume {{session_id}}"}}],"actions":[]}}"#,
             crate::profile::LEGACY_CLAUDE_WSL_OPEN_SESSION,
             crate::profile::LEGACY_COPILOT_WSL_OPEN_SESSION,
         ))
@@ -265,7 +278,7 @@ mod tests {
     #[test]
     fn a_profile_without_backend_stays_a_command() {
         let loaded = AgentSettings::from_json(
-            r#"{"agents":[{"id":"legacy","name":"Legacy","command":"claude -p"}]}"#,
+            r#"{"agents":[{"id":"legacy","name":"Legacy","command":"claude -p"}],"actions":[]}"#,
         )
         .unwrap();
         assert!(loaded.agents[0].is_command());
@@ -311,5 +324,24 @@ mod tests {
         );
         settings.write_with = "claude".to_owned();
         assert!(settings.write_with_profile().is_none());
+    }
+
+    #[test]
+    fn from_json_rejects_unknown_top_level_fields() {
+        let error = AgentSettings::from_json(r#"{"unknown":true}"#).unwrap_err();
+        assert!(error.to_string().contains("unknown field"));
+    }
+
+    #[test]
+    fn from_json_rejects_settings_that_fail_validation() {
+        let error = AgentSettings::from_json(
+            r#"{"agents":[{"id":"claude","command":"claude -p"}],"actions":[{"id":"a","agent_id":"ghost"}]}"#,
+        )
+        .unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("action a references unknown agent ghost")
+        );
     }
 }

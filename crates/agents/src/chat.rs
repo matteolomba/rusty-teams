@@ -8,6 +8,43 @@ const ANTHROPIC_VERSION: &str = "2023-06-01";
 const ANTHROPIC_URL: &str = "https://api.anthropic.com/v1/messages";
 const MAX_TOKENS: u32 = 4096;
 
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum ChatError {
+    #[error("this agent is a command, not a chat API")]
+    CommandNotChat,
+    #[error("this agent is a command")]
+    CommandBackend,
+    #[error("not an Anthropic profile")]
+    NotAnthropic,
+    #[error("the Anthropic key is empty")]
+    MissingAnthropicKey,
+    #[error("choose a model first")]
+    MissingModel,
+    #[error("the endpoint listed no models")]
+    NoModels,
+    #[error("the model returned an empty answer")]
+    EmptyAnswer,
+    #[error("{0}")]
+    Api(String),
+    #[error("HTTP {status} with an empty body")]
+    EmptyResponse { status: reqwest::StatusCode },
+    #[error("HTTP {status}: {snippet}")]
+    ResponseBody {
+        status: reqwest::StatusCode,
+        snippet: String,
+    },
+    #[error("HTTP {status}")]
+    Status { status: reqwest::StatusCode },
+    #[error("{0}")]
+    Transport(String),
+}
+
+impl From<ChatError> for String {
+    fn from(error: ChatError) -> Self {
+        error.to_string()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ToolSpec {
     pub name: String,
@@ -92,13 +129,13 @@ pub async fn next_turn(
     let body = match &profile.backend {
         AgentBackend::OpenAi { .. } => openai_body(system, messages, tools),
         AgentBackend::Anthropic { .. } => anthropic_body(profile, system, messages, tools)?,
-        AgentBackend::Command => return Err("this agent is a command, not a chat API".to_owned()),
+        AgentBackend::Command => return Err(ChatError::CommandNotChat.into()),
     };
     let value = post(profile, &body).await?;
     match &profile.backend {
-        AgentBackend::OpenAi { .. } => parse_openai(&value),
-        AgentBackend::Anthropic { .. } => parse_anthropic(&value),
-        AgentBackend::Command => unreachable!(),
+        AgentBackend::OpenAi { .. } => parse_openai(&value).map_err(String::from),
+        AgentBackend::Anthropic { .. } => parse_anthropic(&value).map_err(String::from),
+        AgentBackend::Command => Err(ChatError::CommandNotChat.into()),
     }
 }
 
@@ -112,7 +149,7 @@ pub async fn list_models(profile: &AgentProfile) -> Result<Vec<String>, String> 
     names.dedup();
     names.truncate(MODEL_LIST_LIMIT);
     if names.is_empty() {
-        return Err("the endpoint listed no models".to_owned());
+        return Err(ChatError::NoModels.into());
     }
     Ok(names)
 }
@@ -126,14 +163,14 @@ pub async fn probe_backend(profile: &AgentProfile) -> Result<String, String> {
     })
 }
 
-fn models_endpoint(profile: &AgentProfile) -> Result<(String, String, bool), String> {
+fn models_endpoint(profile: &AgentProfile) -> Result<(String, String, bool), ChatError> {
     match &profile.backend {
         AgentBackend::OpenAi {
             base_url, api_key, ..
         } => Ok((models_url(base_url), api_key.clone(), false)),
         AgentBackend::Anthropic { api_key, .. } => {
             if api_key.trim().is_empty() {
-                return Err("the Anthropic key is empty".to_owned());
+                return Err(ChatError::MissingAnthropicKey);
             }
             Ok((
                 "https://api.anthropic.com/v1/models".to_owned(),
@@ -141,7 +178,7 @@ fn models_endpoint(profile: &AgentProfile) -> Result<(String, String, bool), Str
                 true,
             ))
         }
-        AgentBackend::Command => Err("this agent is a command".to_owned()),
+        AgentBackend::Command => Err(ChatError::CommandBackend),
     }
 }
 
@@ -205,9 +242,9 @@ fn anthropic_body(
     system: &str,
     messages: &[ChatMessage],
     tools: &[ToolSpec],
-) -> Result<Value, String> {
+) -> Result<Value, ChatError> {
     let AgentBackend::Anthropic { model, .. } = &profile.backend else {
-        return Err("not an Anthropic profile".to_owned());
+        return Err(ChatError::NotAnthropic);
     };
     let mut chat = Vec::new();
     for message in messages {
@@ -289,7 +326,7 @@ fn models_url(base_url: &str) -> String {
     }
 }
 
-async fn post(profile: &AgentProfile, body: &Value) -> Result<Value, String> {
+async fn post(profile: &AgentProfile, body: &Value) -> Result<Value, ChatError> {
     let (url, key, anthropic, model) = endpoint(profile)?;
     let mut payload = body.clone();
     if !anthropic {
@@ -301,13 +338,13 @@ async fn post(profile: &AgentProfile, body: &Value) -> Result<Value, String> {
     read_json(request).await
 }
 
-async fn get(key: &str, url: &str, anthropic: bool) -> Result<Value, String> {
+async fn get(key: &str, url: &str, anthropic: bool) -> Result<Value, ChatError> {
     let client = client(PROBE_TIMEOUT)?;
     let request = authorize(client.get(url), key, anthropic);
     read_json(request).await
 }
 
-fn endpoint(profile: &AgentProfile) -> Result<(String, String, bool, String), String> {
+fn endpoint(profile: &AgentProfile) -> Result<(String, String, bool, String), ChatError> {
     match &profile.backend {
         AgentBackend::OpenAi {
             base_url,
@@ -315,16 +352,16 @@ fn endpoint(profile: &AgentProfile) -> Result<(String, String, bool, String), St
             api_key,
         } => {
             if model.trim().is_empty() {
-                return Err("choose a model first".to_owned());
+                return Err(ChatError::MissingModel);
             }
             Ok((chat_url(base_url), api_key.clone(), false, model.clone()))
         }
         AgentBackend::Anthropic { model, api_key } => {
             if api_key.trim().is_empty() {
-                return Err("the Anthropic key is empty".to_owned());
+                return Err(ChatError::MissingAnthropicKey);
             }
             if model.trim().is_empty() {
-                return Err("choose a model first".to_owned());
+                return Err(ChatError::MissingModel);
             }
             Ok((
                 ANTHROPIC_URL.to_owned(),
@@ -333,15 +370,15 @@ fn endpoint(profile: &AgentProfile) -> Result<(String, String, bool, String), St
                 model.clone(),
             ))
         }
-        AgentBackend::Command => Err("this agent is a command".to_owned()),
+        AgentBackend::Command => Err(ChatError::CommandBackend),
     }
 }
 
-fn client(timeout: std::time::Duration) -> Result<reqwest::Client, String> {
+fn client(timeout: std::time::Duration) -> Result<reqwest::Client, ChatError> {
     reqwest::Client::builder()
         .timeout(timeout)
         .build()
-        .map_err(|error| error.to_string())
+        .map_err(|error| ChatError::Transport(error.to_string()))
 }
 
 fn authorize(
@@ -361,35 +398,41 @@ fn authorize(
     }
 }
 
-async fn read_json(request: reqwest::RequestBuilder) -> Result<Value, String> {
-    let response = request.send().await.map_err(|error| error.to_string())?;
+async fn read_json(request: reqwest::RequestBuilder) -> Result<Value, ChatError> {
+    let response = request
+        .send()
+        .await
+        .map_err(|error| ChatError::Transport(error.to_string()))?;
     let status = response.status();
-    let bytes = response.bytes().await.map_err(|error| error.to_string())?;
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|error| ChatError::Transport(error.to_string()))?;
     let value: Value = serde_json::from_slice(&bytes).map_err(|_| {
         let body = String::from_utf8_lossy(&bytes);
         let snippet: String = body.trim().chars().take(180).collect();
         if snippet.is_empty() {
-            format!("HTTP {status} with an empty body")
+            ChatError::EmptyResponse { status }
         } else {
-            format!("HTTP {status}: {snippet}")
+            ChatError::ResponseBody { status, snippet }
         }
     })?;
     if !status.is_success() {
-        return Err(api_error(&value).unwrap_or_else(|| format!("HTTP {status}")));
+        return Err(api_error(&value).unwrap_or(ChatError::Status { status }));
     }
     Ok(value)
 }
 
-fn api_error(value: &Value) -> Option<String> {
+fn api_error(value: &Value) -> Option<ChatError> {
     value["error"]["message"]
         .as_str()
         .or_else(|| value["error"].as_str())
-        .map(str::to_owned)
+        .map(|message| ChatError::Api(message.to_owned()))
 }
 
-pub(crate) fn parse_openai(value: &Value) -> Result<ChatReply, String> {
-    if let Some(message) = api_error(value) {
-        return Err(message);
+pub(crate) fn parse_openai(value: &Value) -> Result<ChatReply, ChatError> {
+    if let Some(error) = api_error(value) {
+        return Err(error);
     }
     let message = &value["choices"][0]["message"];
     let text = message["content"].as_str().unwrap_or("").trim().to_owned();
@@ -412,7 +455,7 @@ pub(crate) fn parse_openai(value: &Value) -> Result<ChatReply, String> {
         .unwrap_or_default();
     if calls.is_empty() {
         if text.is_empty() {
-            return Err("the model returned an empty answer".to_owned());
+            return Err(ChatError::EmptyAnswer);
         }
         Ok(ChatReply::Text(text))
     } else {
@@ -420,9 +463,9 @@ pub(crate) fn parse_openai(value: &Value) -> Result<ChatReply, String> {
     }
 }
 
-pub(crate) fn parse_anthropic(value: &Value) -> Result<ChatReply, String> {
-    if let Some(message) = api_error(value) {
-        return Err(message);
+pub(crate) fn parse_anthropic(value: &Value) -> Result<ChatReply, ChatError> {
+    if let Some(error) = api_error(value) {
+        return Err(error);
     }
     let mut text = String::new();
     let mut calls = Vec::new();
@@ -452,7 +495,7 @@ pub(crate) fn parse_anthropic(value: &Value) -> Result<ChatReply, String> {
     let text = text.trim().to_owned();
     if calls.is_empty() {
         if text.is_empty() {
-            return Err("the model returned an empty answer".to_owned());
+            return Err(ChatError::EmptyAnswer);
         }
         Ok(ChatReply::Text(text))
     } else {
@@ -563,6 +606,31 @@ mod tests {
         assert_eq!(
             chat_url("http://mac-01.lan:11434"),
             "http://mac-01.lan:11434/v1/chat/completions"
+        );
+    }
+
+    #[test]
+    fn chat_errors_have_stable_messages_and_convert_to_strings() {
+        assert_eq!(
+            String::from(ChatError::NoModels),
+            "the endpoint listed no models"
+        );
+        assert_eq!(
+            String::from(ChatError::CommandNotChat),
+            "this agent is a command, not a chat API"
+        );
+    }
+
+    #[tokio::test]
+    async fn command_profiles_fail_before_any_request() {
+        let profile = AgentProfile::default();
+        assert_eq!(
+            next_turn(&profile, "", &[], &[]).await.unwrap_err(),
+            "this agent is a command, not a chat API"
+        );
+        assert_eq!(
+            list_models(&profile).await.unwrap_err(),
+            "this agent is a command"
         );
     }
 }

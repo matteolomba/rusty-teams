@@ -183,12 +183,17 @@ fn node_captures_video(index: u32) -> Option<bool> {
     let path = std::ffi::CString::new(format!("/dev/video{index}")).ok()?;
     // QUERYCAP does not need write access. O_RDWR hides a metadata node the
     // user can read but not write, and that node then stays in the list.
+    // SAFETY: `path` is a CString, so its pointer is live and NUL-terminated for the call; the
+    // returned fd is checked and closed on every path below.
     let fd = unsafe { libc::open(path.as_ptr(), libc::O_RDONLY | libc::O_NONBLOCK) };
     if fd < 0 {
         return None;
     }
     let mut caps = V4l2Capability::default();
+    // SAFETY: `fd` is the open descriptor checked above and `caps` is a live, correctly laid out
+    // V4l2Capability buffer of the size V4L2_QUERYCAP expects.
     let rc = unsafe { libc::ioctl(fd, V4L2_QUERYCAP, &mut caps) };
+    // SAFETY: `fd` is still open and is not used after this call; close consumes it exactly once.
     unsafe { libc::close(fd) };
     if rc < 0 {
         return None;

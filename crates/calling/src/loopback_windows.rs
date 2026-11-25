@@ -50,6 +50,8 @@ impl IActivateAudioInterfaceCompletionHandler_Impl for ActivationHandler_Impl {
         &self,
         operation: Ref<IActivateAudioInterfaceAsyncOperation>,
     ) -> windows::core::Result<()> {
+        // SAFETY: the completion handler runs with COM initialised; `operation` and both out-params
+        // are valid for the call, and the resulting owned interface is sent through the channel.
         let activated = (|| unsafe {
             let operation = operation.ok()?;
             let mut result = windows::core::HRESULT(0);
@@ -80,6 +82,9 @@ fn activate(process_id: u32, mode: PROCESS_LOOPBACK_MODE) -> Result<IAudioClient
         },
     };
     let mut variant = ManuallyDrop::new(PROPVARIANT::default());
+    // SAFETY: `variant` is a live ManuallyDrop PROPVARIANT kept alive past the call below, and
+    // `parameters` is a live stack value whose bytes the activation API copies; the BLOB is not
+    // owned by COM.
     unsafe {
         let inner = &mut *variant.Anonymous.Anonymous;
         inner.vt = VT_BLOB;
@@ -90,6 +95,8 @@ fn activate(process_id: u32, mode: PROCESS_LOOPBACK_MODE) -> Result<IAudioClient
     }
     let (sender, receiver) = mpsc::channel();
     let handler: IActivateAudioInterfaceCompletionHandler = ActivationHandler { sender }.into();
+    // SAFETY: `variant` and `handler` are live for this call; the async operation holds the agile
+    // handler (and its channel sender) until completion, which is awaited with a timeout.
     let _operation = unsafe {
         ActivateAudioInterfaceAsync(
             VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK,
@@ -120,6 +127,9 @@ fn initialise(client: &IAudioClient) -> Result<(IAudioCaptureClient, HANDLE)> {
     let flags = AUDCLNT_STREAMFLAGS_LOOPBACK
         | AUDCLNT_STREAMFLAGS_EVENTCALLBACK
         | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM;
+    // SAFETY: COM is initialised on this thread by the caller and `client` is live; `format` is a
+    // live stack value passed by pointer only for Initialize, and the returned interfaces and
+    // event handle are owned by the caller.
     unsafe {
         client
             .Initialize(
@@ -147,6 +157,8 @@ fn initialise(client: &IAudioClient) -> Result<(IAudioCaptureClient, HANDLE)> {
 }
 
 fn drain(capture: &IAudioCaptureClient, queue: &SampleQueue) -> windows::core::Result<()> {
+    // SAFETY: `capture` is a live IAudioCaptureClient; the buffer pointer from GetBuffer is read
+    // only until the matching ReleaseBuffer, and samples are copied before that release.
     unsafe {
         while capture.GetNextPacketSize()? > 0 {
             let mut data = std::ptr::null_mut();
@@ -206,6 +218,8 @@ pub fn start_process_capture(queue: SampleQueue, process_id: u32) -> Result<Capt
 fn start(queue: SampleQueue, process_id: u32, mode: PROCESS_LOOPBACK_MODE) -> Result<Capture> {
     let (ready_sender, ready) = mpsc::channel::<Result<()>>();
     let capture = Capture::spawn_thread("process-loopback", move |stop| {
+        // SAFETY: this is a freshly spawned thread with no COM initialised; the CoUninitialize at
+        // the end of this closure pairs with this call.
         unsafe {
             let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
         }
@@ -216,11 +230,15 @@ fn start(queue: SampleQueue, process_id: u32, mode: PROCESS_LOOPBACK_MODE) -> Re
             Ok((client, capture, event)) => {
                 let _ = ready_sender.send(Ok(()));
                 while !stop.load(std::sync::atomic::Ordering::SeqCst) {
+                    // SAFETY: `event` is the owned handle created in initialise and stays open
+                    // until the cleanup after this loop.
                     let waited = unsafe { WaitForSingleObject(event, EVENT_WAIT_MS) };
                     if waited == WAIT_OBJECT_0 && drain(&capture, &queue).is_err() {
                         break;
                     }
                 }
+                // SAFETY: `client` and `event` are the owned values from initialise, not used after
+                // this point; Stop and CloseHandle each run once while the values are still valid.
                 unsafe {
                     let _ = client.Stop();
                     let _ = CloseHandle(event);
@@ -230,6 +248,8 @@ fn start(queue: SampleQueue, process_id: u32, mode: PROCESS_LOOPBACK_MODE) -> Re
                 let _ = ready_sender.send(Err(error));
             }
         }
+        // SAFETY: pairs with the CoInitializeEx at the start of this closure; every COM object
+        // created in it has been dropped by the time this runs.
         unsafe { CoUninitialize() };
     })
     .map_err(|error| audio_error("loopback thread", error))?;

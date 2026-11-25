@@ -7,7 +7,11 @@ use crate::settings::UserSettings;
 
 const READ_RECEIPTS_KEY: &str = "readReceiptsEnabled";
 const MESSAGE_DENSITY_KEY: &str = "messageDensity";
-const SHOW_MESSAGE_PREVIEW_KEY: &str = "showMessagePreview";
+const LEGACY_SHOW_MESSAGE_PREVIEW_KEY: &str = "showMessagePreview";
+const SIMPLE_COLLAB_SETTINGS_KEY: &str = "simpleCollabUserSettings";
+const SIMPLE_COLLAB_ID_FIELD: &str = "id";
+const SIMPLE_COLLAB_SETTINGS_ID: &str = "simpleCollabUserSettingsId";
+const MESSAGE_PREVIEWS_FIELD: &str = "hasUserEnabledMessagePreviews";
 const COMPOSE_SETTINGS_KEY: &str = "composeUserSettings";
 const PERSONAL_SETTINGS_KEY: &str = "userPersonalSettings";
 const ENTER_KEY_FIELD: &str = "enterKeyBehavior";
@@ -24,10 +28,11 @@ const CHAT_MESSAGES_FIELD: &str = "Chat";
 const PERSONAL_MENTIONS_FIELD: &str = "MentionInChat_Person_v2";
 const EVERYONE_MENTIONS_FIELD: &str = "MentionInChat_Everyone";
 const LIKES_FIELD: &str = "LikeInChat_v2";
-const ACCOUNT_KEYS: [&str; 5] = [
+const ACCOUNT_KEYS: [&str; 6] = [
     READ_RECEIPTS_KEY,
     MESSAGE_DENSITY_KEY,
-    SHOW_MESSAGE_PREVIEW_KEY,
+    LEGACY_SHOW_MESSAGE_PREVIEW_KEY,
+    SIMPLE_COLLAB_SETTINGS_KEY,
     COMPOSE_SETTINGS_KEY,
     PERSONAL_SETTINGS_KEY,
 ];
@@ -306,11 +311,11 @@ impl ChatSettingsDocument {
                 .and_then(Value::as_str)
                 .and_then(MessageDensity::from_property)
                 .unwrap_or(defaults.message_density),
-            show_message_preview: self
-                .properties
-                .get(SHOW_MESSAGE_PREVIEW_KEY)
-                .and_then(flag)
-                .unwrap_or(defaults.show_message_preview),
+            show_message_preview: message_previews_enabled(
+                &self.properties,
+                &self.json_property(SIMPLE_COLLAB_SETTINGS_KEY),
+            )
+            .unwrap_or(defaults.show_message_preview),
             enter_key: text_at(&compose, &[ENTER_KEY_FIELD])
                 .and_then(EnterKeyBehavior::from_property)
                 .unwrap_or(defaults.enter_key),
@@ -332,7 +337,15 @@ impl ChatSettingsDocument {
                 Value::String(density.property_value().to_owned()),
             ),
             ChatSettingChange::ShowMessagePreview(enabled) => {
-                (SHOW_MESSAGE_PREVIEW_KEY, Value::String(enabled.to_string()))
+                let mut collab = self.json_property(SIMPLE_COLLAB_SETTINGS_KEY);
+                collab
+                    .entry(SIMPLE_COLLAB_ID_FIELD.to_owned())
+                    .or_insert_with(|| Value::String(SIMPLE_COLLAB_SETTINGS_ID.to_owned()));
+                collab.insert(MESSAGE_PREVIEWS_FIELD.to_owned(), Value::Bool(enabled));
+                (
+                    SIMPLE_COLLAB_SETTINGS_KEY,
+                    Value::String(Value::Object(collab).to_string()),
+                )
             }
             ChatSettingChange::EnterKey(behavior) => {
                 let mut compose = self.json_property(COMPOSE_SETTINGS_KEY);
@@ -396,6 +409,22 @@ fn text_at<'a>(object: &'a Map<String, Value>, path: &[&str]) -> Option<&'a str>
 
 fn flag_at(object: &Map<String, Value>, group: &str, field: &str) -> Option<bool> {
     value_at(object, &[group, field]).and_then(flag)
+}
+
+/// Teams roams this flag inside `simpleCollabUserSettings`; the old top-level
+/// `showMessagePreview` property stays readable so existing preferences survive.
+fn message_previews_enabled(
+    properties: &Map<String, Value>,
+    collab: &Map<String, Value>,
+) -> Option<bool> {
+    collab
+        .get(MESSAGE_PREVIEWS_FIELD)
+        .and_then(flag)
+        .or_else(|| {
+            properties
+                .get(LEGACY_SHOW_MESSAGE_PREVIEW_KEY)
+                .and_then(flag)
+        })
 }
 
 fn activity_alert(
@@ -601,7 +630,7 @@ mod tests {
         let document = ChatSettingsDocument::from_properties(&json!({
             "readReceiptsEnabled": "false",
             "messageDensity": "COMPACT",
-            "showMessagePreview": "false",
+            "simpleCollabUserSettings": r#"{"id":"simpleCollabUserSettingsId","hasUserEnabledMessagePreviews":false}"#,
             "composeUserSettings": "{\"enterKeyBehavior\":\"CreateNewLine\"}",
             "userPersonalSettings": personal.to_string(),
             "unrelated": "dropped",
@@ -647,17 +676,62 @@ mod tests {
     }
 
     #[test]
-    fn message_preview_uses_the_account_key_and_round_trips() {
-        let mut document = ChatSettingsDocument::default();
+    fn message_preview_uses_the_teams_collab_key_and_round_trips() {
+        let mut document = ChatSettingsDocument::from_properties(&json!({
+            "simpleCollabUserSettings": r#"{"id":"simpleCollabUserSettingsId","hasUserEnabledMutedChatSection":true,"hasUserEnabledMessagePreviews":true}"#,
+        }));
+        let (name, value) = document.apply(ChatSettingChange::ShowMessagePreview(false));
+        assert_eq!(name, "simpleCollabUserSettings");
         assert_eq!(
-            document.apply(ChatSettingChange::ShowMessagePreview(false)),
-            ("showMessagePreview", json!("false"))
+            parsed(value.as_str().unwrap()),
+            json!({
+                "id": "simpleCollabUserSettingsId",
+                "hasUserEnabledMutedChatSection": true,
+                "hasUserEnabledMessagePreviews": false,
+            })
         );
         let restored = ChatSettingsDocument::from_text(&document.to_text());
         assert!(!restored.settings().show_message_preview);
         assert_eq!(restored, document);
         document.apply(ChatSettingChange::ShowMessagePreview(true));
         assert!(document.settings().show_message_preview);
+    }
+
+    #[test]
+    fn legacy_message_preview_key_stays_readable() {
+        let settings = ChatSettingsDocument::from_properties(&json!({
+            "showMessagePreview": "false",
+        }))
+        .settings();
+        assert!(!settings.show_message_preview);
+    }
+
+    #[test]
+    fn teams_message_preview_wins_over_the_legacy_key() {
+        let document = ChatSettingsDocument::from_properties(&json!({
+            "showMessagePreview": "false",
+            "simpleCollabUserSettings": r#"{"hasUserEnabledMessagePreviews":true}"#,
+        }));
+        assert!(document.settings().show_message_preview);
+    }
+
+    #[test]
+    fn message_preview_write_adds_the_teams_id_and_keeps_unknown_fields() {
+        let mut document = ChatSettingsDocument::from_properties(&json!({
+            "simpleCollabUserSettings": r#"{"hasUserEnabledMeetingChatSection":true,"future":{"nested":[1,2]}}"#,
+        }));
+        let (name, value) = document.apply(ChatSettingChange::ShowMessagePreview(false));
+        assert_eq!(name, "simpleCollabUserSettings");
+        assert_eq!(
+            parsed(value.as_str().unwrap()),
+            json!({
+                "id": "simpleCollabUserSettingsId",
+                "hasUserEnabledMeetingChatSection": true,
+                "future": {"nested": [1, 2]},
+                "hasUserEnabledMessagePreviews": false,
+            })
+        );
+        assert!(!document.to_text().contains("showMessagePreview"));
     }
 
     #[test]
@@ -776,5 +850,37 @@ mod tests {
             "https://teams.cloud.microsoft/api/chatsvc/emea/v1/users/ME/properties?name=messageDensity"
         );
         assert_eq!(requests[1].body, Some(json!({"messageDensity": "COMPACT"})));
+    }
+
+    #[tokio::test]
+    async fn message_preview_write_puts_the_collab_property() {
+        let transport = Canned {
+            answers: Mutex::new(
+                vec![
+                    (200, json!({"showMessagePreview": "false"})),
+                    (200, Value::Null),
+                ]
+                .into(),
+            ),
+            requests: Mutex::new(Vec::new()),
+        };
+        let client =
+            ChatSettingsClient::with_settings(UserSettings::with_transport(&transport, "emea"));
+        let document = client
+            .write(ChatSettingChange::ShowMessagePreview(true))
+            .await
+            .unwrap();
+        assert!(document.settings().show_message_preview);
+        let requests = transport.requests.lock().unwrap();
+        assert_eq!(requests[0].method, Method::Get);
+        assert_eq!(requests[1].method, Method::Put);
+        assert_eq!(
+            requests[1].url,
+            "https://teams.cloud.microsoft/api/chatsvc/emea/v1/users/ME/properties?name=simpleCollabUserSettings"
+        );
+        let sent = requests[1].body.as_ref().unwrap()["simpleCollabUserSettings"]
+            .as_str()
+            .unwrap();
+        assert_eq!(parsed(sent)["hasUserEnabledMessagePreviews"], json!(true));
     }
 }

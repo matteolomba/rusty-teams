@@ -405,13 +405,19 @@ mod platform {
     };
 
     pub fn terminate_current() {
+        // SAFETY: GetCurrentProcess returns a valid pseudo-handle for this process; terminating it
+        // is the intentional exit path and needs no cleanup.
         let _ = unsafe { TerminateProcess(GetCurrentProcess(), 0) };
     }
 
     pub fn wait_for_exit(process_id: u32, timeout: Duration) {
+        // SAFETY: OpenProcess takes no borrowed raw pointers; the returned handle is checked before
+        // use and closed exactly once after the wait below.
         let Ok(handle) = (unsafe { OpenProcess(PROCESS_SYNCHRONIZE, false, process_id) }) else {
             return;
         };
+        // SAFETY: `handle` is the valid handle from the successful OpenProcess above, used only by
+        // this wait and then closed; no other thread touches it.
         unsafe {
             WaitForSingleObject(handle, timeout.as_millis() as u32);
             let _ = CloseHandle(handle);

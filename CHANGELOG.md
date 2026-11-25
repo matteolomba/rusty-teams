@@ -4,8 +4,13 @@
 
 ### Changed
 - Sincronizzato con `danieldaeschle/rusty-teams` fino a `797e287e`; mantenute le scelte del fork su aggiornamenti, localizzazione e gate delle PR.
+- La preferenza dell'anteprima messaggi usa la chiave Teams `simpleCollabUserSettings.hasUserEnabledMessagePreviews`, con fallback alla vecchia chiave.
+- Lint Clippy di workspace per blocchi `unsafe` non documentati e attributi senza motivazione.
 
 ### Fixed
+- Guest org con MFA interattivo: il dettaglio `AADSTS50076` non viene più perso, lo splash non blocca più il cambio organizzazione ed è disponibile il ritorno alla home org.
+- Il shutdown del browser limita a 500 ms il salvataggio della chiave MSAL e valida i campi dei cookie.
+- Parsing rigoroso di impostazioni e sessioni agent, web shadow e file locali: campi sconosciuti ed errori di decodifica non vengono più ignorati in silenzio.
 - Condivisione remota invisibile: slot della riga `applicationsharing-video` piegata, indicatore e routing anche senza link di sottoscrizione, e riga già attiva all'apertura della chiamata.
 - Descrizioni video iniziali e seed di bandwidth sulle offerte di gruppo, allineate alla forma usata da Teams.
 - Rifiuti di sessione e accettazioni senza risposta SDP terminano la chiamata con uno stato esplicito invece di essere ignorati.

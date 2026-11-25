@@ -238,9 +238,9 @@ impl Session {
             return Ok(results);
         }
         if search.ungranted.len() == App::ALL.len() {
-            return Err(Error::LoginRequired(format!(
-                "the Teams web app is not granted {scope}"
-            )));
+            return Err(Error::LoginRequired {
+                detail: Some(format!("the Teams web app is not granted {scope}")),
+            });
         }
         self.reload_all().await;
         let deadline = Instant::now() + self.config.token_wait;
@@ -253,7 +253,9 @@ impl Session {
         }
         let diagnosis = self.transport.diagnose().await?;
         if diagnosis.login_pending {
-            return Err(Error::LoginRequired("sign in in the browser window".into()));
+            return Err(Error::LoginRequired {
+                detail: Some("sign in in the browser window".into()),
+            });
         }
         if !diagnosis.app_tab_open {
             return Err(Error::NoAppTab);
