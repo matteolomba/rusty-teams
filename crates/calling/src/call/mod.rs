@@ -1845,6 +1845,23 @@ async fn drive(
                                 advance(state, CallSignal::RemoteEnd(kind), control);
                                 break;
                             }
+                            Ok(CallEvent::SessionRejection(rejection)) => {
+                                timeline.record(
+                                    "session rejected",
+                                    format!(
+                                        "{} {} {}",
+                                        rejection.code, rejection.sub_code, rejection.phrase
+                                    ),
+                                );
+                                report.end = Some(rejection.clone());
+                                advance(state, CallSignal::RemoteEnd(rejection.kind()), control);
+                                break;
+                            }
+                            Ok(CallEvent::AcceptanceWithoutSdp) => {
+                                timeline.record("acceptance without sdp", "call accepted without a media answer");
+                                advance(state, CallSignal::RemoteEnd(EndKind::Unavailable), control);
+                                break;
+                            }
                             Ok(CallEvent::Rejection(_))
                                 if glare_resend.as_ref().is_some_and(|resend| !resend.reply_tags.is_empty() && answers_offer(&callback.path, &resend.reply_tags)) =>
                             {

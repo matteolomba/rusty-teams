@@ -159,6 +159,8 @@ pub enum CallEvent {
     AddParticipantFailure(Value),
     ConversationEnd(Value),
     Rejection(Value),
+    SessionRejection(CallEnd),
+    AcceptanceWithoutSdp,
     RetargetCompletion(Value),
     Reactions(Vec<ReactionEvent>),
     LocalParticipantUpdate(Value),
@@ -186,6 +188,8 @@ impl CallEvent {
             CallEvent::AddParticipantFailure(_) => "conversation/addParticipantFailure".into(),
             CallEvent::ConversationEnd(_) => "conversation/conversationEnd".into(),
             CallEvent::Rejection(_) => "call/rejection".into(),
+            CallEvent::SessionRejection(_) => "call/rejection".into(),
+            CallEvent::AcceptanceWithoutSdp => "call/acceptance".into(),
             CallEvent::RetargetCompletion(_) => "call/retargetCompletion".into(),
             CallEvent::Reactions(_) => "conversation/receiveMessage".into(),
             CallEvent::LocalParticipantUpdate(_) => "conversation/localParticipantUpdate".into(),
@@ -202,6 +206,12 @@ impl CallEvent {
 /// `path` is `callAgent/<callId>/<tag>/<call|conversation>/<event>/`.
 pub fn classify(path: &str, body: Value) -> Result<(String, CallEvent)> {
     let (call_id, scope, event) = split_callback_path(path)?;
+    if !body["sessionRejection"].is_null() {
+        return Ok((
+            call_id,
+            CallEvent::SessionRejection(session_rejection(&body)),
+        ));
+    }
     let event = match (scope.as_str(), event.as_str()) {
         ("conversation", "conversationUpdate") => CallEvent::ConversationUpdate(body),
         ("conversation", "rosterUpdate") => CallEvent::RosterUpdate(body),
@@ -217,6 +227,13 @@ pub fn classify(path: &str, body: Value) -> Result<(String, CallEvent)> {
         ("call", "replacement") => CallEvent::Replacement(body),
         ("call", "transferAcceptance") => CallEvent::Transfer(TransferEvent::Accepted),
         ("call", "transferCompletion") => CallEvent::Transfer(completion(&body)),
+        ("call", "acceptance")
+            if body["callAcceptance"]["mediaContent"]["blob"]
+                .as_str()
+                .is_none() =>
+        {
+            CallEvent::AcceptanceWithoutSdp
+        }
         ("call", "acceptance") => CallEvent::Acceptance(acceptance(&body)?),
         ("call", "progress") => CallEvent::Progress(progress(&body)),
         ("call", "mediaAnswer") => CallEvent::MediaAnswer(media_answer(&body)?),
@@ -498,6 +515,16 @@ fn call_end(body: &Value) -> CallEnd {
     }
 }
 
+fn session_rejection(body: &Value) -> CallEnd {
+    let rejection = &body["sessionRejection"];
+    CallEnd {
+        code: rejection["code"].as_i64().unwrap_or_default(),
+        sub_code: rejection["subCode"].as_i64().unwrap_or_default(),
+        phrase: rejection["phrase"].as_str().unwrap_or_default().to_owned(),
+        accepted_elsewhere_by: None,
+    }
+}
+
 /// Callback URLs the client invents under its Trouter `surl`; Trouter routes them to the socket without registration.
 #[derive(Debug, Clone)]
 pub struct CallbackLinks {
@@ -607,6 +634,31 @@ mod tests {
         assert_eq!(acceptance.sdp, "v=0\r\n");
         assert!(acceptance.from_mixer);
         assert_eq!(acceptance.links["callLeg"], "https://cc/leg");
+    }
+
+    #[test]
+    fn classifies_session_rejection_as_a_failure() {
+        let body = json!({"sessionRejection": {"code": 480, "subCode": 10037, "phrase": "Callee unavailable"}});
+        let (_, event) = classify("callAgent/abc/1/call/rejection/", body).unwrap();
+        let name = event.name();
+        let CallEvent::SessionRejection(rejection) = event else {
+            panic!("not a session rejection")
+        };
+        assert_eq!(rejection.code, 480);
+        assert_eq!(rejection.sub_code, 10037);
+        assert_eq!(rejection.phrase, "Callee unavailable");
+        assert_eq!(name, "call/rejection");
+    }
+
+    #[test]
+    fn acceptance_without_an_sdp_answer_is_explicit() {
+        let (_, event) = classify(
+            "callAgent/abc/1/call/acceptance/",
+            json!({"callAcceptance": {"mediaContent": {"blob": null}}}),
+        )
+        .unwrap();
+        assert_eq!(event, CallEvent::AcceptanceWithoutSdp);
+        assert_eq!(event.name(), "call/acceptance");
     }
 
     #[test]
