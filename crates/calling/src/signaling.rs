@@ -56,6 +56,7 @@ use crate::reaction::{DEFAULT_SKIN_TONE, Reaction, reaction_message};
 use crate::recording::{self, Consent, RecordingCommand, StartDetails};
 use crate::relay::ic3_scope;
 use crate::roster::MeetingRole;
+use crate::sdp;
 use crate::timeline::Timeline;
 use crate::transfer::{self, TransferTarget};
 use crate::trouter_events::{CallbackLinks, acceptance_links, acknowledgement_links};
@@ -71,6 +72,7 @@ const ENDPOINT_CAPABILITIES: u64 = 73463;
 const ONE_TO_ONE_THREAD_SUFFIX: &str = "@unq.gbl.spaces";
 const DIRECT_REQUIRED_FEATURES: &str = "nonByPass";
 const CLIENT_ENDPOINT_CAPABILITIES: u64 = 47150826;
+const BANDWIDTH_SEED: &str = r#"{"sendSideBWSeed":{"seedValueBitsPerSec":1500000}}"#;
 const ALLOWED_HOST_SUFFIXES: [&str; 2] =
     [".flightproxy.teams.microsoft.com", ".teams.microsoft.com"];
 const BACKEND_SUFFIX: &str = ".skype.com";
@@ -1076,6 +1078,41 @@ pub(crate) fn endpoint_state() -> Value {
     })
 }
 
+fn video_mids(sdp: &str) -> Vec<String> {
+    sdp::parse(sdp)
+        .map(|parsed| {
+            parsed
+                .media
+                .into_iter()
+                .filter(|line| line.kind == "video")
+                .filter_map(|line| line.mid().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn initial_media_descriptions(sdp: &str) -> Vec<MediaDescription> {
+    video_mids(sdp)
+        .into_iter()
+        .enumerate()
+        .map(|(index, mid)| {
+            if index == 0 {
+                MediaDescription {
+                    mid,
+                    direction: "sendrecv",
+                    label: Some("main-video"),
+                }
+            } else {
+                MediaDescription {
+                    mid,
+                    direction: "recvonly",
+                    label: None,
+                }
+            }
+        })
+        .collect()
+}
+
 fn media_content(sdp: &str, media_leg_id: &str, with_descriptions: bool) -> Value {
     let mut content = json!({
         "contentType": SDP_CONTENT_TYPE,
@@ -1084,7 +1121,19 @@ fn media_content(sdp: &str, media_leg_id: &str, with_descriptions: bool) -> Valu
         "mediaLegId": media_leg_id,
     });
     if with_descriptions {
-        content["mediaDescriptions"] = json!({"descriptions": [], "requestId": 1});
+        content["mediaDescriptions"] = json!({
+            "descriptions": initial_media_descriptions(sdp)
+                .iter()
+                .map(MediaDescription::wire)
+                .collect::<Vec<_>>(),
+            "requestId": 1,
+        });
+        content["applyChannelParameters"] = json!({
+            "multiChannelParameter": {
+                "mids": ["*"],
+                "mediaParameter": BANDWIDTH_SEED,
+            },
+        });
     }
     content
 }
@@ -1879,6 +1928,52 @@ mod tests {
         let media = &body["callInvitation"]["mediaContent"];
         assert!(media.get("requiredFeatures").is_none());
         assert!(media["mediaDescriptions"].is_object());
+    }
+    #[test]
+    fn group_offer_seeds_descriptions_and_bandwidth() {
+        let from = from();
+        let callbacks = callbacks();
+        let sdp = "v=0\r\n\
+            m=audio 9 UDP/TLS/RTP/SAVPF 105\r\n\
+            a=mid:0\r\n\
+            m=video 9 UDP/TLS/RTP/SAVPF 102\r\n\
+            a=mid:1\r\n\
+            m=video 9 UDP/TLS/RTP/SAVPF 102\r\n\
+            a=mid:2\r\n";
+        let target = InviteTarget::People {
+            callees: vec![callee("8:orgid:b", "Bea")],
+            thread_id: "19:group@thread.v2".into(),
+        };
+        let modalities = vec!["Audio".to_owned()];
+        let body = epconv_body(&Invitation {
+            from: &from,
+            offer_sdp: sdp,
+            media_leg_id: "AB",
+            callbacks: &callbacks,
+            target: &target,
+            modalities: &modalities,
+            direct: false,
+        });
+        let media = &body["callInvitation"]["mediaContent"];
+        assert_eq!(
+            media["mediaDescriptions"]["descriptions"],
+            json!([
+                {"mid": "1", "direction": "sendrecv", "label": "main-video"},
+                {"mid": "2", "direction": "recvonly"}
+            ])
+        );
+        assert_eq!(media["mediaDescriptions"]["requestId"], 1);
+        assert_eq!(
+            media["applyChannelParameters"]["multiChannelParameter"]["mids"],
+            json!(["*"])
+        );
+        let seed = media["applyChannelParameters"]["multiChannelParameter"]["mediaParameter"]
+            .as_str()
+            .expect("seed is a JSON string");
+        assert_eq!(
+            serde_json::from_str::<Value>(seed).unwrap(),
+            json!({"sendSideBWSeed": {"seedValueBitsPerSec": 1500000}})
+        );
     }
 
     #[test]

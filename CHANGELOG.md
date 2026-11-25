@@ -7,6 +7,7 @@
 
 ### Fixed
 - Condivisione remota invisibile: slot della riga `applicationsharing-video` piegata, indicatore e routing anche senza link di sottoscrizione, e riga già attiva all'apertura della chiamata.
+- Descrizioni video iniziali e seed di bandwidth sulle offerte di gruppo, allineate alla forma usata da Teams.
 
 ## [0.7.0-rc.3] - 2026-11-25
 
