@@ -78,6 +78,7 @@ fn kind_name(kind: EventKind) -> &'static str {
         EventKind::PinsChanged => "pins_changed",
         EventKind::ThreadActivity => "thread_activity",
         EventKind::Control => "control",
+        EventKind::Calendar => "calendar",
         EventKind::Other => "other",
     }
 }
