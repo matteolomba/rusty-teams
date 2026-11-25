@@ -22,6 +22,7 @@ const EXE_NAME: &str = "teams";
 const OLD_EXE_NAME: &str = "teams.old";
 const PDB_NAME: &str = "teams.pdb";
 const VERSION_FILE_NAME: &str = "version.txt";
+const DIGEST_SUFFIX: &str = ".sha256";
 pub const RELAUNCH_ENV: &str = "RUSTY_TEAMS_RELAUNCH";
 const CLEANUP_ATTEMPTS: u32 = 30;
 const CLEANUP_INTERVAL: Duration = Duration::from_secs(1);
@@ -145,6 +146,7 @@ pub struct UpdatePaths {
     pub update_exe: PathBuf,
     pub version_file: PathBuf,
     pub pdb: PathBuf,
+    pub digest_file: PathBuf,
     pub update_pdb: PathBuf,
 }
 
@@ -152,15 +154,23 @@ impl UpdatePaths {
     pub fn beside(exe: &Path) -> UpdatePaths {
         let directory = exe.parent().unwrap_or_else(|| Path::new("."));
         let update_directory = directory.join(UPDATE_DIRECTORY);
+        let update_exe = update_directory.join(EXE_NAME);
         UpdatePaths {
             exe: exe.to_owned(),
             old_exe: directory.join(OLD_EXE_NAME),
-            update_exe: update_directory.join(EXE_NAME),
+            update_exe: update_exe.clone(),
             version_file: update_directory.join(VERSION_FILE_NAME),
+            digest_file: digest_path(&update_exe),
             pdb: directory.join(PDB_NAME),
             update_pdb: update_directory.join(PDB_NAME),
         }
     }
+}
+
+fn digest_path(update_exe: &Path) -> PathBuf {
+    let mut name = update_exe.file_name().unwrap_or_default().to_owned();
+    name.push(DIGEST_SUFFIX);
+    update_exe.with_file_name(name)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -172,6 +182,8 @@ pub enum FileOperation {
 
 pub trait FileSystem {
     fn exists(&self, path: &Path) -> bool;
+    fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
+    fn write(&self, path: &Path, bytes: &[u8]) -> io::Result<()>;
     fn rename(&self, from: &Path, to: &Path) -> io::Result<()>;
     fn remove_file(&self, path: &Path) -> io::Result<()>;
 }
@@ -181,6 +193,14 @@ pub struct RealFileSystem;
 impl FileSystem for RealFileSystem {
     fn exists(&self, path: &Path) -> bool {
         path.exists()
+    }
+
+    fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
+        std::fs::read(path)
+    }
+
+    fn write(&self, path: &Path, bytes: &[u8]) -> io::Result<()> {
+        std::fs::write(path, bytes)
     }
 
     fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
@@ -208,50 +228,111 @@ pub fn swap_plan(paths: &UpdatePaths) -> Vec<FileOperation> {
             to: paths.pdb.clone(),
         },
         FileOperation::RemoveIfExists(paths.version_file.clone()),
+        FileOperation::RemoveIfExists(paths.digest_file.clone()),
     ]
 }
 
-fn apply_operation(files: &dyn FileSystem, operation: &FileOperation) -> io::Result<()> {
+fn apply_operation(
+    files: &dyn FileSystem,
+    operation: &FileOperation,
+    undo: &mut Vec<UndoOperation>,
+) -> io::Result<()> {
     match operation {
         FileOperation::RemoveIfExists(path) => {
-            if files.exists(path) {
+            let bytes = files.exists(path).then(|| files.read(path)).transpose()?;
+            if bytes.is_some() {
                 files.remove_file(path)?;
             }
-            Ok(())
+            undo.push(UndoOperation::Restore {
+                path: path.clone(),
+                bytes,
+            });
         }
-        FileOperation::Rename { from, to } => files.rename(from, to),
+        FileOperation::Rename { from, to } => {
+            let replaced = files.exists(to).then(|| files.read(to)).transpose()?;
+            files.rename(from, to)?;
+            undo.push(UndoOperation::Restore {
+                path: to.clone(),
+                bytes: replaced,
+            });
+            undo.push(UndoOperation::Rename {
+                from: from.clone(),
+                to: to.clone(),
+            });
+        }
         FileOperation::ReplaceIfPresent { from, to } => {
             if files.exists(from) {
-                if files.exists(to) {
-                    let _ = files.remove_file(to);
+                let source = files.read(from)?;
+                let replaced = files.exists(to).then(|| files.read(to)).transpose()?;
+                if replaced.is_some() {
+                    files.remove_file(to)?;
                 }
-                let _ = files.rename(from, to);
+                undo.push(UndoOperation::Restore {
+                    path: to.clone(),
+                    bytes: replaced,
+                });
+                files.rename(from, to)?;
+                undo.push(UndoOperation::Restore {
+                    path: from.clone(),
+                    bytes: Some(source),
+                });
             }
-            Ok(())
         }
     }
+    Ok(())
 }
 
-/// Runs the plan. On failure undoes the completed renames and returns the error.
+/// Reverses one completed operation. `Rename` moves back; `Restore` rewrites the
+/// original bytes or removes a file that did not exist before.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UndoOperation {
+    Restore {
+        path: PathBuf,
+        bytes: Option<Vec<u8>>,
+    },
+    Rename {
+        from: PathBuf,
+        to: PathBuf,
+    },
+}
+
+/// Runs the plan. On failure undoes every completed step, including removals.
 pub fn apply_plan(
     files: &dyn FileSystem,
     plan: &[FileOperation],
-) -> Result<Vec<FileOperation>, String> {
-    let mut completed = Vec::new();
+) -> Result<Vec<UndoOperation>, String> {
+    let mut undo = Vec::new();
     for operation in plan {
-        if let Err(error) = apply_operation(files, operation) {
-            roll_back(files, &completed);
+        if let Err(error) = apply_operation(files, operation, &mut undo) {
+            roll_back(files, &undo);
             return Err(format!("{operation:?}: {error}"));
         }
-        completed.push(operation.clone());
     }
-    Ok(completed)
+    Ok(undo)
 }
 
-pub fn roll_back(files: &dyn FileSystem, completed: &[FileOperation]) {
-    for operation in completed.iter().rev() {
-        if let FileOperation::Rename { from, to } = operation {
-            let _ = files.rename(to, from);
+pub fn roll_back(files: &dyn FileSystem, undo: &[UndoOperation]) {
+    for operation in undo.iter().rev() {
+        match operation {
+            UndoOperation::Restore {
+                path,
+                bytes: Some(bytes),
+            } => {
+                if files.exists(path) {
+                    let _ = files.remove_file(path);
+                }
+                let _ = files.write(path, bytes);
+            }
+            UndoOperation::Restore { path, bytes: None } => {
+                if files.exists(path) {
+                    let _ = files.remove_file(path);
+                }
+            }
+            UndoOperation::Rename { from, to } => {
+                if files.exists(to) {
+                    let _ = files.rename(to, from);
+                }
+            }
         }
     }
 }
@@ -272,8 +353,12 @@ pub fn current_paths() -> Option<UpdatePaths> {
 }
 
 pub fn install_and_relaunch(paths: &UpdatePaths) -> Result<(), String> {
+    if !self_update_allowed() {
+        return Err("aggiornamento automatico non disponibile per questa installazione".to_owned());
+    }
+    crate::release_feed::verify_staged(paths)?;
     let files = RealFileSystem;
-    let completed = apply_plan(&files, &swap_plan(paths))?;
+    let undo = apply_plan(&files, &swap_plan(paths))?;
     match Command::new(&paths.exe)
         .args(std::env::args_os().skip(1))
         .env(RELAUNCH_ENV, std::process::id().to_string())
@@ -281,7 +366,7 @@ pub fn install_and_relaunch(paths: &UpdatePaths) -> Result<(), String> {
     {
         Ok(_) => Ok(()),
         Err(error) => {
-            roll_back(&files, &completed);
+            roll_back(&files, &undo);
             Err(format!("Start: {error}"))
         }
     }
@@ -343,25 +428,27 @@ mod platform {
     pub fn terminate_current() {}
 }
 
-/// Whether this build may replace itself from GitHub releases. On Linux only the copy
-/// installed in `~/.local/share/rusty-teams` updates; a binary run from a
-/// build folder or a package location is left alone. macOS ships a `.app` and does not
-/// swap its Mach-O in place.
+/// Platform decision for the self-swap. Only an installed Linux copy may replace
+/// itself; Windows sends the user to the release page instead.
+fn self_update_allowed_on(os: &str, installed_in_data_directory: bool) -> bool {
+    os == "linux" && installed_in_data_directory
+}
+
+/// Whether this build may replace itself from GitHub releases. Windows never
+/// swaps its executable: the digest comes from the same untrusted feed as the
+/// binary, so the UI opens the release page instead.
 pub fn self_update_allowed() -> bool {
     #[cfg(target_os = "linux")]
     {
-        return std::env::current_exe().is_ok_and(|executable| {
+        let installed = std::env::current_exe().is_ok_and(|executable| {
             crate::linux_desktop::Layout::current()
                 .is_some_and(|layout| crate::linux_desktop::is_installed(&executable, &layout))
         });
+        self_update_allowed_on("linux", installed)
     }
-    #[cfg(windows)]
+    #[cfg(not(target_os = "linux"))]
     {
-        return true;
-    }
-    #[cfg(not(any(windows, target_os = "linux")))]
-    {
-        false
+        self_update_allowed_on(std::env::consts::OS, false)
     }
 }
 
@@ -408,7 +495,7 @@ mod tests {
         let paths = UpdatePaths::beside(&Path::new("/app").join(EXE_NAME));
         assert_eq!(paths.update_exe, Path::new("/app/update").join(EXE_NAME));
         let plan = swap_plan(&paths);
-        assert_eq!(plan.len(), 5);
+        assert_eq!(plan.len(), 6);
         assert_eq!(
             plan[1],
             FileOperation::Rename {
@@ -423,6 +510,10 @@ mod tests {
                 to: paths.exe.clone()
             }
         );
+        assert_eq!(
+            plan[5],
+            FileOperation::RemoveIfExists(paths.digest_file.clone())
+        );
     }
 
     fn install(directory: &Path) -> UpdatePaths {
@@ -431,6 +522,7 @@ mod tests {
         fs::write(&paths.exe, "old").unwrap();
         fs::write(&paths.update_exe, "new").unwrap();
         fs::write(&paths.version_file, "b-2").unwrap();
+        fs::write(&paths.digest_file, "sha256:test").unwrap();
         paths
     }
 
@@ -443,6 +535,7 @@ mod tests {
         assert_eq!(fs::read_to_string(&paths.old_exe).unwrap(), "old");
         assert!(!paths.update_exe.exists());
         assert!(!paths.version_file.exists());
+        assert!(!paths.digest_file.exists());
     }
 
     #[test]
@@ -475,6 +568,13 @@ mod tests {
     impl FileSystem for FailingRename {
         fn exists(&self, path: &Path) -> bool {
             path.exists()
+        }
+        fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
+            std::fs::read(path)
+        }
+
+        fn write(&self, path: &Path, bytes: &[u8]) -> io::Result<()> {
+            std::fs::write(path, bytes)
         }
 
         fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
@@ -565,5 +665,113 @@ mod tests {
         assert!(check(&paths));
         fs::write(&paths.version_file, crate::version::running_release_tag()).unwrap();
         assert!(!check(&paths));
+    }
+
+    #[test]
+    fn only_installed_linux_builds_may_swap_themselves() {
+        assert!(self_update_allowed_on("linux", true));
+        assert!(!self_update_allowed_on("linux", false));
+        assert!(!self_update_allowed_on("windows", true));
+        assert!(!self_update_allowed_on("macos", true));
+    }
+
+    struct FailingReplace {
+        fail_on: PathBuf,
+    }
+
+    impl FileSystem for FailingReplace {
+        fn exists(&self, path: &Path) -> bool {
+            path.exists()
+        }
+
+        fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
+            std::fs::read(path)
+        }
+
+        fn write(&self, path: &Path, bytes: &[u8]) -> io::Result<()> {
+            std::fs::write(path, bytes)
+        }
+
+        fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
+            if from == self.fail_on {
+                return Err(io::Error::other("locked"));
+            }
+            std::fs::rename(from, to)
+        }
+
+        fn remove_file(&self, path: &Path) -> io::Result<()> {
+            std::fs::remove_file(path)
+        }
+    }
+
+    #[test]
+    fn replace_errors_are_propagated_and_the_original_symbols_survive() {
+        let directory = tempfile::tempdir().unwrap();
+        let paths = install(directory.path());
+        fs::write(&paths.pdb, "old symbols").unwrap();
+        fs::write(&paths.update_pdb, "new symbols").unwrap();
+        let files = FailingReplace {
+            fail_on: paths.update_pdb.clone(),
+        };
+        let operation = FileOperation::ReplaceIfPresent {
+            from: paths.update_pdb.clone(),
+            to: paths.pdb.clone(),
+        };
+        let error = apply_plan(&files, std::slice::from_ref(&operation)).unwrap_err();
+        assert!(error.contains("locked"));
+        assert_eq!(fs::read_to_string(&paths.pdb).unwrap(), "old symbols");
+        assert_eq!(
+            fs::read_to_string(&paths.update_pdb).unwrap(),
+            "new symbols"
+        );
+    }
+
+    struct FailingRemove {
+        fail_on: PathBuf,
+    }
+
+    impl FileSystem for FailingRemove {
+        fn exists(&self, path: &Path) -> bool {
+            path.exists()
+        }
+
+        fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
+            std::fs::read(path)
+        }
+
+        fn write(&self, path: &Path, bytes: &[u8]) -> io::Result<()> {
+            std::fs::write(path, bytes)
+        }
+
+        fn rename(&self, from: &Path, to: &Path) -> io::Result<()> {
+            std::fs::rename(from, to)
+        }
+
+        fn remove_file(&self, path: &Path) -> io::Result<()> {
+            if path == self.fail_on {
+                return Err(io::Error::other("busy"));
+            }
+            std::fs::remove_file(path)
+        }
+    }
+
+    #[test]
+    fn rollback_restores_files_that_were_removed() {
+        let directory = tempfile::tempdir().unwrap();
+        let paths = install(directory.path());
+        fs::write(&paths.old_exe, "stale").unwrap();
+        let files = FailingRemove {
+            fail_on: paths.version_file.clone(),
+        };
+        let error = apply_plan(&files, &swap_plan(&paths)).unwrap_err();
+        assert!(error.contains("busy"));
+        assert_eq!(fs::read_to_string(&paths.exe).unwrap(), "old");
+        assert_eq!(fs::read_to_string(&paths.old_exe).unwrap(), "stale");
+        assert_eq!(fs::read_to_string(&paths.update_exe).unwrap(), "new");
+        assert_eq!(fs::read_to_string(&paths.version_file).unwrap(), "b-2");
+        assert_eq!(
+            fs::read_to_string(&paths.digest_file).unwrap(),
+            "sha256:test"
+        );
     }
 }

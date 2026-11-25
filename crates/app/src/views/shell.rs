@@ -125,6 +125,12 @@ fn opening_link_text(url: &str) -> String {
     }
 }
 
+/// When this build cannot swap its executable, the update button opens the
+/// fork's release page instead.
+fn update_page_url(swap_allowed: bool) -> Option<&'static str> {
+    (!swap_allowed).then_some(app_base::release_feed::RELEASES_PAGE_URL)
+}
+
 fn inline_image(url: &str, cx: &App) -> Option<std::path::PathBuf> {
     let handle = cx.try_global::<crate::app_state::AppHandle>()?;
     let entry = handle.0.read(cx).directory.image(url)?;
@@ -140,31 +146,6 @@ fn jump_to_quoted(message_id: String, cx: &mut App) {
             state.jump_to_message(selection, message_id, cx);
         }
     });
-}
-
-#[cfg(windows)]
-fn watch_releases(running_tag: &'static str, cx: &mut App) {
-    use app_base::release_feed;
-    cx.spawn(async move |cx| {
-        cx.background_executor()
-            .timer(release_feed::FIRST_CHECK_DELAY)
-            .await;
-        loop {
-            let Some(paths) = updater::current_paths() else {
-                return;
-            };
-            let fetch = cx.update(|cx| release_feed::fetch_update(running_tag, paths, cx));
-            match fetch.await {
-                Ok(Some(tag)) => log::info!("release {tag} downloaded for the next restart"),
-                Ok(None) => {}
-                Err(error) => log::warn!("release check failed: {error}"),
-            }
-            cx.background_executor()
-                .timer(release_feed::CHECK_INTERVAL)
-                .await;
-        }
-    })
-    .detach();
 }
 
 const DEMO_UPDATE_VARIABLE: &str = "TEAMS_DEMO_UPDATE";
@@ -528,20 +509,6 @@ impl AppShell {
             }
         })
         .detach();
-        // Linux asks before downloading (`linux_update`); Windows downloads quietly
-        // only when the user chose automatic updates.
-        #[cfg(windows)]
-        {
-            let automatic = cx
-                .try_global::<crate::app_state::AppHandle>()
-                .is_some_and(|handle| {
-                    updater::load_update_mode(&handle.0.read(cx).store)
-                        == updater::UpdateMode::Automatic
-                });
-            if automatic && let Some(running_tag) = app_base::version::release_tag() {
-                watch_releases(running_tag, cx);
-            }
-        }
         shell
     }
 
@@ -570,6 +537,10 @@ impl AppShell {
     }
 
     fn restart_into_update(&mut self, cx: &mut Context<Self>) {
+        if let Some(url) = update_page_url(updater::self_update_allowed()) {
+            open_link(url, cx);
+            return;
+        }
         if self.update == UpdateStatus::Installing {
             return;
         }
@@ -1396,5 +1367,14 @@ mod opening_link_tests {
         );
         assert_eq!(opening_link_text("mailto:"), "Opening mailto:...");
         assert_eq!(opening_link_text(""), "Opening link...");
+    }
+
+    #[test]
+    fn update_button_uses_the_release_page_when_swapping_is_disabled() {
+        assert_eq!(
+            super::update_page_url(false),
+            Some(app_base::release_feed::RELEASES_PAGE_URL)
+        );
+        assert_eq!(super::update_page_url(true), None);
     }
 }

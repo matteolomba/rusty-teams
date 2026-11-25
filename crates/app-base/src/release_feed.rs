@@ -9,6 +9,9 @@ use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
 use std::time::Duration;
 
 use futures_util::AsyncReadExt as _;
+use gpui_kit::http_client::{
+    AsyncBody, HttpRequestExt as _, RedirectPolicy, Request, Response, Result as HttpResult, Url,
+};
 use gpui_kit::{App, Task};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -61,6 +64,16 @@ const EXECUTABLE_MAGIC: &[u8] = b"\0unsupported";
 const PARTIAL_SUFFIX: &str = ".partial";
 const DOWNLOAD_CHUNK: usize = 64 * 1024;
 const SHA256_PREFIX: &str = "sha256:";
+const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(30);
+const MAX_DOWNLOAD_SIZE: u64 = 128 * 1024 * 1024;
+const MAX_METADATA_SIZE: u64 = 1024 * 1024;
+const MAX_REDIRECTS: usize = 3;
+const DOWNLOAD_HOSTS: [&str; 3] = [
+    "github.com",
+    "objects.githubusercontent.com",
+    "release-assets.githubusercontent.com",
+];
+const METADATA_HOSTS: [&str; 1] = ["api.github.com"];
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Release {
@@ -168,6 +181,32 @@ pub fn newest_update<'a>(
         .map(|(_, release, asset)| (release, asset))
 }
 
+fn verify_digest(expected: &str, bytes: &[u8]) -> Result<(), String> {
+    let Some(hex) = expected.strip_prefix(SHA256_PREFIX) else {
+        return Err("release asset has no sha256 digest".to_owned());
+    };
+    let actual: String = Sha256::digest(bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    if !actual.eq_ignore_ascii_case(hex) {
+        return Err("sha256 mismatch".to_owned());
+    }
+    Ok(())
+}
+
+/// Re-checks the staged executable against the digest saved at download time,
+/// immediately before the swap. A tampered local file must not be installed.
+pub fn verify_staged(paths: &UpdatePaths) -> Result<(), String> {
+    let expected = fs::read_to_string(&paths.digest_file)
+        .map_err(|error| format!("digest del file staged: {error}"))?;
+    let bytes = fs::read(&paths.update_exe).map_err(|error| format!("file staged: {error}"))?;
+    if !bytes.starts_with(EXECUTABLE_MAGIC) {
+        return Err("il file staged non è un eseguibile per questa piattaforma".to_owned());
+    }
+    verify_digest(expected.trim(), &bytes)
+}
+
 pub fn verify_download(asset: &ReleaseAsset, bytes: &[u8]) -> Result<(), String> {
     if bytes.len() as u64 != asset.size {
         return Err(format!("size {} instead of {}", bytes.len(), asset.size));
@@ -175,21 +214,10 @@ pub fn verify_download(asset: &ReleaseAsset, bytes: &[u8]) -> Result<(), String>
     if !bytes.starts_with(EXECUTABLE_MAGIC) {
         return Err("not an executable for this platform".to_owned());
     }
-    let Some(expected) = asset
-        .digest
-        .as_deref()
-        .and_then(|digest| digest.strip_prefix(SHA256_PREFIX))
-    else {
+    let Some(expected) = asset.digest.as_deref() else {
         return Err("release asset has no sha256 digest".to_owned());
     };
-    let actual: String = Sha256::digest(bytes)
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect();
-    if !actual.eq_ignore_ascii_case(expected) {
-        return Err("sha256 mismatch".to_owned());
-    }
-    Ok(())
+    verify_digest(expected, bytes)
 }
 
 fn partial_path(path: &std::path::Path) -> std::path::PathBuf {
@@ -203,7 +231,10 @@ fn already_staged(paths: &UpdatePaths, tag: &str) -> bool {
         && fs::read_to_string(&paths.version_file).is_ok_and(|staged| staged.trim() == tag)
 }
 
-fn stage(paths: &UpdatePaths, tag: &str, bytes: &[u8]) -> Result<(), String> {
+fn stage(paths: &UpdatePaths, tag: &str, bytes: &[u8], digest: &str) -> Result<(), String> {
+    if !digest.starts_with(SHA256_PREFIX) {
+        return Err("release asset has no sha256 digest".to_owned());
+    }
     let directory = paths
         .update_exe
         .parent()
@@ -219,6 +250,10 @@ fn stage(paths: &UpdatePaths, tag: &str, bytes: &[u8]) -> Result<(), String> {
             .map_err(|error| error.to_string())?;
     }
     fs::rename(&partial, &paths.update_exe).map_err(|error| error.to_string())?;
+    let digest_partial = partial_path(&paths.digest_file);
+    let _ = fs::remove_file(&paths.digest_file);
+    fs::write(&digest_partial, digest).map_err(|error| error.to_string())?;
+    fs::rename(&digest_partial, &paths.digest_file).map_err(|error| error.to_string())?;
     fs::write(&paths.version_file, tag).map_err(|error| error.to_string())
 }
 
@@ -231,35 +266,95 @@ pub struct AvailableUpdate {
 
 type HttpClient = std::sync::Arc<dyn gpui_kit::http_client::HttpClient>;
 
-/// GETs `url`. `progress` counts the body bytes as they arrive.
-async fn get(
-    client: &HttpClient,
-    url: &str,
-    progress: Option<&AtomicU64>,
-) -> Result<Vec<u8>, String> {
-    let mut response = client
-        .get(url, ().into(), true)
-        .await
-        .map_err(|error| error.to_string())?;
-    if !response.status().is_success() {
-        return Err(format!("status {}", response.status()));
+/// Only HTTPS on a fixed set of fork hosts may be fetched, including redirects.
+fn validate_https_url(url: &str, hosts: &[&str]) -> Result<Url, String> {
+    let parsed = Url::parse(url).map_err(|error| format!("URL non valida: {error}"))?;
+    if parsed.scheme() != "https" {
+        return Err("sono ammessi solo URL HTTPS".to_owned());
     }
-    let mut body = Vec::new();
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err("URL con credenziali non ammesso".to_owned());
+    }
+    if parsed.port().is_some() {
+        return Err("URL con porta esplicita non ammesso".to_owned());
+    }
+    if !hosts.iter().any(|host| parsed.host_str() == Some(*host)) {
+        return Err("host di download non consentito".to_owned());
+    }
+    Ok(parsed)
+}
+
+/// Incremental bound: an oversized chunk fails before it is appended to the body.
+fn checked_body_len(current: usize, read: usize, limit: u64) -> Result<usize, String> {
+    let total = (current as u64)
+        .checked_add(read as u64)
+        .ok_or_else(|| "body too large".to_owned())?;
+    if total > limit {
+        return Err(format!("body exceeds {limit} bytes"));
+    }
+    usize::try_from(total).map_err(|_| "body too large".to_owned())
+}
+
+async fn read_body(
+    body: &mut AsyncBody,
+    progress: Option<&AtomicU64>,
+    limit: u64,
+) -> Result<Vec<u8>, String> {
+    let mut bytes = Vec::new();
     let mut chunk = vec![0; DOWNLOAD_CHUNK];
     loop {
-        let read = response
-            .body_mut()
+        let read = body
             .read(&mut chunk)
             .await
             .map_err(|error| error.to_string())?;
         if read == 0 {
-            return Ok(body);
+            return Ok(bytes);
         }
-        body.extend_from_slice(&chunk[..read]);
+        let total = checked_body_len(bytes.len(), read, limit)?;
+        bytes.extend_from_slice(&chunk[..read]);
         if let Some(progress) = progress {
-            progress.store(body.len() as u64, AtomicOrdering::Relaxed);
+            progress.store(total as u64, AtomicOrdering::Relaxed);
         }
     }
+}
+
+/// GETs `url` with an explicit timeout and no automatic redirects: every hop is
+/// validated against `hosts` and the body is bounded incrementally.
+async fn get(
+    client: &HttpClient,
+    url: &str,
+    hosts: &[&str],
+    progress: Option<&AtomicU64>,
+    max_bytes: u64,
+) -> Result<Vec<u8>, String> {
+    let mut next = validate_https_url(url, hosts)?.to_string();
+    let limit = max_bytes.min(MAX_DOWNLOAD_SIZE);
+    for _ in 0..=MAX_REDIRECTS {
+        let request = Request::builder()
+            .uri(next.as_str())
+            .follow_redirects(RedirectPolicy::NoFollow)
+            .timeout(DOWNLOAD_TIMEOUT)
+            .body(().into())
+            .map_err(|error| error.to_string())?;
+        let mut response = client
+            .send(request)
+            .await
+            .map_err(|error| error.to_string())?;
+        if response.status().is_redirection() {
+            let location = response
+                .headers()
+                .get(gpui_kit::http_client::http::header::LOCATION)
+                .and_then(|value| value.to_str().ok())
+                .ok_or_else(|| "redirect senza destinazione".to_owned())?;
+            next = validate_https_url(location, hosts)?.to_string();
+            continue;
+        }
+        if !response.status().is_success() {
+            return Err(format!("status {}", response.status()));
+        }
+        return read_body(response.body_mut(), progress, limit).await;
+    }
+    Err("too many redirects".to_owned())
 }
 
 /// Looks for a release newer than `running_tag`, without downloading it.
@@ -269,9 +364,17 @@ pub fn find_update(
 ) -> Task<Result<Option<AvailableUpdate>, String>> {
     let client = cx.http_client();
     cx.background_executor().spawn(async move {
-        let releases: Vec<Release> =
-            serde_json::from_slice(&get(&client, RELEASES_URL, None).await?)
-                .map_err(|error| error.to_string())?;
+        let releases: Vec<Release> = serde_json::from_slice(
+            &get(
+                &client,
+                RELEASES_URL,
+                &METADATA_HOSTS,
+                None,
+                MAX_METADATA_SIZE,
+            )
+            .await?,
+        )
+        .map_err(|error| error.to_string())?;
         Ok(
             newest_update(running_tag, &releases).map(|(release, asset)| AvailableUpdate {
                 tag: release.tag_name.clone(),
@@ -290,13 +393,26 @@ pub fn download_update(
 ) -> Task<Result<(), String>> {
     let client = cx.http_client();
     cx.background_executor().spawn(async move {
+        if !crate::updater::self_update_allowed() {
+            return Err(
+                "aggiornamento automatico non disponibile per questa installazione".to_owned(),
+            );
+        }
         if already_staged(&paths, &update.tag) {
             progress.store(update.asset.size, AtomicOrdering::Relaxed);
             return Ok(());
         }
-        let bytes = get(&client, &update.asset.browser_download_url, Some(&progress)).await?;
+        let digest = update.asset.digest.clone().unwrap_or_default();
+        let bytes = get(
+            &client,
+            &update.asset.browser_download_url,
+            &DOWNLOAD_HOSTS,
+            Some(&progress),
+            update.asset.size,
+        )
+        .await?;
         verify_download(&update.asset, &bytes)?;
-        stage(&paths, &update.tag, &bytes)
+        stage(&paths, &update.tag, &bytes, &digest)
     })
 }
 
@@ -312,12 +428,25 @@ pub fn fetch_update(
         let Some(update) = find.await? else {
             return Ok(None);
         };
+        if !crate::updater::self_update_allowed() {
+            return Err(
+                "aggiornamento automatico non disponibile per questa installazione".to_owned(),
+            );
+        }
         if already_staged(&paths, &update.tag) {
             return Ok(None);
         }
-        let bytes = get(&client, &update.asset.browser_download_url, None).await?;
+        let digest = update.asset.digest.clone().unwrap_or_default();
+        let bytes = get(
+            &client,
+            &update.asset.browser_download_url,
+            &DOWNLOAD_HOSTS,
+            None,
+            update.asset.size,
+        )
+        .await?;
         verify_download(&update.asset, &bytes)?;
-        stage(&paths, &update.tag, &bytes)?;
+        stage(&paths, &update.tag, &bytes, &digest)?;
         Ok(Some(update.tag))
     })
 }
@@ -326,6 +455,15 @@ pub fn fetch_update(
 mod tests {
 
     use super::*;
+    use std::sync::{Arc, Mutex};
+
+    fn digest_of(bytes: &[u8]) -> String {
+        let digest: String = Sha256::digest(bytes)
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        format!("{SHA256_PREFIX}{digest}")
+    }
 
     /// Published asset name drops the leading `v` (`rusty-teams-0.5.0-windows-amd64.exe`).
     fn asset_name(tag: &str) -> String {
@@ -456,7 +594,13 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let paths = UpdatePaths::beside(&directory.path().join("teams"));
         assert!(!already_staged(&paths, "v0.2.0"));
-        stage(&paths, "v0.2.0", EXECUTABLE_MAGIC).unwrap();
+        stage(
+            &paths,
+            "v0.2.0",
+            EXECUTABLE_MAGIC,
+            &digest_of(EXECUTABLE_MAGIC),
+        )
+        .unwrap();
         assert_eq!(fs::read(&paths.update_exe).unwrap(), EXECUTABLE_MAGIC);
         #[cfg(unix)]
         {
@@ -468,6 +612,10 @@ mod tests {
             assert_eq!(mode & 0o111, 0o111);
         }
         assert!(already_staged(&paths, "v0.2.0"));
+        assert_eq!(
+            fs::read_to_string(&paths.digest_file).unwrap(),
+            digest_of(EXECUTABLE_MAGIC)
+        );
         assert!(!already_staged(&paths, "v0.3.0"));
         assert!(!partial_path(&paths.update_exe).exists());
     }
@@ -508,12 +656,178 @@ mod tests {
     fn staging_keeps_the_release_tag() {
         let directory = tempfile::tempdir().unwrap();
         let paths = UpdatePaths::beside(&directory.path().join("teams"));
-        stage(&paths, "v0.7.0-rc.1", EXECUTABLE_MAGIC).unwrap();
+        stage(
+            &paths,
+            "v0.7.0-rc.1",
+            EXECUTABLE_MAGIC,
+            &digest_of(EXECUTABLE_MAGIC),
+        )
+        .unwrap();
         assert_eq!(
             fs::read_to_string(&paths.version_file).unwrap(),
             "v0.7.0-rc.1"
         );
         assert!(already_staged(&paths, "v0.7.0-rc.1"));
         assert!(!already_staged(&paths, "v0.7.1-rc.1"));
+    }
+
+    #[test]
+    fn staged_release_is_reverified_against_the_saved_digest() {
+        let directory = tempfile::tempdir().unwrap();
+        let paths = UpdatePaths::beside(&directory.path().join("teams"));
+        stage(
+            &paths,
+            "v0.2.0",
+            EXECUTABLE_MAGIC,
+            &digest_of(EXECUTABLE_MAGIC),
+        )
+        .unwrap();
+        assert!(verify_staged(&paths).is_ok());
+        fs::write(&paths.update_exe, [EXECUTABLE_MAGIC, b"!"].concat()).unwrap();
+        assert!(verify_staged(&paths).is_err());
+        fs::remove_file(&paths.digest_file).unwrap();
+        assert!(verify_staged(&paths).is_err());
+    }
+
+    #[test]
+    fn downloads_only_accept_https_on_fixed_hosts() {
+        assert!(validate_https_url("https://github.com/a/b", &DOWNLOAD_HOSTS).is_ok());
+        assert!(
+            validate_https_url("https://objects.githubusercontent.com/a", &DOWNLOAD_HOSTS).is_ok()
+        );
+        assert!(validate_https_url("http://github.com/a", &DOWNLOAD_HOSTS).is_err());
+        assert!(validate_https_url("https://evil.example/a", &DOWNLOAD_HOSTS).is_err());
+        assert!(validate_https_url("https://github.com.evil.test/a", &DOWNLOAD_HOSTS).is_err());
+        assert!(validate_https_url("https://user@github.com/a", &DOWNLOAD_HOSTS).is_err());
+        assert!(validate_https_url("https://github.com:8443/a", &DOWNLOAD_HOSTS).is_err());
+        assert!(validate_https_url(RELEASES_URL, &METADATA_HOSTS).is_ok());
+        assert!(validate_https_url(RELEASES_URL, &DOWNLOAD_HOSTS).is_err());
+    }
+
+    #[test]
+    fn body_limits_are_checked_before_appending() {
+        assert_eq!(checked_body_len(4, 2, 6).unwrap(), 6);
+        assert!(checked_body_len(4, 3, 6).is_err());
+        assert!(checked_body_len(0, DOWNLOAD_CHUNK, MAX_DOWNLOAD_SIZE).is_ok());
+        assert!(checked_body_len(MAX_DOWNLOAD_SIZE as usize, 1, MAX_DOWNLOAD_SIZE).is_err());
+    }
+
+    struct StubResponse {
+        status: u16,
+        location: Option<String>,
+        body: Vec<u8>,
+    }
+
+    impl StubResponse {
+        fn redirect(location: &str) -> Self {
+            Self {
+                status: 302,
+                location: Some(location.to_owned()),
+                body: Vec::new(),
+            }
+        }
+
+        fn ok(body: &[u8]) -> Self {
+            Self {
+                status: 200,
+                location: None,
+                body: body.to_vec(),
+            }
+        }
+    }
+
+    struct StubClient {
+        responses: Mutex<Vec<StubResponse>>,
+    }
+
+    impl StubClient {
+        fn new(responses: Vec<StubResponse>) -> Self {
+            Self {
+                responses: Mutex::new(responses),
+            }
+        }
+    }
+
+    impl gpui_kit::http_client::HttpClient for StubClient {
+        fn user_agent(&self) -> Option<&gpui_kit::http_client::http::HeaderValue> {
+            None
+        }
+
+        fn proxy(&self) -> Option<&Url> {
+            None
+        }
+
+        fn send(
+            &self,
+            _request: Request<AsyncBody>,
+        ) -> futures_util::future::BoxFuture<'static, HttpResult<Response<AsyncBody>>> {
+            let response = self
+                .responses
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .remove(0);
+            let mut builder = Response::builder().status(response.status);
+            if let Some(location) = response.location {
+                builder = builder.header("location", location);
+            }
+            let built = builder.body(AsyncBody::from(response.body)).expect("stub");
+            Box::pin(async move { Ok(built) })
+        }
+    }
+
+    #[tokio::test]
+    async fn redirects_are_followed_only_to_known_hosts() {
+        let client: HttpClient = Arc::new(StubClient::new(vec![
+            StubResponse::redirect("https://objects.githubusercontent.com/asset"),
+            StubResponse::ok(EXECUTABLE_MAGIC),
+        ]));
+        let bytes = get(
+            &client,
+            "https://github.com/a/b",
+            &DOWNLOAD_HOSTS,
+            None,
+            MAX_DOWNLOAD_SIZE,
+        )
+        .await
+        .unwrap();
+        assert_eq!(bytes.as_slice(), EXECUTABLE_MAGIC);
+
+        let client: HttpClient = Arc::new(StubClient::new(vec![StubResponse::redirect(
+            "https://evil.example/asset",
+        )]));
+        let error = get(
+            &client,
+            "https://github.com/a/b",
+            &DOWNLOAD_HOSTS,
+            None,
+            MAX_DOWNLOAD_SIZE,
+        )
+        .await
+        .unwrap_err();
+        assert!(error.contains("host"), "{error}");
+    }
+
+    #[tokio::test]
+    async fn too_many_redirects_and_oversized_bodies_are_rejected() {
+        let redirects = (0..=MAX_REDIRECTS)
+            .map(|_| StubResponse::redirect("https://github.com/next"))
+            .collect();
+        let client: HttpClient = Arc::new(StubClient::new(redirects));
+        let error = get(
+            &client,
+            "https://github.com/a/b",
+            &DOWNLOAD_HOSTS,
+            None,
+            MAX_DOWNLOAD_SIZE,
+        )
+        .await
+        .unwrap_err();
+        assert!(error.contains("redirect"), "{error}");
+
+        let client: HttpClient = Arc::new(StubClient::new(vec![StubResponse::ok(b"ABCD")]));
+        let error = get(&client, "https://github.com/a/b", &DOWNLOAD_HOSTS, None, 2)
+            .await
+            .unwrap_err();
+        assert!(error.contains("exceeds"), "{error}");
     }
 }

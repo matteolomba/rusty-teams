@@ -206,18 +206,27 @@ impl PeerConnection {
             options.into(),
             ctx,
             |ctx, sdp| {
-                let tx = *ctx.0.downcast::<CtxType>().unwrap();
-                let _ = tx.blocking_send(Ok(SessionDescription {
-                    handle: imp_sdp::SessionDescription { sys_handle: sdp },
-                }));
+                webrtc_sys::helper::guard_callback("create_offer::on_success", || {
+                    let tx = *ctx.0.downcast::<CtxType>().unwrap();
+                    let _ = tx.blocking_send(Ok(SessionDescription {
+                        handle: imp_sdp::SessionDescription { sys_handle: sdp },
+                    }));
+                });
             },
             |ctx, error| {
-                let tx = *ctx.0.downcast::<CtxType>().unwrap();
-                let _ = tx.blocking_send(Err(error.into()));
+                webrtc_sys::helper::guard_callback("create_offer::on_error", || {
+                    let tx = *ctx.0.downcast::<CtxType>().unwrap();
+                    let _ = tx.blocking_send(Err(error.into()));
+                });
             },
         );
 
-        rx.recv().await.unwrap()
+        rx.recv()
+            .await
+            .ok_or_else(|| RtcError {
+                error_type: RtcErrorType::Internal,
+                message: "create_offer callback was lost".to_owned(),
+            })?
     }
 
     pub async fn create_answer(
@@ -232,18 +241,27 @@ impl PeerConnection {
             options.into(),
             ctx,
             |ctx, sdp| {
-                let tx = *ctx.0.downcast::<CtxType>().unwrap();
-                let _ = tx.blocking_send(Ok(SessionDescription {
-                    handle: imp_sdp::SessionDescription { sys_handle: sdp },
-                }));
+                webrtc_sys::helper::guard_callback("create_answer::on_success", || {
+                    let tx = *ctx.0.downcast::<CtxType>().unwrap();
+                    let _ = tx.blocking_send(Ok(SessionDescription {
+                        handle: imp_sdp::SessionDescription { sys_handle: sdp },
+                    }));
+                });
             },
             |ctx, error| {
-                let tx = *ctx.0.downcast::<CtxType>().unwrap();
-                let _ = tx.blocking_send(Err(error.into()));
+                webrtc_sys::helper::guard_callback("create_answer::on_error", || {
+                    let tx = *ctx.0.downcast::<CtxType>().unwrap();
+                    let _ = tx.blocking_send(Err(error.into()));
+                });
             },
         );
 
-        rx.recv().await.unwrap()
+        rx.recv()
+            .await
+            .ok_or_else(|| RtcError {
+                error_type: RtcErrorType::Internal,
+                message: "create_answer callback was lost".to_owned(),
+            })?
     }
 
     pub async fn set_local_description(&self, desc: SessionDescription) -> Result<(), RtcError> {
@@ -251,16 +269,21 @@ impl PeerConnection {
         let ctx = Box::new(sys_pc::PeerContext(Box::new(tx)));
 
         self.sys_handle.set_local_description(desc.handle.sys_handle, ctx, |ctx, err| {
-            let tx = ctx.0.downcast::<oneshot::Sender<Result<(), RtcError>>>().unwrap();
+            webrtc_sys::helper::guard_callback("set_local_description::on_complete", move || {
+                let tx = ctx.0.downcast::<oneshot::Sender<Result<(), RtcError>>>().unwrap();
 
-            if err.ok() {
-                let _ = tx.send(Ok(()));
-            } else {
-                let _ = tx.send(Err(err.into()));
-            }
+                if err.ok() {
+                    let _ = tx.send(Ok(()));
+                } else {
+                    let _ = tx.send(Err(err.into()));
+                }
+            });
         });
 
-        rx.await.unwrap()
+        rx.await.map_err(|_| RtcError {
+            error_type: RtcErrorType::Internal,
+            message: "set_local_description cancelled".to_owned(),
+        })?
     }
 
     pub async fn set_remote_description(&self, desc: SessionDescription) -> Result<(), RtcError> {
@@ -268,13 +291,15 @@ impl PeerConnection {
         let ctx = Box::new(sys_pc::PeerContext(Box::new(tx)));
 
         self.sys_handle.set_remote_description(desc.handle.sys_handle, ctx, |ctx, err| {
-            let tx = ctx.0.downcast::<oneshot::Sender<Result<(), RtcError>>>().unwrap();
+            webrtc_sys::helper::guard_callback("set_remote_description::on_complete", move || {
+                let tx = ctx.0.downcast::<oneshot::Sender<Result<(), RtcError>>>().unwrap();
 
-            if err.ok() {
-                let _ = tx.send(Ok(()));
-            } else {
-                let _ = tx.send(Err(err.into()));
-            }
+                if err.ok() {
+                    let _ = tx.send(Ok(()));
+                } else {
+                    let _ = tx.send(Err(err.into()));
+                }
+            });
         });
 
         rx.await.map_err(|_| RtcError {
@@ -288,13 +313,15 @@ impl PeerConnection {
         let ctx = Box::new(sys_pc::PeerContext(Box::new(tx)));
 
         self.sys_handle.add_ice_candidate(candidate.handle.sys_handle, ctx, |ctx, err| {
-            let tx = ctx.0.downcast::<oneshot::Sender<Result<(), RtcError>>>().unwrap();
+            webrtc_sys::helper::guard_callback("add_ice_candidate::on_complete", move || {
+                let tx = ctx.0.downcast::<oneshot::Sender<Result<(), RtcError>>>().unwrap();
 
-            if err.ok() {
-                let _ = tx.send(Ok(()));
-            } else {
-                let _ = tx.send(Err(err.into()));
-            }
+                if err.ok() {
+                    let _ = tx.send(Ok(()));
+                } else {
+                    let _ = tx.send(Err(err.into()));
+                }
+            });
         });
 
         rx.await.map_err(|_| RtcError {
@@ -413,9 +440,11 @@ impl PeerConnection {
         let ctx = Box::new(sys_pc::PeerContext(Box::new(tx)));
 
         self.sys_handle.get_stats(ctx, |ctx, stats| {
-            let tx = ctx.0.downcast::<oneshot::Sender<Result<Vec<RtcStats>, RtcError>>>().unwrap();
+            webrtc_sys::helper::guard_callback("PeerConnection::get_stats", move || {
+                let tx = ctx.0.downcast::<oneshot::Sender<Result<Vec<RtcStats>, RtcError>>>().unwrap();
 
-            let _ = tx.send(crate::stats::parse_stats(&stats));
+                let _ = tx.send(crate::stats::parse_stats(&stats));
+            });
         });
 
         rx.await.map_err(|_| RtcError {

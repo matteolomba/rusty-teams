@@ -181,8 +181,21 @@ pub fn start_process_loopback(queue: SampleQueue, own_process_id: u32) -> Result
     )
 }
 
+/// Arbitrary-process capture is diagnostic-only and off unless explicitly enabled.
+const PROCESS_CAPTURE_ENV: &str = "CALLING_PROCESS_CAPTURE";
+
+fn process_capture_allowed(value: Option<&str>) -> bool {
+    matches!(value, Some("1") | Some("true"))
+}
+
 /// Only the audio of `process_id` and its children, for checking what an app plays out.
 pub fn start_process_capture(queue: SampleQueue, process_id: u32) -> Result<Capture> {
+    if !process_capture_allowed(std::env::var(PROCESS_CAPTURE_ENV).ok().as_deref()) {
+        return Err(audio_error(
+            "process capture",
+            "disabled; set CALLING_PROCESS_CAPTURE=1 to opt in",
+        ));
+    }
     start(
         queue,
         process_id,
@@ -224,4 +237,17 @@ fn start(queue: SampleQueue, process_id: u32, mode: PROCESS_LOOPBACK_MODE) -> Re
         .recv_timeout(crate::capture::CAPTURE_START_TIMEOUT)
         .map_err(|_| Error::Audio("loopback thread ended".into()))??;
     Ok(capture)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn process_capture_is_opt_in() {
+        assert!(!process_capture_allowed(None));
+        assert!(!process_capture_allowed(Some("0")));
+        assert!(process_capture_allowed(Some("1")));
+        assert!(process_capture_allowed(Some("true")));
+    }
 }

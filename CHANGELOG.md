@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.7.0-rc.3] - 2026-11-25
+
+### Added
+- Gate semgrep locale con pinning delle action GitHub e baseline di sicurezza documentata.
+
+### Fixed
+- Hardening FFI, WebRTC e diagnostica: nessun panic attraversa i callback nativi, log e dump sono redatti e signal-safe, retry e download hanno limiti espliciti.
+- Disattivati self-swap Windows, comandi IPC di test, SSO silenzioso, flag Chromium che riducevano la protezione e funzioni diagnostiche non necessarie.
+
+
 ## [0.7.0-rc.2] - 2026-11-24
 
 ### Added

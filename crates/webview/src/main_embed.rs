@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
-use std::sync::Once;
+use std::sync::OnceLock;
 
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use webview2_com::Microsoft::Web::WebView2::Win32::*;
@@ -16,20 +16,22 @@ use windows::Win32::Graphics::Gdi::{
 };
 use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
-use windows::Win32::UI::Shell::{DefSubclassProc, SetWindowSubclass};
+use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass};
 use windows::Win32::UI::WindowsAndMessaging::*;
 use windows::core::{HRESULT, HSTRING, Interface, PCWSTR, PWSTR, w};
 
 use crate::embed::{EmbedEvent, EmbedSpec};
 use crate::geometry::{EmbedBounds, local_cutouts};
+use crate::guards::{EventSubscriptions, OwnerRefs};
 use crate::host::environment_options;
 
 const CONTAINER_CLASS: PCWSTR = w!("RustyTeamsEmbedContainer");
 const OWNER_SUBCLASS_ID: usize = 0x5254_4542;
-static REGISTER_CONTAINER_CLASS: Once = Once::new();
+static CONTAINER_CLASS_REGISTERED: OnceLock<bool> = OnceLock::new();
 
 thread_local! {
     static OPEN_EMBEDS: RefCell<Vec<Weak<RefCell<EmbedState>>>> = const { RefCell::new(Vec::new()) };
+    static OWNER_REFS: RefCell<OwnerRefs> = RefCell::new(OwnerRefs::new());
 }
 
 enum Environment {
@@ -46,6 +48,7 @@ struct HostInner {
 struct EmbedView {
     controller: ICoreWebView2Controller,
     webview: ICoreWebView2,
+    subscriptions: EventSubscriptions,
 }
 
 struct EmbedState {
@@ -243,12 +246,14 @@ fn attach(embed: &SharedEmbed, controller: ICoreWebView2Controller) -> windows::
             })?;
         webview.Settings()?.SetIsStatusBarEnabled(false)?;
     }
-    watch_source(&webview, events.clone())?;
-    watch_loaded(&webview, events.clone())?;
-    forward_new_windows(&webview, events)?;
+    let mut subscriptions = EventSubscriptions::default();
+    watch_source(&webview, events.clone(), &mut subscriptions)?;
+    watch_loaded(&webview, events.clone(), &mut subscriptions)?;
+    forward_new_windows(&webview, events, &mut subscriptions)?;
     embed.borrow_mut().view = Some(EmbedView {
         controller,
         webview: webview.clone(),
+        subscriptions,
     });
     layout(embed);
     unsafe { webview.Navigate(&HSTRING::from(spec.url.as_str())) }
@@ -262,20 +267,23 @@ fn fail(embed: &SharedEmbed) {
 }
 
 fn teardown(embed: &SharedEmbed) -> bool {
-    let (controller, container) = {
+    let (view, container, owner) = {
         let mut state = embed.borrow_mut();
         if state.closed {
             return false;
         }
         state.closed = true;
         (
-            state.view.take().map(|view| view.controller),
+            state.view.take(),
             state.container,
+            HWND(state.spec.parent as *mut _),
         )
     };
+    unfollow_owner(owner);
     unsafe {
-        if let Some(controller) = controller {
-            let _ = controller.Close();
+        if let Some(mut view) = view {
+            view.subscriptions.clear();
+            let _ = view.controller.Close();
         }
         let _ = DestroyWindow(container);
     }
@@ -353,8 +361,20 @@ unsafe fn apply_region(container: HWND, content: EmbedBounds, cutouts: &[EmbedBo
 }
 
 fn follow_owner(owner: HWND) {
-    unsafe {
-        let _ = SetWindowSubclass(owner, Some(owner_procedure), OWNER_SUBCLASS_ID, 0);
+    let first = OWNER_REFS.with(|owners| owners.borrow_mut().enter(owner.0 as isize));
+    if first {
+        unsafe {
+            let _ = SetWindowSubclass(owner, Some(owner_procedure), OWNER_SUBCLASS_ID, 0);
+        }
+    }
+}
+
+fn unfollow_owner(owner: HWND) {
+    let last = OWNER_REFS.with(|owners| owners.borrow_mut().leave(owner.0 as isize));
+    if last {
+        unsafe {
+            let _ = RemoveWindowSubclass(owner, Some(owner_procedure), OWNER_SUBCLASS_ID);
+        }
     }
 }
 
@@ -388,15 +408,21 @@ extern "system" fn owner_procedure(
 
 fn create_container(owner: HWND) -> windows::core::Result<HWND> {
     let instance = HINSTANCE(unsafe { GetModuleHandleW(None) }?.0);
-    REGISTER_CONTAINER_CLASS.call_once(|| {
+    let registered = *CONTAINER_CLASS_REGISTERED.get_or_init(|| {
         let class = WNDCLASSW {
             lpfnWndProc: Some(container_procedure),
             hInstance: instance,
             lpszClassName: CONTAINER_CLASS,
             ..Default::default()
         };
-        unsafe { RegisterClassW(&class) };
+        unsafe { RegisterClassW(&class) != 0 }
     });
+    if !registered {
+        return Err(windows::core::Error::new(
+            HRESULT(-1),
+            "cannot register the embed container class",
+        ));
+    }
     unsafe {
         CreateWindowExW(
             WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
@@ -427,6 +453,7 @@ extern "system" fn container_procedure(
 fn watch_source(
     webview: &ICoreWebView2,
     events: UnboundedSender<EmbedEvent>,
+    subscriptions: &mut EventSubscriptions,
 ) -> windows::core::Result<()> {
     let handler = SourceChangedEventHandler::create(Box::new(move |sender, _| {
         if let Some(sender) = sender {
@@ -438,24 +465,36 @@ fn watch_source(
         Ok(())
     }));
     let mut token = 0;
-    unsafe { webview.add_SourceChanged(&handler, &mut token) }
+    unsafe { webview.add_SourceChanged(&handler, &mut token) }?;
+    let source = webview.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_SourceChanged(token);
+    });
+    Ok(())
 }
 
 fn watch_loaded(
     webview: &ICoreWebView2,
     events: UnboundedSender<EmbedEvent>,
+    subscriptions: &mut EventSubscriptions,
 ) -> windows::core::Result<()> {
     let handler = NavigationCompletedEventHandler::create(Box::new(move |_, _| {
         let _ = events.send(EmbedEvent::Loaded);
         Ok(())
     }));
     let mut token = 0;
-    unsafe { webview.add_NavigationCompleted(&handler, &mut token) }
+    unsafe { webview.add_NavigationCompleted(&handler, &mut token) }?;
+    let source = webview.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_NavigationCompleted(token);
+    });
+    Ok(())
 }
 
 fn forward_new_windows(
     webview: &ICoreWebView2,
     events: UnboundedSender<EmbedEvent>,
+    subscriptions: &mut EventSubscriptions,
 ) -> windows::core::Result<()> {
     let handler = NewWindowRequestedEventHandler::create(Box::new(move |_, arguments| {
         let Some(arguments) = arguments else {
@@ -470,5 +509,10 @@ fn forward_new_windows(
         Ok(())
     }));
     let mut token = 0;
-    unsafe { webview.add_NewWindowRequested(&handler, &mut token) }
+    unsafe { webview.add_NewWindowRequested(&handler, &mut token) }?;
+    let source = webview.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_NewWindowRequested(token);
+    });
+    Ok(())
 }

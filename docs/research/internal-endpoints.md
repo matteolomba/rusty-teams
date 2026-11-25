@@ -153,7 +153,7 @@ Token audiences (not requests): `crates/session/src/scope.rs` - `ic3.teams.offic
 | `teams.microsoft.com/trap/tokens` | GET | `crates/calling/src/relay.rs` | TURN credentials | R | no |
 | `gateway-eu.az.relay.teams.cloud.microsoft` (TURN 3478 udp, 443 tcp, turns 443) | TURN | `crates/calling/src/relay.rs` | media relay | - | no |
 
-Link parsing only (not requests): `crates/calling/src/breakout.rs` (breakout join links), `crates/calling/src/whiteboard.rs` (whiteboard share detection).
+Link parsing only (not requests): `crates/calling/src/breakout.rs` (breakout join links), `crates/calling/src/whiteboard.rs` (whiteboard share detection), `crates/app-call-model/src/model.rs` (whiteboard link host allowlist).
 
 Teams on the web links (opened in a window, not requested by us): `crates/app-state/src/call/web_call.rs` (meetup-join and chat links for the "Use Teams on the web for calls" setting).
 

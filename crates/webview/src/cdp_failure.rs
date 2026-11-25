@@ -1,3 +1,4 @@
+use crate::sanitize::cdp_message;
 use serde_json::Value;
 use session::{App, is_login_url};
 
@@ -35,6 +36,7 @@ pub(crate) fn failure_reason(context: &CallContext, hresult: &str, json: &str) -
         .get("message")
         .and_then(Value::as_str)
         .unwrap_or(hresult);
+    let message = cdp_message(message);
     let code = error
         .get("code")
         .and_then(Value::as_i64)
@@ -85,6 +87,18 @@ mod tests {
             failure_reason(&context(), HRESULT, ""),
             "The parameter is incorrect. (0x80070057) [Runtime.evaluate params 48213 bytes, tab parked, 2 call(s) in flight]"
         );
+    }
+
+    #[test]
+    fn protocol_messages_are_redacted_and_bounded() {
+        let json = format!(
+            r#"{{"message":"tenant 8f3a2c10-6b4d-4f1e-9a02-7c1d5e8b0f44 chat 19:abcDEF1234567890@thread.v2 {}"}}"#,
+            "plain words ".repeat(30)
+        );
+        let reason = failure_reason(&context(), HRESULT, &json);
+        assert!(!reason.contains("8f3a2c10-6b4d-4f1e-9a02-7c1d5e8b0f44"));
+        assert!(reason.contains('…'));
+        assert!(reason.len() < 300);
     }
 
     #[test]

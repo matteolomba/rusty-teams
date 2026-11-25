@@ -1,5 +1,5 @@
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 static ACTIVATION: AtomicBool = AtomicBool::new(false);
@@ -7,6 +7,8 @@ static COMMANDS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 const RETRY_INTERVAL: Duration = Duration::from_millis(200);
 const RETRY_TIMEOUT: Duration = Duration::from_secs(15);
+const MAX_MESSAGE_BYTES: usize = 4 * 1024;
+const MAX_QUEUED_COMMANDS: usize = 64;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Claim {
@@ -18,23 +20,55 @@ pub fn take_activation() -> bool {
     ACTIVATION.swap(false, Ordering::AcqRel)
 }
 
+fn commands() -> MutexGuard<'static, Vec<String>> {
+    COMMANDS
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// Cuts a forwarded command at the first newline or NUL so a second verb cannot
+/// be smuggled after a user command.
+fn bounded_command(command: &str) -> &str {
+    let end = command
+        .bytes()
+        .position(|byte| matches!(byte, b'\n' | b'\r' | 0))
+        .unwrap_or(command.len());
+    &command[..end]
+}
+
+fn first_command(message: &[u8]) -> &[u8] {
+    let end = message
+        .iter()
+        .position(|byte| matches!(byte, b'\n' | b'\r' | 0))
+        .unwrap_or(message.len());
+    &message[..end]
+}
+
 pub fn queue_command(command: &str) {
-    if !command.is_empty() {
-        COMMANDS.lock().unwrap().push(command.to_owned());
+    let command = bounded_command(command).trim();
+    if command.is_empty() {
+        return;
     }
+    let mut commands = commands();
+    if commands.len() >= MAX_QUEUED_COMMANDS {
+        commands.remove(0);
+    }
+    commands.push(command.to_owned());
 }
 
 pub fn take_commands() -> Vec<String> {
-    std::mem::take(&mut *COMMANDS.lock().unwrap())
+    std::mem::take(&mut *commands())
 }
 
 fn received(message: &[u8]) {
-    queue_command(String::from_utf8_lossy(message).trim());
+    let message = &message[..message.len().min(MAX_MESSAGE_BYTES)];
+    queue_command(String::from_utf8_lossy(first_command(message)).trim());
     ACTIVATION.store(true, Ordering::Release);
 }
 
 /// `command` travels to the running instance, which queues it for `take_commands`.
 pub fn claim(name: &str, wait_for_previous: bool, command: &str) -> Claim {
+    let command = bounded_command(command);
     let started = Instant::now();
     loop {
         if platform::try_become_primary(name) {
@@ -80,7 +114,7 @@ mod platform {
     use windows::Win32::UI::WindowsAndMessaging::{ASFW_ANY, AllowSetForegroundWindow};
     use windows::core::PCWSTR;
 
-    use super::{received, user_name};
+    use super::{MAX_MESSAGE_BYTES, bounded_command, received, user_name};
 
     const CONNECT_ATTEMPTS: u32 = 20;
     const CONNECT_INTERVAL: Duration = Duration::from_millis(100);
@@ -122,7 +156,9 @@ mod platform {
                 if connected {
                     let mut pipe = ManuallyDrop::new(unsafe { File::from_raw_handle(handle.0) });
                     let mut message = Vec::new();
-                    let _ = pipe.read_to_end(&mut message);
+                    let _ = (&mut *pipe)
+                        .take(MAX_MESSAGE_BYTES as u64)
+                        .read_to_end(&mut message);
                     received(&message);
                 } else {
                     std::thread::sleep(CONNECT_INTERVAL);
@@ -138,7 +174,7 @@ mod platform {
         let _ = unsafe { AllowSetForegroundWindow(ASFW_ANY) };
         for _ in 0..CONNECT_ATTEMPTS {
             if let Ok(mut pipe) = OpenOptions::new().write(true).open(&path) {
-                let _ = pipe.write_all(command.as_bytes());
+                let _ = pipe.write_all(bounded_command(command).as_bytes());
                 let _ = unsafe { FlushFileBuffers(HANDLE(pipe.as_raw_handle())) };
                 return;
             }
@@ -154,7 +190,7 @@ mod platform {
     use std::path::PathBuf;
     use std::time::Duration;
 
-    use super::{received, user_name};
+    use super::{MAX_MESSAGE_BYTES, bounded_command, received, user_name};
 
     const READ_TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -195,7 +231,9 @@ mod platform {
             for mut connection in listener.incoming().flatten() {
                 let _ = connection.set_read_timeout(Some(READ_TIMEOUT));
                 let mut message = Vec::new();
-                let _ = connection.read_to_end(&mut message);
+                let _ = connection
+                    .take(MAX_MESSAGE_BYTES as u64)
+                    .read_to_end(&mut message);
                 received(&message);
             }
         });
@@ -204,7 +242,7 @@ mod platform {
 
     pub fn notify_primary(name: &str, command: &str) {
         if let Ok(mut stream) = UnixStream::connect(socket_path(name)) {
-            let _ = stream.write_all(command.as_bytes());
+            let _ = stream.write_all(bounded_command(command).as_bytes());
         }
     }
 }
@@ -213,8 +251,22 @@ mod platform {
 mod tests {
     use super::*;
 
+    static TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    fn test_lock() -> MutexGuard<'static, ()> {
+        TEST_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn reset() {
+        take_commands();
+        take_activation();
+    }
     #[test]
     fn second_claim_forwards_and_stale_socket_is_reclaimed() {
+        let _guard = test_lock();
+        reset();
         let name = format!("rusty-teams-test-{}", std::process::id());
         assert_eq!(
             claim(&name, false, "join https://example/meet"),
@@ -250,5 +302,49 @@ mod tests {
         for leftover in [&name, &stale_name] {
             let _ = std::fs::remove_file(platform::socket_path(leftover));
         }
+    }
+
+    #[test]
+    fn forwarded_commands_stop_at_newline_or_nul() {
+        let _guard = test_lock();
+        reset();
+        assert_eq!(bounded_command("stats C:\\temp\njoin x"), "stats C:\\temp");
+        assert_eq!(bounded_command("join x\0y"), "join x");
+        received(b"join https://example/meet\nstats C:\\temp");
+        assert_eq!(take_commands(), ["join https://example/meet"]);
+        assert!(take_activation());
+
+        reset();
+        received(b"hang-up\0leftovers");
+        assert_eq!(take_commands(), ["hang-up"]);
+        assert!(take_activation());
+    }
+
+    #[test]
+    fn oversized_pipe_messages_are_truncated_to_four_kib() {
+        let _guard = test_lock();
+        reset();
+        let message = vec![b'x'; MAX_MESSAGE_BYTES + 64];
+        received(&message);
+        let commands = take_commands();
+        assert_eq!(commands.len(), 1);
+        assert_eq!(commands[0].len(), MAX_MESSAGE_BYTES);
+        assert!(take_activation());
+    }
+
+    #[test]
+    fn the_command_queue_drops_the_oldest_entry_when_full() {
+        let _guard = test_lock();
+        reset();
+        for index in 0..MAX_QUEUED_COMMANDS + 5 {
+            queue_command(&format!("command-{index}"));
+        }
+        let commands = take_commands();
+        assert_eq!(commands.len(), MAX_QUEUED_COMMANDS);
+        assert_eq!(commands.first().unwrap(), "command-5");
+        assert_eq!(
+            commands.last().unwrap(),
+            &format!("command-{}", MAX_QUEUED_COMMANDS + 4)
+        );
     }
 }

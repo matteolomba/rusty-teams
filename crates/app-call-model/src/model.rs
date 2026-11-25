@@ -33,6 +33,7 @@ pub const ECHO_NAME: &str = "Teams echo";
 pub const ECHO_MRI: &str = calling::signaling::ECHO_BOT_MRI;
 const ORGID_PREFIX: &str = "8:orgid:";
 const BOT_PREFIX: &str = "28:";
+const WHITEBOARD_URL_PREFIX: &str = "https://app.whiteboard.microsoft.com/";
 const AVATAR_SHARE: f32 = 0.42;
 const MIN_AVATAR: f32 = 32.;
 const MAX_AVATAR: f32 = 96.;
@@ -330,6 +331,7 @@ pub struct CallModel {
     pub hold: HoldState,
     pub health: HealthState,
     pub whiteboard: Option<ContentShare>,
+    pub whiteboard_link: Option<String>,
     pub breakout: Option<BreakoutState>,
     pub main_meeting: Option<MeetingTarget>,
     pub reactions: Vec<ReactionChip>,
@@ -403,6 +405,7 @@ impl CallModel {
             hold: HoldState::Active,
             health: HealthState::default(),
             whiteboard: None,
+            whiteboard_link: None,
             breakout: None,
             main_meeting: None,
             reactions: Vec::new(),
@@ -551,6 +554,9 @@ impl CallModel {
             CallUpdate::Health(health) => self.health.apply(health),
             CallUpdate::IncomingVideo(enabled) => self.health.incoming_video = enabled,
             CallUpdate::Whiteboard(share) => self.whiteboard = share,
+            CallUpdate::WhiteboardUrl(url) => {
+                self.whiteboard_link = Self::safe_whiteboard_url(&url).map(str::to_owned)
+            }
             CallUpdate::Capability(capability) => self.capability = capability,
             CallUpdate::BreakoutRoom { main } => self.main_meeting = Some(main),
             CallUpdate::Sample(sample) => self.last_sample = Some(sample),
@@ -559,7 +565,6 @@ impl CallModel {
             | CallUpdate::Organizer { .. }
             | CallUpdate::MeetingOptions(_)
             | CallUpdate::MeetingOptionsSaved(_)
-            | CallUpdate::WhiteboardUrl(_)
             | CallUpdate::BreakoutMove(_)
             | CallUpdate::ReplacementLink(_)
             | CallUpdate::TransferResult { .. } => {}
@@ -1119,9 +1124,16 @@ impl CallModel {
             .unwrap_or("Someone");
         Some(format!("{name} is sharing a whiteboard"))
     }
-
     pub fn whiteboard_url(&self) -> Option<&str> {
-        self.whiteboard.as_ref()?.url.as_deref()
+        self.whiteboard_link
+            .as_deref()
+            .or_else(|| self.whiteboard.as_ref()?.url.as_deref())
+            .filter(|url| Self::safe_whiteboard_url(url).is_some())
+    }
+
+    fn safe_whiteboard_url(url: &str) -> Option<&str> {
+        let path = url.strip_prefix(WHITEBOARD_URL_PREFIX)?;
+        (!path.is_empty() && !path.contains('\\')).then_some(url)
     }
 
     pub fn health_banner(&self) -> Option<HealthBanner> {
@@ -2345,6 +2357,32 @@ mod tests {
         assert_eq!(model.whiteboard_url(), None);
         model.apply(CallUpdate::Whiteboard(None));
         assert_eq!(model.whiteboard_label(), None);
+    }
+
+    #[test]
+    fn only_https_links_on_the_expected_host_are_kept_for_opening() {
+        let mut model = CallModel::meeting("Standup", false);
+        let valid = "https://app.whiteboard.microsoft.com/me/whiteboards/abc";
+        model.apply(CallUpdate::WhiteboardUrl(valid.to_owned()));
+        assert_eq!(model.whiteboard_url(), Some(valid));
+        for rejected in [
+            "http://app.whiteboard.microsoft.com/me/whiteboards/abc",
+            "https://app.whiteboard.microsoft.com.evil.test/x",
+            "https://evil.test/?next=https://app.whiteboard.microsoft.com/x",
+            "https://app.whiteboard.microsoft.com@evil.test/x",
+            "https://app.whiteboard.microsoft.com/",
+        ] {
+            model.apply(CallUpdate::WhiteboardUrl(rejected.to_owned()));
+            assert_eq!(model.whiteboard_url(), None, "{rejected}");
+        }
+        model.apply(CallUpdate::Whiteboard(Some(calling::ContentShare {
+            session_id: "s".into(),
+            presenter: None,
+            subject: "Whiteboard".into(),
+            url: Some("https://evil.test/share".into()),
+            whiteboard: true,
+        })));
+        assert_eq!(model.whiteboard_url(), None);
     }
 
     #[test]

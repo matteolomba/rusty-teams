@@ -45,6 +45,10 @@ const ALLOWED_PATHS: &[(&str, &str)] = &[
     ("app/src/inline_video.rs", "SharePoint video player link"),
     ("app/src/views/status_menu.rs", "View account web link"),
     ("app-state/src/call/week.rs", "demo join link"),
+    (
+        "app-call-model/src/model.rs",
+        "whiteboard link host allowlist",
+    ),
 ];
 
 #[test]

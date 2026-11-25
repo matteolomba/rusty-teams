@@ -7,6 +7,7 @@ mod embed;
 #[cfg(windows)]
 mod fanout;
 mod geometry;
+mod guards;
 #[cfg(windows)]
 mod host;
 #[cfg(windows)]
@@ -15,6 +16,7 @@ mod host_dialog;
 mod main_embed;
 #[cfg(any(windows, test))]
 mod park;
+mod sanitize;
 #[cfg(any(windows, test))]
 mod sleep;
 #[cfg(windows)]
@@ -35,11 +37,26 @@ pub use transport::{HostState, WebViewTransport};
 #[cfg(windows)]
 pub(crate) const FORWARDED_EVENTS: [&str; 2] = ["Runtime.bindingCalled", "Page.frameNavigated"];
 
-#[cfg(windows)]
-// A hidden window counts as occluded, so Chromium would otherwise throttle the Trouter keep-alive timers.
 pub(crate) const BROWSER_ARGUMENTS: &str = concat!(
     "--disable-features=Translate,MediaRouter,OptimizationHints ",
-    "--disable-background-networking --disable-component-update --disable-default-apps ",
-    "--disable-breakpad --disable-client-side-phishing-detection --disable-gpu ",
+    "--disable-default-apps --disable-gpu ",
     "--disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows",
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn browser_arguments_keep_chromium_protections() {
+        for flag in [
+            "--disable-client-side-phishing-detection",
+            "--disable-breakpad",
+            "--disable-component-update",
+            "--disable-background-networking",
+        ] {
+            assert!(!BROWSER_ARGUMENTS.contains(flag), "{flag} is still present");
+        }
+        assert!(BROWSER_ARGUMENTS.contains("--disable-gpu"));
+    }
+}

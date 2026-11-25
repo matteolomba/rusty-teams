@@ -280,6 +280,10 @@ fn check_now(app: &Entity<AppState>, cx: &mut App) {
     crate::linux_update::check(true, cx);
     #[cfg(windows)]
     {
+        if !app_base::updater::self_update_allowed() {
+            open_release_page(cx);
+            return;
+        }
         let Some(running_tag) = app_base::version::release_tag() else {
             notice(tr("install.updates_release_only"), cx);
             return;

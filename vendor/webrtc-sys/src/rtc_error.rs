@@ -164,7 +164,11 @@ impl Error for ffi::RtcError {}
 
 impl Display for ffi::RtcError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "RtcError occurred {:?}: {}", self.error_type, self.message)
+        write!(
+            f,
+            "RtcError occurred {:?}: {}",
+            self.error_type, self.message
+        )
     }
 }
 
@@ -192,7 +196,10 @@ mod tests {
         assert_eq!(error.error_detail, RtcErrorDetailType::DataChannelFailure);
         assert!(error.has_sctp_cause_code);
         assert_eq!(error.sctp_cause_code, 24);
-        assert_eq!(error.message, "this is not a test, I repeat, this is not a test");
+        assert_eq!(
+            error.message,
+            "this is not a test, I repeat, this is not a test"
+        );
     }
 
     /// A non-ASCII byte sequence in the fixed-width header must be rejected without panicking.
@@ -201,7 +208,10 @@ mod tests {
         for offset in 0..22 {
             for symbol in ["é", "界", "🦀"] {
                 let input = format!("{}{}{}", "0".repeat(offset), symbol, "0".repeat(24));
-                assert!(RtcError::parse(&input).is_none(), "offset={offset}, symbol={symbol}");
+                assert!(
+                    RtcError::parse(&input).is_none(),
+                    "offset={offset}, symbol={symbol}"
+                );
                 // SAFETY: `from` has no caller invariants and must fall back for malformed input.
                 let error = unsafe { RtcError::from(&input) };
                 assert_eq!(error.error_type, RtcErrorType::None);

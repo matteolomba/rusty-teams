@@ -68,6 +68,8 @@ pub struct CalendarWeek {
     pub visible: bool,
     /// A load was asked for before the session existed; run it once it does.
     pending: bool,
+    /// Bumped for each RSVP write so a late response cannot undo a newer choice.
+    pub(crate) response_generation: u64,
     request: u64,
 }
 

@@ -960,11 +960,12 @@ async fn drive(
         None,
         &current.peer,
         &track,
-        software_wanted(
+        audio_intent(
             mic_settings,
             share_sound_wanted,
             &local_video,
             live.audio.as_ref(),
+            audio_disabled,
         ),
         false,
         &mut software_audio,
@@ -1081,33 +1082,27 @@ async fn drive(
             if callee_gate.media_connected() {
                 advance(state, CallSignal::MediaConnected, control);
             }
-            if let Some(audio) = &software_audio
-                && let Err(error) = swap_audio_track(&current.peer, &audio.track)
-            {
-                timeline.record("computer sound not carried over", error.to_string());
-            }
-            if remote_audio.is_some() {
-                sync_software_audio(
-                    &factory,
-                    options,
-                    &input,
-                    muted,
-                    remote_audio.clone(),
-                    &current.peer,
-                    &track,
-                    software_wanted(
-                        mic_settings,
-                        share_sound_wanted,
-                        &local_video,
-                        live.audio.as_ref(),
-                    ),
-                    true,
-                    &mut software_audio,
+            sync_software_audio(
+                &factory,
+                options,
+                &input,
+                muted,
+                remote_audio.clone(),
+                &current.peer,
+                &track,
+                audio_intent(
                     mic_settings,
-                    control,
-                    timeline,
-                );
-            }
+                    share_sound_wanted,
+                    &local_video,
+                    live.audio.as_ref(),
+                    audio_disabled,
+                ),
+                true,
+                &mut software_audio,
+                mic_settings,
+                control,
+                timeline,
+            );
             offered = pending.offered;
             let answered = pending.answered;
             if let Some(mid) = direct_video_mid.take() {
@@ -1365,7 +1360,7 @@ async fn drive(
                                                 Change::Camera(on) => control.send(CallUpdate::Camera(on)),
                                                 Change::Share(true) if !answer.from_mixer && !local_video.share_sending() => {
                                                     local_video.stop_share();
-                                                    sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), false, &mut software_audio, mic_settings, control, timeline);
+                                                    sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), false, &mut software_audio, mic_settings, control, timeline);
                                                     clear_share(control);
                                                     control.send(CallUpdate::Notice(SHARE_REFUSED_NOTICE.into()));
                                                 }
@@ -2023,7 +2018,7 @@ async fn drive(
                             timeline.record("remote audio track", "receiving");
                             let had_far_end = remote_audio.replace(remote_track.clone()).is_some();
                             if !had_far_end && software_audio.is_some() {
-                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), true, &mut software_audio, mic_settings, control, timeline);
+                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), true, &mut software_audio, mic_settings, control, timeline);
                             }
                             if options.record_remote {
                                 tokio::spawn(record_track(remote_track, recording.clone(), options.tone_hz));
@@ -2097,7 +2092,7 @@ async fn drive(
                             let audio = live.audio.as_ref().expect("audio set above");
                             muted = apply_mute(MuteCommand::Mute, muted, audio, software_audio.as_ref(), &remote, control);
                             audio_disabled = true;
-                            sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, None, false, &mut software_audio, mic_settings, control, timeline);
+                            sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, AudioIntent::disabled(), false, &mut software_audio, mic_settings, control, timeline);
                             if audio.uses_devices() {
                                 use libwebrtc::peer_connection_factory::native::PeerConnectionFactoryExt;
                                 factory.set_adm_recording_enabled(false);
@@ -2114,7 +2109,7 @@ async fn drive(
                             input = choice;
                             control.send(CallUpdate::Selected { input: input.clone(), output: output.clone() });
                             if software_audio.is_some() {
-                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), true, &mut software_audio, mic_settings, control, timeline);
+                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), true, &mut software_audio, mic_settings, control, timeline);
                             }
                         }
                         Some(CallCommand::SetMicSettings(settings)) if !audio_disabled => {
@@ -2124,7 +2119,7 @@ async fn drive(
                             if let Some(audio) = live.audio.as_ref() {
                                 track = audio.device_track(mic_settings).clone();
                             }
-                            sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), device_ns_changed, &mut software_audio, mic_settings, control, timeline);
+                            sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), device_ns_changed, &mut software_audio, mic_settings, control, timeline);
                         }
                         Some(CallCommand::SetMicSettings(settings)) => {
                             mic_settings = settings;
@@ -2347,7 +2342,7 @@ async fn drive(
                                             &mut media_description_request,
                                             timeline,
                                         );
-                                        sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), false, &mut software_audio, mic_settings, control, timeline);
+                                        sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), false, &mut software_audio, mic_settings, control, timeline);
                                     }
                                     Err(error) => control.send(CallUpdate::Notice(notice_with_detail(SHARING_START_NOTICE, error))),
                                 }
@@ -2360,7 +2355,7 @@ async fn drive(
                                 match local_video.start_share(&source) {
                                     Ok(()) => {
                                         announce_share(control, &source);
-                                        sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), false, &mut software_audio, mic_settings, control, timeline);
+                                        sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), false, &mut software_audio, mic_settings, control, timeline);
                                         match offer_same_peer(&current.peer, &current.gathered, local_video.share_mid(), &layout_plan, layout, direct_video_mid.as_deref().unwrap_or(CAMERA_MID), false, local_video.camera_on(), true, &remote, &links, &media_leg_id, &media_links, &mut negotiator).await {
                                             Ok((browser_offer, signaled, reply_tags)) => {
                                                 timeline.record_sdp("local offer", &signaled.sdp);
@@ -2404,7 +2399,7 @@ async fn drive(
             &mut media_description_request,
             timeline,
         );
-                                        sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), false, &mut software_audio, mic_settings, control, timeline);
+                                        sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), false, &mut software_audio, mic_settings, control, timeline);
                                     }
                                     Err(error) => control.send(CallUpdate::Notice(notice_with_detail(SHARING_START_NOTICE, error))),
                                 }
@@ -2428,7 +2423,7 @@ async fn drive(
                             {
                                 local_video.stop_share();
                                 clear_share(control);
-                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), false, &mut software_audio, mic_settings, control, timeline);
+                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), false, &mut software_audio, mic_settings, control, timeline);
                                 tell_media_descriptions(
                                     &remote,
                                     &media_links,
@@ -2440,7 +2435,7 @@ async fn drive(
                             } else if direct && local_video.sharing() {
                                 local_video.stop_share();
                                 clear_share(control);
-                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), false, &mut software_audio, mic_settings, control, timeline);
+                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), false, &mut software_audio, mic_settings, control, timeline);
                                 match offer_same_peer(&current.peer, &current.gathered, local_video.share_mid(), &layout_plan, layout, direct_video_mid.as_deref().unwrap_or(CAMERA_MID), local_hold, local_video.camera_on(), false, &remote, &links, &media_leg_id, &media_links, &mut negotiator).await {
                                     Ok((browser_offer, signaled, reply_tags)) => {
                                         timeline.record_sdp("local offer", &signaled.sdp);
@@ -2452,7 +2447,7 @@ async fn drive(
                                 }
                             } else if local_video.sharing() {
                                 local_video.stop_share();
-                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), false, &mut software_audio, mic_settings, control, timeline);
+                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), false, &mut software_audio, mic_settings, control, timeline);
                                 clear_share(control);
                                 tell_media_descriptions(
             &remote,
@@ -2469,7 +2464,11 @@ async fn drive(
                         }
                         Some(CallCommand::SetShareSound(on)) => {
                             share_sound_wanted = on;
-                            sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), false, &mut software_audio, mic_settings, control, timeline);
+                            if audio_disabled {
+                                control.send(CallUpdate::ShareSound(false));
+                            } else {
+                                sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), false, &mut software_audio, mic_settings, control, timeline);
+                            }
                         }
                         Some(CallCommand::RefreshShareSources) => refresh_share_sources(control.updates(), options.video, true),
                         Some(CallCommand::SetHand(true)) => match remote.signaling.raise_hand(&remote.conversation, &remote.participant).await {
@@ -2804,8 +2803,10 @@ async fn drive(
                             && software_audio.as_ref().is_some_and(SoftwareAudio::capture_ended)
                         {
                             capture_notice_sent = true;
-                            timeline.record("audio capture", "ended unexpectedly");
+                            timeline.record("audio capture", "ended unexpectedly, restarting");
                             control.send(CallUpdate::Notice(CAPTURE_ENDED_NOTICE.into()));
+                            sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), true, &mut software_audio, mic_settings, control, timeline);
+                            capture_notice_sent = false;
                         }
                         if local_video.take_effects_failure() {
                             timeline.record("camera effects failed", "segmentation model did not load");
@@ -3014,7 +3015,7 @@ async fn drive(
                                     record_audio_devices(timeline, &device_lists, applied_input.as_ref(), applied_output.as_ref());
                                 }
                                 if input_changed && software_audio.is_some() {
-                                    sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, software_wanted(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref()), true, &mut software_audio, mic_settings, control, timeline);
+                                    sync_software_audio(&factory, options, &input, muted, remote_audio.clone(), &current.peer, &track, audio_intent(mic_settings, share_sound_wanted, &local_video, live.audio.as_ref(), audio_disabled), true, &mut software_audio, mic_settings, control, timeline);
                                 }
                             }
                         }

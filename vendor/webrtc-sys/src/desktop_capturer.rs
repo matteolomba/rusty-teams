@@ -125,30 +125,32 @@ impl DesktopCapturerCallbackWrapper {
     }
 
     fn on_capture_result(&mut self, result: CaptureResult, frame: UniquePtr<DesktopFrame>) {
-        match result {
-            CaptureResult::Success => self.callback.on_capture_result(Ok(frame)),
-            CaptureResult::ErrorTemporary => self
-                .callback
-                .on_capture_result(Err(CaptureError::Temporary)),
-            CaptureResult::ErrorPermanent => self
-                .callback
-                .on_capture_result(Err(CaptureError::Permanent)),
-            CaptureResult::StartFailed => self
-                .callback
-                .on_capture_result(Err(CaptureError::StartFailed)),
-            CaptureResult::StoppedByUser => self
-                .callback
-                .on_capture_result(Err(CaptureError::StoppedByUser)),
-            CaptureResult::SourceGone => self
-                .callback
-                .on_capture_result(Err(CaptureError::SourceGone)),
-            CaptureResult::Interrupted => self
-                .callback
-                .on_capture_result(Err(CaptureError::Interrupted)),
-            _ => self
-                .callback
-                .on_capture_result(Err(CaptureError::Interrupted)),
-        }
+        crate::helper::guard_callback("DesktopCapturerCallback::on_capture_result", move || {
+            match result {
+                CaptureResult::Success => self.callback.on_capture_result(Ok(frame)),
+                CaptureResult::ErrorTemporary => self
+                    .callback
+                    .on_capture_result(Err(CaptureError::Temporary)),
+                CaptureResult::ErrorPermanent => self
+                    .callback
+                    .on_capture_result(Err(CaptureError::Permanent)),
+                CaptureResult::StartFailed => self
+                    .callback
+                    .on_capture_result(Err(CaptureError::StartFailed)),
+                CaptureResult::StoppedByUser => self
+                    .callback
+                    .on_capture_result(Err(CaptureError::StoppedByUser)),
+                CaptureResult::SourceGone => self
+                    .callback
+                    .on_capture_result(Err(CaptureError::SourceGone)),
+                CaptureResult::Interrupted => self
+                    .callback
+                    .on_capture_result(Err(CaptureError::Interrupted)),
+                _ => self
+                    .callback
+                    .on_capture_result(Err(CaptureError::Interrupted)),
+            }
+        });
     }
 }
 
@@ -169,14 +171,20 @@ impl PortalPickerCallbackWrapper {
     }
 
     fn on_selection(&mut self) {
-        (self.callback)(PickerEvent::Selected);
+        crate::helper::guard_callback("PortalPickerCallback::on_selection", move || {
+            (self.callback)(PickerEvent::Selected);
+        });
     }
 
     fn on_cancelled(&mut self) {
-        (self.callback)(PickerEvent::Cancelled);
+        crate::helper::guard_callback("PortalPickerCallback::on_cancelled", move || {
+            (self.callback)(PickerEvent::Cancelled);
+        });
     }
 
     fn on_error(&mut self) {
-        (self.callback)(PickerEvent::Failed);
+        crate::helper::guard_callback("PortalPickerCallback::on_error", move || {
+            (self.callback)(PickerEvent::Failed);
+        });
     }
 }

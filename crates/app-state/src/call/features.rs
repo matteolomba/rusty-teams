@@ -25,15 +25,18 @@ pub fn room_closed_move(call: &ActiveCall, reason: &EndReason) -> Option<Pending
     if *reason != EndReason::Remote(EndKind::RoomClosed) {
         return None;
     }
-    Some(return_move(room))
+    return_move(room, call)
 }
 
-fn return_move(room: &BreakoutState) -> PendingMove {
-    PendingMove {
-        target: room.main.clone().expect("a room with a way back"),
+fn return_move(room: &BreakoutState, call: &ActiveCall) -> Option<PendingMove> {
+    Some(PendingMove {
+        target: room
+            .main
+            .clone()
+            .or_else(|| call.model.main_meeting.clone())?,
         title: room.main_title.clone(),
         breakout: None,
-    }
+    })
 }
 
 impl AppState {
@@ -291,15 +294,13 @@ impl AppState {
         else {
             return;
         };
-        let Some(room) = call
-            .model
-            .breakout
-            .as_ref()
-            .filter(|room| room.main.is_some())
-        else {
+        let Some(room) = call.model.breakout.as_ref() else {
             return;
         };
-        call.pending_move = Some(return_move(room));
+        let Some(pending) = return_move(room, call) else {
+            return;
+        };
+        call.pending_move = Some(pending);
         self.send_call_command(CallCommand::Hangup);
     }
 

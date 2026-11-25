@@ -336,7 +336,7 @@ impl AppState {
     pub fn snooze_meeting_toast(&mut self, id: u64, cx: &mut Context<Self>) {
         if let Some(toast) = self.meeting_toasts.snooze(id) {
             if self.outlook_reminder_event(&toast.event_id) {
-                self.write_outlook_reminder(toast.event_id, ReminderWrite::Snooze(toast.start));
+                self.write_outlook_reminder(toast.event_id, ReminderWrite::Snooze(toast.start), cx);
             }
             cx.emit(AppEvent::MeetingReminder);
             cx.notify();
@@ -346,7 +346,7 @@ impl AppState {
     pub fn dismiss_meeting_toast(&mut self, id: u64, cx: &mut Context<Self>) {
         if let Some(toast) = self.meeting_toasts.dismiss(id) {
             if self.outlook_reminder_event(&toast.event_id) {
-                self.write_outlook_reminder(toast.event_id, ReminderWrite::Dismiss);
+                self.write_outlook_reminder(toast.event_id, ReminderWrite::Dismiss, cx);
             }
             cx.emit(AppEvent::MeetingReminder);
             cx.notify();

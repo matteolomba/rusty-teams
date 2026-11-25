@@ -194,17 +194,50 @@ pub(super) fn pick_track<'a, T>(software: Option<&'a T>, device: &'a T) -> &'a T
     software.unwrap_or(device)
 }
 
-pub(super) fn software_wanted(
+/// What the call wants right now: software capture and the ADM recording state.
+/// `audio_disabled` is the single source of truth for both.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct AudioIntent {
+    pub(super) wanted: Option<SoftwareAudioPlan>,
+    pub(super) adm_recording: bool,
+}
+
+impl AudioIntent {
+    pub(super) fn disabled() -> Self {
+        Self {
+            wanted: None,
+            adm_recording: false,
+        }
+    }
+}
+
+fn intent_for(
+    mic_settings: MicSettings,
+    sharing_sound: bool,
+    uses_devices: bool,
+    audio_disabled: bool,
+) -> AudioIntent {
+    if audio_disabled {
+        return AudioIntent::disabled();
+    }
+    AudioIntent {
+        wanted: SoftwareAudioPlan::wanted(mic_settings, sharing_sound, uses_devices),
+        adm_recording: uses_devices,
+    }
+}
+
+pub(super) fn audio_intent(
     mic_settings: MicSettings,
     share_sound_wanted: bool,
     local_video: &LocalVideo,
     audio: Option<&AudioSetup>,
-) -> Option<SoftwareAudioPlan> {
-    let sharing_sound = share_sound_wanted && local_video.sharing();
-    SoftwareAudioPlan::wanted(
+    audio_disabled: bool,
+) -> AudioIntent {
+    intent_for(
         mic_settings,
-        sharing_sound,
+        share_sound_wanted && local_video.sharing(),
         audio.is_some_and(AudioSetup::uses_devices),
+        audio_disabled,
     )
 }
 
@@ -214,12 +247,19 @@ pub(super) fn restore_device_track(
     peer: &PeerConnection,
     device_track: &RtcAudioTrack,
     timeline: &Timeline,
+    adm_recording: bool,
 ) {
     use libwebrtc::peer_connection_factory::native::PeerConnectionFactoryExt;
     let restored = unmount_software_track(
+        adm_recording,
         || swap_audio_track(peer, device_track),
         || {
-            if !factory.adm_recording_enabled() {
+            if adm_recording {
+                // The proxy ignores a redundant enable; toggle it so a stopped capture restarts
+                // even when its flag still says enabled.
+                if factory.adm_recording_enabled() {
+                    factory.set_adm_recording_enabled(false);
+                }
                 factory.set_adm_recording_enabled(true);
                 devices::select_input(factory, input);
             }
@@ -234,19 +274,28 @@ pub(super) fn restore_device_track(
 // holds, so it must not run while the software track feeds that stream too: WebRTC aborts the
 // process when two threads send audio at once (`audio_send_stream.cc` race check).
 
-/// Stops the ADM before the software track reaches the sender.
-fn mount_software_track(stop_adm: impl FnOnce(), mount: impl FnOnce() -> Result<()>) -> Result<()> {
-    stop_adm();
+/// Stops the ADM before the software track reaches the sender when it is meant to be recording.
+fn mount_software_track(
+    adm_recording: bool,
+    stop_adm: impl FnOnce(),
+    mount: impl FnOnce() -> Result<()>,
+) -> Result<()> {
+    if adm_recording {
+        stop_adm();
+    }
     mount()
 }
 
-/// Starts the ADM again only once the device track is back on the sender.
+/// Starts the ADM again only once the device track is back on the sender, and only if wanted.
 fn unmount_software_track(
+    adm_recording: bool,
     mount_device: impl FnOnce() -> Result<()>,
     start_adm: impl FnOnce(),
 ) -> Result<()> {
     let mounted = mount_device();
-    start_adm();
+    if adm_recording {
+        start_adm();
+    }
     mounted
 }
 
@@ -259,13 +308,17 @@ pub(super) fn sync_software_audio(
     remote_audio: Option<RtcAudioTrack>,
     peer: &PeerConnection,
     device_track: &RtcAudioTrack,
-    wanted: Option<SoftwareAudioPlan>,
+    intent: AudioIntent,
     restart: bool,
     software_audio: &mut Option<SoftwareAudio>,
     mic_settings: MicSettings,
     control: &CallControl,
     timeline: &Timeline,
 ) {
+    let AudioIntent {
+        wanted,
+        adm_recording,
+    } = intent;
     let running = software_audio.as_ref().map(|audio| audio.plan);
     if running == wanted && !restart {
         crate::noise_stage::apply_for_outgoing(mic_settings, software_audio.is_none());
@@ -277,7 +330,7 @@ pub(super) fn sync_software_audio(
     *software_audio = None;
     let was_sharing_sound = running.is_some_and(|plan| plan.computer_sound);
     let Some(plan) = wanted else {
-        restore_device_track(factory, input, peer, device_track, timeline);
+        restore_device_track(factory, input, peer, device_track, timeline, adm_recording);
         control.send(CallUpdate::ShareSound(false));
         crate::noise_stage::apply_for_outgoing(mic_settings, true);
         return;
@@ -293,6 +346,7 @@ pub(super) fn sync_software_audio(
     )
     .and_then(|audio| {
         mount_software_track(
+            adm_recording,
             || {
                 if options.audio == AudioMode::Platform {
                     use libwebrtc::peer_connection_factory::native::PeerConnectionFactoryExt;
@@ -323,7 +377,7 @@ pub(super) fn sync_software_audio(
         }
         Err(error) => {
             timeline.record("software audio failed", error.to_string());
-            restore_device_track(factory, input, peer, device_track, timeline);
+            restore_device_track(factory, input, peer, device_track, timeline, adm_recording);
             if was_sharing_sound || plan.computer_sound {
                 control.send(CallUpdate::ShareSound(false));
             }
@@ -366,6 +420,7 @@ mod tests {
     fn the_adm_stops_before_the_software_track_is_mounted() {
         let steps = RefCell::new(Vec::new());
         mount_software_track(
+            true,
             || steps.borrow_mut().push("stop adm"),
             || {
                 steps.borrow_mut().push("mount software");
@@ -377,9 +432,25 @@ mod tests {
     }
 
     #[test]
+    fn the_adm_is_left_alone_when_it_must_stay_disabled() {
+        let steps = RefCell::new(Vec::new());
+        mount_software_track(
+            false,
+            || steps.borrow_mut().push("stop adm"),
+            || {
+                steps.borrow_mut().push("mount software");
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert_eq!(*steps.borrow(), ["mount software"]);
+    }
+
+    #[test]
     fn the_adm_starts_only_after_the_device_track_is_back() {
         let steps = RefCell::new(Vec::new());
         let unmounted = unmount_software_track(
+            true,
             || {
                 steps.borrow_mut().push("mount device");
                 Err(Error::Webrtc("no audio sender".into()))
@@ -388,5 +459,60 @@ mod tests {
         );
         assert!(unmounted.is_err());
         assert_eq!(*steps.borrow(), ["mount device", "start adm"]);
+    }
+
+    #[test]
+    fn the_adm_does_not_restart_when_audio_is_disabled() {
+        let steps = RefCell::new(Vec::new());
+        let unmounted = unmount_software_track(
+            false,
+            || {
+                steps.borrow_mut().push("mount device");
+                Ok(())
+            },
+            || steps.borrow_mut().push("start adm"),
+        );
+        assert!(unmounted.is_ok());
+        assert_eq!(*steps.borrow(), ["mount device"]);
+    }
+
+    #[test]
+    fn disabled_audio_never_starts_software_capture() {
+        let mic = MicSettings::default();
+        assert_eq!(intent_for(mic, true, true, true), AudioIntent::disabled());
+        assert_eq!(intent_for(mic, false, true, true), AudioIntent::disabled());
+        let enabled = intent_for(mic, true, true, false);
+        assert!(enabled.wanted.is_some_and(|plan| plan.computer_sound));
+        assert!(enabled.adm_recording);
+        let no_devices = intent_for(mic, true, false, false);
+        assert!(no_devices.wanted.is_some_and(|plan| plan.computer_sound));
+        assert!(!no_devices.adm_recording);
+    }
+
+    #[test]
+    fn carry_over_without_a_negotiated_sender_uses_the_ordered_restore() {
+        use libwebrtc::audio_source::native::NativeAudioSource;
+        use libwebrtc::peer_connection_factory::native::PeerConnectionFactoryExt;
+
+        let factory = crate::devices::shared_factory();
+        let peer = factory
+            .create_peer_connection(RtcConfiguration::default())
+            .expect("a peer without an audio sender");
+        let source =
+            NativeAudioSource::new(AudioSourceOptions::default(), SAMPLE_RATE as u32, 1, 0);
+        let device_track = factory.create_audio_track("microphone", source);
+        let timeline = Timeline::new(false);
+        restore_device_track(
+            &factory,
+            &DeviceChoice::SystemDefault,
+            &peer,
+            &device_track,
+            &timeline,
+            false,
+        );
+        assert!(timeline.entries().iter().any(|entry| {
+            entry.label == "microphone track not restored"
+                && entry.detail.contains("no audio sender")
+        }));
     }
 }

@@ -70,9 +70,11 @@ impl RtpReceiver {
         let ctx = Box::new(sys_rr::ReceiverContext(Box::new(tx)));
 
         self.sys_handle.get_stats(ctx, |ctx, stats| {
-            let tx = ctx.0.downcast::<oneshot::Sender<Result<Vec<RtcStats>, RtcError>>>().unwrap();
+            webrtc_sys::helper::guard_callback("RtpReceiver::get_stats", move || {
+                let tx = ctx.0.downcast::<oneshot::Sender<Result<Vec<RtcStats>, RtcError>>>().unwrap();
 
-            let _ = tx.send(crate::stats::parse_stats(&stats));
+                let _ = tx.send(crate::stats::parse_stats(&stats));
+            });
         });
 
         rx.await.map_err(|_| RtcError {

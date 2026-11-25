@@ -19,14 +19,16 @@ use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM}
 use windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::WindowsAndMessaging::*;
-use windows::core::{HSTRING, Interface, PCWSTR, PWSTR, w};
+use windows::core::{HRESULT, HSTRING, Interface, PCWSTR, PWSTR, w};
 
 use crate::cdp_failure::{CallContext, failure_reason, tab_state};
 use crate::fanout::Subscribers;
+use crate::guards::{Deferred, EventSubscriptions, InitGate, InitMessage};
 use crate::host_dialog::{self, Dialog};
 use crate::park::{ParkDecision, ParkGate};
+use crate::sanitize::{ENV_OS_SSO, env_flag};
 use crate::sleep::{Activity, CallTally, Sleep, blocker, call_label};
-use crate::transport::{HostState, UiRequest, WebViewTransport};
+use crate::transport::{HostState, READY_WAIT, UiRequest, WebViewTransport};
 use crate::{BROWSER_ARGUMENTS, FORWARDED_EVENTS};
 
 const WINDOW_CLASS: PCWSTR = w!("RustyTeamsWebView");
@@ -53,6 +55,7 @@ pub struct HostConfig {
 struct View {
     controller: ICoreWebView2Controller,
     webview: ICoreWebView2,
+    subscriptions: EventSubscriptions,
 }
 
 pub(crate) struct Shared {
@@ -66,6 +69,7 @@ pub(crate) struct Shared {
     state: watch::Sender<HostState>,
     requests: mpsc::Receiver<UiRequest>,
     restarting: Cell<bool>,
+    init_gate: InitGate,
     last_login_prompt: Cell<Option<Instant>>,
     sleep: RefCell<Sleep<TabCommand>>,
     sleep_blocker: Cell<Option<&'static str>>,
@@ -94,7 +98,17 @@ pub fn start(config: HostConfig) -> Arc<WebViewTransport> {
         failure_state
             .send_modify(|state| state.failure = Some(format!("no webview thread: {error}")));
     }
-    let window = window_receiver.recv().ok();
+    let window = match window_receiver.recv_timeout(READY_WAIT) {
+        Ok(raw) => Some(raw),
+        Err(_) => {
+            failure_state.send_modify(|state| {
+                if state.failure.is_none() {
+                    state.failure = Some("webview window did not start in time".into());
+                }
+            });
+            None
+        }
+    };
     let waker = Arc::new(move || {
         if let Some(raw) = window {
             unsafe {
@@ -131,6 +145,7 @@ fn run(
         state,
         requests,
         restarting: Cell::new(false),
+        init_gate: InitGate::default(),
         last_login_prompt: Cell::new(None),
         sleep: RefCell::new(Sleep::default()),
         sleep_blocker: Cell::new(None),
@@ -164,7 +179,12 @@ fn create_windows(title: &str) -> windows::core::Result<HashMap<App, HWND>> {
         lpszClassName: WINDOW_CLASS,
         ..Default::default()
     };
-    unsafe { RegisterClassW(&class) };
+    if unsafe { RegisterClassW(&class) } == 0 {
+        return Err(windows::core::Error::new(
+            HRESULT(-1),
+            "cannot register the webview window class",
+        ));
+    }
     let title = HSTRING::from(title);
     let mut windows = HashMap::new();
     for app in App::ALL {
@@ -190,7 +210,10 @@ fn create_windows(title: &str) -> windows::core::Result<HashMap<App, HWND>> {
 }
 
 fn load(shared: &Rc<Shared>) {
-    match create_views(shared, |app| app.start_url()) {
+    shared.init_gate.begin();
+    let outcome = create_views(shared, |app| app.start_url());
+    let deferred = shared.init_gate.end();
+    match outcome {
         Ok(()) => shared.state.send_modify(|state| {
             state.ready = true;
             state.failure = None;
@@ -199,6 +222,22 @@ fn load(shared: &Rc<Shared>) {
             state.ready = false;
             state.failure = Some(reason);
         }),
+    }
+    post_deferred(shared, deferred);
+}
+
+fn post_deferred(shared: &Shared, deferred: Deferred) {
+    let window = shared.windows[&App::Teams];
+    for message in [
+        deferred.restart.then_some(WM_RESTART),
+        deferred.drain.then_some(WM_DRAIN),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        unsafe {
+            let _ = PostMessageW(Some(window), message, WPARAM(0), LPARAM(0));
+        }
     }
 }
 
@@ -218,9 +257,10 @@ fn create_views(
 
 pub(crate) fn environment_options() -> ICoreWebView2EnvironmentOptions {
     let options = CoreWebView2EnvironmentOptions::default();
+    let sso = std::env::var(ENV_OS_SSO).ok();
     unsafe {
         options.set_additional_browser_arguments(BROWSER_ARGUMENTS.to_owned());
-        options.set_allow_single_sign_on_using_os_primary_account(true);
+        options.set_allow_single_sign_on_using_os_primary_account(env_flag(sso.as_deref()));
     }
     options.into()
 }
@@ -244,9 +284,8 @@ fn create_environment(
     )
     .map_err(|error| format!("WebView2 runtime: {error}"))?;
     receiver
-        .recv()
-        .ok()
-        .flatten()
+        .recv_timeout(READY_WAIT)
+        .map_err(|_| "WebView2 runtime did not answer in time".to_owned())?
         .ok_or_else(|| "WebView2 runtime returned no environment".to_owned())
 }
 
@@ -275,28 +314,35 @@ fn create_view(
         webview2_com::Error::WindowsError(error) => error,
         other => windows::core::Error::new(windows::core::HRESULT(-1), other.to_string()),
     })?;
-    let controller =
-        receiver.recv().ok().flatten().ok_or_else(|| {
-            windows::core::Error::new(windows::core::HRESULT(-1), "no controller")
-        })?;
+    let controller = receiver
+        .recv_timeout(READY_WAIT)
+        .map_err(|_| windows::core::Error::new(HRESULT(-1), "no controller in time"))?
+        .ok_or_else(|| windows::core::Error::new(HRESULT(-1), "no controller"))?;
+
     let webview = unsafe { controller.CoreWebView2() }?;
     fit(window, &controller);
     unsafe {
         controller.SetIsVisible(true)?;
         webview.Settings()?.SetIsStatusBarEnabled(false)?;
     }
-    watch_source(&webview, app)?;
-    watch_loads(&webview, app)?;
-    watch_failures(&webview, app)?;
-    forward_events(&webview, app)?;
+    let mut subscriptions = EventSubscriptions::default();
+    watch_source(&webview, app, &mut subscriptions)?;
+    watch_loads(&webview, app, &mut subscriptions)?;
+    watch_failures(&webview, app, &mut subscriptions)?;
+    forward_events(&webview, app, &mut subscriptions)?;
     unsafe { webview.Navigate(&HSTRING::from(first_url)) }?;
     Ok(View {
         controller,
         webview,
+        subscriptions,
     })
 }
 
-fn watch_source(webview: &ICoreWebView2, app: App) -> windows::core::Result<()> {
+fn watch_source(
+    webview: &ICoreWebView2,
+    app: App,
+    subscriptions: &mut EventSubscriptions,
+) -> windows::core::Result<()> {
     let mut token = 0;
     let handler = SourceChangedEventHandler::create(Box::new(move |sender, _| {
         if let (Some(sender), Some(shared)) = (sender, shared()) {
@@ -304,10 +350,19 @@ fn watch_source(webview: &ICoreWebView2, app: App) -> windows::core::Result<()> 
         }
         Ok(())
     }));
-    unsafe { webview.add_SourceChanged(&handler, &mut token) }
+    unsafe { webview.add_SourceChanged(&handler, &mut token) }?;
+    let source = webview.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_SourceChanged(token);
+    });
+    Ok(())
 }
 
-fn watch_loads(webview: &ICoreWebView2, app: App) -> windows::core::Result<()> {
+fn watch_loads(
+    webview: &ICoreWebView2,
+    app: App,
+    subscriptions: &mut EventSubscriptions,
+) -> windows::core::Result<()> {
     let mut token = 0;
     let handler = NavigationCompletedEventHandler::create(Box::new(move |sender, _| {
         let (Some(sender), Some(shared)) = (sender, shared()) else {
@@ -329,7 +384,12 @@ fn watch_loads(webview: &ICoreWebView2, app: App) -> windows::core::Result<()> {
         }
         Ok(())
     }));
-    unsafe { webview.add_NavigationCompleted(&handler, &mut token) }
+    unsafe { webview.add_NavigationCompleted(&handler, &mut token) }?;
+    let source = webview.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_NavigationCompleted(token);
+    });
+    Ok(())
 }
 
 fn is_running_app(app: App, url: &str) -> bool {
@@ -382,7 +442,11 @@ fn release_memory(webview: &ICoreWebView2) {
     }
 }
 
-fn watch_failures(webview: &ICoreWebView2, app: App) -> windows::core::Result<()> {
+fn watch_failures(
+    webview: &ICoreWebView2,
+    app: App,
+    subscriptions: &mut EventSubscriptions,
+) -> windows::core::Result<()> {
     let mut token = 0;
     let handler = ProcessFailedEventHandler::create(Box::new(move |sender, arguments| {
         let (Some(sender), Some(arguments), Some(shared)) = (sender, arguments, shared()) else {
@@ -406,10 +470,19 @@ fn watch_failures(webview: &ICoreWebView2, app: App) -> windows::core::Result<()
         }
         Ok(())
     }));
-    unsafe { webview.add_ProcessFailed(&handler, &mut token) }
+    unsafe { webview.add_ProcessFailed(&handler, &mut token) }?;
+    let source = webview.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_ProcessFailed(token);
+    });
+    Ok(())
 }
 
-fn forward_events(webview: &ICoreWebView2, app: App) -> windows::core::Result<()> {
+fn forward_events(
+    webview: &ICoreWebView2,
+    app: App,
+    subscriptions: &mut EventSubscriptions,
+) -> windows::core::Result<()> {
     for name in FORWARDED_EVENTS {
         let receiver = unsafe { webview.GetDevToolsProtocolEventReceiver(&HSTRING::from(name)) }?;
         let mut token = 0;
@@ -428,6 +501,9 @@ fn forward_events(webview: &ICoreWebView2, app: App) -> windows::core::Result<()
                 Ok(())
             }));
         unsafe { receiver.add_DevToolsProtocolEventReceived(&handler, &mut token) }?;
+        subscriptions.add(move || unsafe {
+            let _ = receiver.remove_DevToolsProtocolEventReceived(token);
+        });
     }
     Ok(())
 }
@@ -621,6 +697,21 @@ fn show(shared: &Shared, app: App) {
     }
 }
 
+fn close_views(shared: &Rc<Shared>) {
+    let views: Vec<View> = shared
+        .views
+        .borrow_mut()
+        .drain()
+        .map(|(_, view)| view)
+        .collect();
+    for mut view in views {
+        view.subscriptions.clear();
+        unsafe {
+            let _ = view.controller.Close();
+        }
+    }
+}
+
 fn restart(shared: &Rc<Shared>) {
     shared.state.send_modify(|state| state.ready = false);
     let stranded = shared.sleep.borrow_mut().reset();
@@ -630,17 +721,7 @@ fn restart(shared: &Rc<Shared>) {
     shared.subscribers.borrow_mut().clear();
     shared.park_gate.borrow_mut().forget_commands();
     host_dialog::close_all(shared);
-    let views: Vec<View> = shared
-        .views
-        .borrow_mut()
-        .drain()
-        .map(|(_, view)| view)
-        .collect();
-    for view in views {
-        unsafe {
-            let _ = view.controller.Close();
-        }
-    }
+    close_views(shared);
     load(shared);
     shared.restarting.set(false);
 }
@@ -690,17 +771,7 @@ fn maybe_sleep(shared: &Rc<Shared>) {
     }
     shared.sleep.borrow_mut().fall_asleep();
     (shared.config.log)("webview: asleep");
-    let views: Vec<View> = shared
-        .views
-        .borrow_mut()
-        .drain()
-        .map(|(_, view)| view)
-        .collect();
-    for view in views {
-        unsafe {
-            let _ = view.controller.Close();
-        }
-    }
+    close_views(shared);
     *shared.environment.borrow_mut() = None;
 }
 
@@ -713,6 +784,7 @@ fn wake_views(shared: &Rc<Shared>, full: Option<App>) {
         Some(app) => format!("webview: awake, {app} reloads"),
         None => "webview: awake".to_owned(),
     });
+    shared.init_gate.begin();
     let outcome = create_views(shared, |app| {
         if Some(app) == full {
             app.start_url()
@@ -720,6 +792,8 @@ fn wake_views(shared: &Rc<Shared>, full: Option<App>) {
             app.park_url()
         }
     });
+    let deferred = shared.init_gate.end();
+    post_deferred(shared, deferred);
     if let Err(reason) = outcome {
         let stranded = shared.sleep.borrow_mut().reset();
         for command in stranded {
@@ -757,6 +831,14 @@ extern "system" fn window_procedure(
     let Some(shared) = shared() else {
         return unsafe { DefWindowProcW(window, message, wparam, lparam) };
     };
+    let initializing = match message {
+        WM_DRAIN => Some(InitMessage::Drain),
+        WM_RESTART => Some(InitMessage::Restart),
+        _ => None,
+    };
+    if initializing.is_some_and(|message| shared.init_gate.defer(message)) {
+        return LRESULT(0);
+    }
     match message {
         WM_DRAIN => drain(&shared),
         WM_RESTART => restart(&shared),

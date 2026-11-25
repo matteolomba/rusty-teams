@@ -18,6 +18,8 @@ const FRAME_PERIOD: Duration = Duration::from_millis(10);
 pub const AUDIO_MODE_ENV: &str = "CALLING_AUDIO";
 pub const AUDIO_FILE_ENV: &str = "CALLING_AUDIO_FILE";
 
+/// Synthetic sources are diagnostic-only: the default and every unknown value use the platform
+/// ADM. `file` and `tone` stay available only through the existing `CALLING_AUDIO` env opt-in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum AudioMode {
     #[default]
@@ -224,6 +226,11 @@ mod tests {
         assert_eq!(AudioMode::parse(Some("SILENCE")), AudioMode::Silence);
         assert_eq!(AudioMode::parse(Some("file")), AudioMode::File);
         assert_eq!(AudioMode::parse(Some("whatever")), AudioMode::Platform);
+    }
+
+    #[test]
+    fn audio_mode_defaults_to_the_platform_device() {
+        assert_eq!(AudioMode::default(), AudioMode::Platform);
     }
 
     #[test]

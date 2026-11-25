@@ -1,7 +1,7 @@
 use std::future::Future;
 use std::sync::{Arc, Mutex};
 
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::watch;
 
 use calling::meeting::{LiveMeeting, fetch_live_meeting};
@@ -19,13 +19,24 @@ const START_RETRY_STEPS: [Duration; 3] = [
     Duration::from_secs(2),
     Duration::from_secs(5),
 ];
-const START_RETRY_STEADY: Duration = Duration::from_secs(10);
+const START_ATTEMPT_TIMEOUT: Duration = Duration::from_secs(20);
+const START_JITTER: Duration = Duration::from_millis(500);
+const START_CANCELLED: &str = "engine start cancelled";
 pub(super) const NOT_READY: &str =
     "Could not reach the Teams calling service. Check your connection and try again.";
 const READY_WAIT: Duration = Duration::from_secs(30);
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum LaunchState {
+    Starting,
+    Ready,
+    Failed(String),
+}
+
 pub struct CallLauncher {
     engine: watch::Sender<Option<CallEngine>>,
+    state: watch::Sender<LaunchState>,
+    cancel: watch::Sender<bool>,
     default_camera: Mutex<DeviceChoice>,
     default_mic: Mutex<MicSettings>,
 }
@@ -36,39 +47,89 @@ impl CallLauncher {
         ringable: bool,
         on_event: impl Fn(EngineEvent) + Send + 'static,
     ) -> Arc<CallLauncher> {
+        Self::start_with(
+            transport,
+            ringable,
+            on_event,
+            &START_RETRY_STEPS,
+            START_ATTEMPT_TIMEOUT,
+            START_JITTER,
+        )
+    }
+
+    fn start_with(
+        transport: Arc<dyn Transport>,
+        ringable: bool,
+        on_event: impl Fn(EngineEvent) + Send + 'static,
+        steps: &'static [Duration],
+        attempt_timeout: Duration,
+        jitter: Duration,
+    ) -> Arc<CallLauncher> {
         let launcher = Arc::new(CallLauncher {
             engine: watch::channel(None).0,
+            state: watch::channel(LaunchState::Starting).0,
+            cancel: watch::channel(false).0,
             default_camera: Mutex::new(DeviceChoice::SystemDefault),
             default_mic: Mutex::new(MicSettings::default()),
         });
         let running = launcher.clone();
+        let cancelled = launcher.cancel.subscribe();
         crate::runtime::handle().spawn(async move {
-            let (engine, mut events) = start_with_retry(
+            let outcome = start_with_retry(
                 || start_engine(transport.clone(), ringable),
-                &START_RETRY_STEPS,
-                START_RETRY_STEADY,
+                steps,
+                attempt_timeout,
+                jitter,
+                cancelled,
             )
             .await;
-            crate::diagnostics::record("calls: engine ready, registered with the registrar");
-            engine.set_default_camera(
-                running
-                    .default_camera
-                    .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner())
-                    .clone(),
-            );
-            engine.set_default_mic(
-                *running
-                    .default_mic
-                    .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner()),
-            );
-            running.engine.send_replace(Some(engine));
-            while let Some(event) = events.recv().await {
-                on_event(event);
+            match outcome {
+                Ok((engine, mut events)) => {
+                    crate::diagnostics::record(
+                        "calls: engine ready, registered with the registrar",
+                    );
+                    engine.set_default_camera(
+                        running
+                            .default_camera
+                            .lock()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner())
+                            .clone(),
+                    );
+                    engine.set_default_mic(
+                        *running
+                            .default_mic
+                            .lock()
+                            .unwrap_or_else(|poisoned| poisoned.into_inner()),
+                    );
+                    running.state.send_replace(LaunchState::Ready);
+                    running.engine.send_replace(Some(engine));
+                    while let Some(event) = events.recv().await {
+                        on_event(event);
+                    }
+                }
+                Err(failure) => {
+                    crate::diagnostics::record(format!("calls: engine start stopped: {failure}"));
+                    running.state.send_replace(LaunchState::Failed(failure));
+                    running.engine.send_replace(None);
+                }
             }
         });
         launcher
+    }
+
+    pub(super) fn launch_state(&self) -> LaunchState {
+        self.state.borrow().clone()
+    }
+
+    #[cfg(test)]
+    pub(super) fn for_test() -> Arc<Self> {
+        Arc::new(CallLauncher {
+            engine: watch::channel(None).0,
+            state: watch::channel(LaunchState::Starting).0,
+            cancel: watch::channel(false).0,
+            default_camera: Mutex::new(DeviceChoice::SystemDefault),
+            default_mic: Mutex::new(MicSettings::default()),
+        })
     }
 
     fn engine(&self) -> Option<CallEngine> {
@@ -97,7 +158,10 @@ impl CallLauncher {
     }
 
     pub fn set_default_mic(&self, mic: MicSettings) {
-        *self.default_mic.lock().expect("mic lock") = mic;
+        *self
+            .default_mic
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = mic;
         if let Some(engine) = self.engine() {
             engine.set_default_mic(mic);
         }
@@ -125,7 +189,7 @@ impl CallLauncher {
     }
 
     pub async fn accept_ring(&self, ring_id: u64, mode: AcceptMode) -> Option<CallHandle> {
-        self.ready_engine().await?.accept_ring(ring_id, mode).await
+        self.engine()?.accept_ring(ring_id, mode).await
     }
 
     pub fn decline_ring(&self, ring_id: u64) {
@@ -364,14 +428,27 @@ impl CallLauncher {
             .await
             .map_err(|error| error.to_string())
     }
-
-    pub async fn live_meeting(&self, thread_id: &str) -> Option<LiveMeeting> {
-        let session = self.engine()?.session();
-        fetch_live_meeting(&session, thread_id).await.ok().flatten()
+    pub async fn live_meeting(&self, thread_id: &str) -> Result<Option<LiveMeeting>, String> {
+        let session = self.engine().ok_or_else(|| NOT_READY.to_owned())?.session();
+        fetch_live_meeting(&session, thread_id)
+            .await
+            .map_err(|error| error.to_string())
     }
 }
 
-async fn start_with_retry<T, E, F, S>(mut start: S, steps: &[Duration], steady: Duration) -> T
+impl Drop for CallLauncher {
+    fn drop(&mut self) {
+        self.cancel.send_replace(true);
+    }
+}
+
+async fn start_with_retry<T, E, F, S>(
+    mut start: S,
+    steps: &[Duration],
+    attempt_timeout: Duration,
+    jitter: Duration,
+    mut cancel: watch::Receiver<bool>,
+) -> Result<T, String>
 where
     T: Send + 'static,
     E: std::fmt::Display + Send + 'static,
@@ -379,24 +456,55 @@ where
     S: FnMut() -> F,
 {
     let mut last_failure = String::new();
-    let mut failures = 0usize;
-    loop {
-        let failure = match tokio::spawn(start()).await {
-            Ok(Ok(started)) => return started,
-            Ok(Err(error)) => error.to_string(),
-            Err(join_error) => format!("start task panicked: {join_error}"),
-        };
-        let delay = steps.get(failures).copied().unwrap_or(steady);
-        failures += 1;
-        if failure != last_failure {
+    for index in 0..=steps.len() {
+        if *cancel.borrow() {
+            return Err(START_CANCELLED.to_owned());
+        }
+        if index > 0 {
+            let delay = jittered_delay(steps[index - 1], jitter);
             crate::diagnostics::record(format!(
-                "calls: engine start failed, retrying in {}s: {failure}",
-                delay.as_secs()
+                "calls: engine start failed, retrying in {}ms: {last_failure}",
+                delay.as_millis()
             ));
+            tokio::select! {
+                _ = tokio::time::sleep(delay) => {}
+                _ = cancel.changed() => return Err(START_CANCELLED.to_owned()),
+            }
+        }
+        let mut task = tokio::spawn(start());
+        let abort = task.abort_handle();
+        let failure = tokio::select! {
+            result = &mut task => match result {
+                Ok(Ok(started)) => return Ok(started),
+                Ok(Err(error)) => error.to_string(),
+                Err(join_error) => format!("start task panicked: {join_error}"),
+            },
+            _ = tokio::time::sleep(attempt_timeout) => {
+                abort.abort();
+                format!("start timed out after {}ms", attempt_timeout.as_millis())
+            }
+            _ = cancel.changed() => {
+                abort.abort();
+                return Err(START_CANCELLED.to_owned());
+            }
+        };
+        if failure != last_failure {
             last_failure = failure;
         }
-        tokio::time::sleep(delay).await;
     }
+    Err(last_failure)
+}
+
+fn jittered_delay(base: Duration, jitter: Duration) -> Duration {
+    if jitter.is_zero() {
+        return base;
+    }
+    let span = jitter.as_nanos().min(u64::MAX as u128) as u64;
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .subsec_nanos() as u64;
+    base + Duration::from_nanos(nanos % (span + 1))
 }
 
 async fn start_engine(
@@ -465,13 +573,19 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn a_poisoned_camera_lock_does_not_break_later_camera_changes() {
-        let launcher = CallLauncher {
+    fn test_launcher() -> CallLauncher {
+        CallLauncher {
             engine: watch::channel(None).0,
+            state: watch::channel(LaunchState::Starting).0,
+            cancel: watch::channel(false).0,
             default_camera: Mutex::new(DeviceChoice::SystemDefault),
             default_mic: Mutex::new(MicSettings::default()),
-        };
+        }
+    }
+
+    #[test]
+    fn a_poisoned_camera_lock_does_not_break_later_camera_changes() {
+        let launcher = test_launcher();
         let camera = &launcher.default_camera;
         let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let _guard = camera.lock().unwrap();
@@ -495,6 +609,7 @@ mod tests {
             .unwrap();
         let attempts = Arc::new(AtomicU32::new(0));
         let counter = attempts.clone();
+        let (_sender, cancel) = watch::channel(false);
         let started = runtime.block_on(start_with_retry(
             move || {
                 let attempt = counter.fetch_add(1, Ordering::SeqCst);
@@ -506,11 +621,156 @@ mod tests {
                     }
                 }
             },
-            &[Duration::ZERO],
+            &[Duration::ZERO, Duration::ZERO],
+            Duration::from_secs(1),
             Duration::ZERO,
+            cancel,
         ));
-        assert_eq!(started, 2);
+        assert_eq!(started, Ok(2));
         assert_eq!(attempts.load(Ordering::SeqCst), 3);
+    }
+
+    #[tokio::test]
+    async fn engine_start_gives_up_after_the_last_attempt() {
+        let attempts = Arc::new(AtomicU32::new(0));
+        let counter = attempts.clone();
+        let (_sender, cancel) = watch::channel(false);
+        let outcome = start_with_retry(
+            move || {
+                counter.fetch_add(1, Ordering::SeqCst);
+                async { Err::<u32, _>("registrar_http_500".to_owned()) }
+            },
+            &[Duration::ZERO, Duration::ZERO],
+            Duration::from_secs(1),
+            Duration::ZERO,
+            cancel,
+        )
+        .await;
+        assert!(outcome.unwrap_err().contains("registrar_http_500"));
+        assert_eq!(attempts.load(Ordering::SeqCst), 3);
+    }
+
+    #[tokio::test]
+    async fn engine_start_stops_when_cancelled() {
+        let (sender, cancel) = watch::channel(false);
+        let attempts = Arc::new(AtomicU32::new(0));
+        let counter = attempts.clone();
+        let outcome = start_with_retry(
+            move || {
+                let first = counter.fetch_add(1, Ordering::SeqCst) == 0;
+                let sender = sender.clone();
+                async move {
+                    if first {
+                        let _ = sender.send(true);
+                    }
+                    Err::<u32, _>("registrar_http_500".to_owned())
+                }
+            },
+            &[Duration::from_secs(30)],
+            Duration::from_secs(1),
+            Duration::ZERO,
+            cancel,
+        )
+        .await;
+        assert_eq!(outcome, Err(START_CANCELLED.to_owned()));
+        assert_eq!(attempts.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn a_hanging_attempt_times_out() {
+        let (_sender, cancel) = watch::channel(false);
+        let outcome = start_with_retry(
+            || async { std::future::pending::<Result<u32, String>>().await },
+            &[],
+            Duration::from_millis(20),
+            Duration::ZERO,
+            cancel,
+        )
+        .await;
+        assert!(outcome.unwrap_err().contains("timed out"));
+    }
+
+    #[test]
+    fn jitter_stays_within_its_bound() {
+        let base = Duration::from_millis(10);
+        let jitter = Duration::from_millis(5);
+        for _ in 0..16 {
+            let delay = jittered_delay(base, jitter);
+            assert!(delay >= base && delay <= base + jitter);
+        }
+        assert_eq!(jittered_delay(base, Duration::ZERO), base);
+    }
+
+    #[test]
+    fn a_poisoned_mic_lock_does_not_break_later_mic_changes() {
+        let launcher = test_launcher();
+        let mic = &launcher.default_mic;
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = mic.lock().unwrap();
+            panic!("Poisoning the lock");
+        }));
+        let changed = MicSettings {
+            noise_suppression: calling::NoiseSuppression::Off,
+            music_mode: true,
+        };
+        launcher.set_default_mic(changed);
+        assert_eq!(
+            *launcher
+                .default_mic
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+            changed
+        );
+    }
+
+    struct AlwaysFailingTransport;
+
+    impl Transport for AlwaysFailingTransport {
+        fn check(&self) -> session::BoxFuture<'_, session::Result<()>> {
+            Box::pin(async { Err(session::Error::NoAppTab) })
+        }
+
+        fn open(
+            &self,
+            _app: session::App,
+            _with_events: bool,
+        ) -> session::BoxFuture<'_, session::Result<Option<session::OpenedTab>>> {
+            Box::pin(async { Err(session::Error::NoAppTab) })
+        }
+
+        fn wake(&self, _app: session::App) -> session::BoxFuture<'_, session::Result<()>> {
+            Box::pin(async { Err(session::Error::NoAppTab) })
+        }
+
+        fn diagnose(&self) -> session::BoxFuture<'_, session::Result<session::Diagnosis>> {
+            Box::pin(async { Err(session::Error::NoAppTab) })
+        }
+    }
+
+    #[tokio::test]
+    async fn a_transport_that_always_fails_reaches_a_terminal_state() {
+        let launcher = CallLauncher::start_with(
+            Arc::new(AlwaysFailingTransport),
+            false,
+            |_| {},
+            &[Duration::ZERO, Duration::ZERO],
+            Duration::from_secs(1),
+            Duration::ZERO,
+        );
+        let mut state = launcher.state.subscribe();
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while !matches!(&*state.borrow(), LaunchState::Failed(_)) {
+                state.changed().await.expect("launcher state stays open");
+            }
+        })
+        .await
+        .expect("start reaches a terminal state");
+        assert!(matches!(&*launcher.state.borrow(), LaunchState::Failed(_)));
+        assert!(
+            wait_until_ready(launcher.engine.subscribe(), Duration::from_millis(20))
+                .await
+                .is_none()
+        );
     }
 
     #[tokio::test]

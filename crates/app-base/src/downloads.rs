@@ -2,12 +2,16 @@ use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
+use std::time::{Duration, SystemTime};
 
 const FALLBACK_FILE_NAME: &str = "file";
 const PART_SUFFIX: &str = ".part";
+const PART_EXTENSION: &str = "part";
 const MAX_NAME_BYTES: usize = 255;
 const MAX_EXTENSION_BYTES: usize = 32;
-const DEMO_DIRECTORY: &str = "rusty-teams-demo";
+const STALE_PART_MAX_AGE: Duration = Duration::from_secs(60 * 60);
+const DEMO_DIRECTORY_PREFIX: &str = "rusty-teams-demo-";
 const DEMO_CONTENT: &[u8] = b"Rusty Teams demo file\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -238,8 +242,44 @@ pub fn downloads_directory() -> PathBuf {
     )
 }
 
+static DEMO_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
+    std::env::temp_dir().join(format!(
+        "{DEMO_DIRECTORY_PREFIX}{}",
+        crate::support::random_path_component()
+    ))
+});
+
 pub fn demo_directory() -> PathBuf {
-    std::env::temp_dir().join(DEMO_DIRECTORY)
+    DEMO_DIR.clone()
+}
+
+/// Remove `.part` files left by a crashed save. Recent parts are kept because
+/// another `PartFile` may still be writing them; symlinks are never followed.
+fn cleanup_stale_parts(directory: &Path, max_age: Duration) -> std::io::Result<usize> {
+    let now = SystemTime::now();
+    let mut removed = 0;
+    for entry in std::fs::read_dir(directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        let Ok(metadata) = std::fs::symlink_metadata(&path) else {
+            continue;
+        };
+        let file_type = metadata.file_type();
+        if file_type.is_symlink()
+            || !file_type.is_file()
+            || path.extension().and_then(|extension| extension.to_str()) != Some(PART_EXTENSION)
+        {
+            continue;
+        }
+        let Ok(modified) = metadata.modified() else {
+            continue;
+        };
+        let age = now.duration_since(modified).unwrap_or_default();
+        if age >= max_age && std::fs::remove_file(&path).is_ok() {
+            removed += 1;
+        }
+    }
+    Ok(removed)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -330,6 +370,9 @@ fn reserve_name(directory: &Path, file_name: &str) -> std::io::Result<(PathBuf, 
 impl PartFile {
     pub fn create(directory: &Path, file_name: &str) -> std::io::Result<Self> {
         std::fs::create_dir_all(directory)?;
+        if let Err(error) = cleanup_stale_parts(directory, STALE_PART_MAX_AGE) {
+            crate::diagnostics::record(format!("stale part cleanup failed: {error}"));
+        }
         let (target, file) = reserve_name(directory, &safe_file_name(file_name))?;
         Ok(PartFile {
             file: Some(file),
@@ -367,7 +410,12 @@ impl Drop for PartFile {
 }
 
 pub fn write_demo_file(file_name: &str) -> std::io::Result<PathBuf> {
-    let mut part = PartFile::create(&demo_directory(), file_name)?;
+    write_demo_file_in(&demo_directory(), file_name)
+}
+
+fn write_demo_file_in(directory: &Path, file_name: &str) -> std::io::Result<PathBuf> {
+    crate::support::ensure_private_dir(directory)?;
+    let mut part = PartFile::create(directory, file_name)?;
     part.write(DEMO_CONTENT)?;
     part.finish()
 }
@@ -666,5 +714,47 @@ mod tests {
             std::fs::read(directory.path().join("a.txt")).unwrap(),
             b"old"
         );
+    }
+
+    #[test]
+    fn demo_directory_has_a_random_component() {
+        let directory = demo_directory();
+        let name = directory.file_name().unwrap().to_string_lossy();
+        assert!(name.starts_with(DEMO_DIRECTORY_PREFIX));
+        let token = &name[DEMO_DIRECTORY_PREFIX.len()..];
+        assert_eq!(token.len(), 16);
+        assert!(token.bytes().all(|byte| byte.is_ascii_hexdigit()));
+        assert_eq!(directory, demo_directory());
+    }
+
+    #[test]
+    fn stale_parts_are_removed_but_recent_parts_are_kept() {
+        let root = tempfile::tempdir().unwrap();
+        let stale = root.path().join("old.txt.part");
+        let recent = root.path().join("new.txt.part");
+        std::fs::write(&stale, b"old").unwrap();
+        std::fs::write(&recent, b"new").unwrap();
+        assert_eq!(
+            cleanup_stale_parts(root.path(), Duration::from_secs(60 * 60)).unwrap(),
+            0
+        );
+        assert_eq!(cleanup_stale_parts(root.path(), Duration::ZERO).unwrap(), 2);
+        assert!(!stale.exists());
+        assert!(!recent.exists());
+    }
+
+    #[test]
+    fn demo_file_writes_to_a_private_directory() {
+        let root = tempfile::tempdir().unwrap();
+        let directory = root.path().join("demo");
+        let path = write_demo_file_in(&directory, "demo.txt").unwrap();
+        assert_eq!(path, directory.join("demo.txt"));
+        assert_eq!(std::fs::read(&path).unwrap(), DEMO_CONTENT);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            let mode = std::fs::metadata(&directory).unwrap().permissions().mode();
+            assert_eq!(mode & 0o777, 0o700);
+        }
     }
 }

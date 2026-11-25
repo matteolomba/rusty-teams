@@ -8,6 +8,14 @@ use crate::devices::DeviceChoice;
 use crate::error::{Error, Result};
 use crate::pcm::{MonoResampler, SampleQueue};
 
+#[cfg(any(windows, test))]
+const ALL_APPS_LOOPBACK_ENV: &str = "CALLING_LOOPBACK_ALL_APPS";
+
+#[cfg(any(windows, test))]
+fn all_apps_loopback_allowed(value: Option<&str>) -> bool {
+    matches!(value, Some("1") | Some("true"))
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LoopbackKind {
     ProcessExclude,
@@ -150,6 +158,11 @@ pub fn start_loopback(queue: SampleQueue) -> Result<LoopbackStart> {
             warning: None,
         }),
         Err(error) => {
+            if !all_apps_loopback_allowed(std::env::var(ALL_APPS_LOOPBACK_ENV).ok().as_deref()) {
+                return Err(Error::Audio(format!(
+                    "process loopback unavailable ({error}); all-app loopback is disabled"
+                )));
+            }
             let capture = start_endpoint_loopback(queue)?;
             Ok(LoopbackStart {
                 capture,
@@ -303,7 +316,7 @@ fn build_stream(
 
 #[cfg(test)]
 mod tests {
-    use super::capture_name_matches;
+    use super::{all_apps_loopback_allowed, capture_name_matches};
 
     #[test]
     fn a_named_microphone_matches_the_listed_name() {
@@ -330,5 +343,14 @@ mod tests {
                 "Jabra Speak 750 Mono"
             ));
         }
+    }
+
+    #[test]
+    fn all_app_loopback_is_off_unless_explicitly_enabled() {
+        assert!(!all_apps_loopback_allowed(None));
+        assert!(!all_apps_loopback_allowed(Some("")));
+        assert!(!all_apps_loopback_allowed(Some("0")));
+        assert!(all_apps_loopback_allowed(Some("1")));
+        assert!(all_apps_loopback_allowed(Some("true")));
     }
 }

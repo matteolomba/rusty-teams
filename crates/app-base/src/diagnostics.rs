@@ -13,6 +13,27 @@ const RING_SLOTS: u32 = 2;
 const MERGE_CAP_BYTES: u64 = 1024 * 1024;
 const SLOW_UI_HANDLER: std::time::Duration = std::time::Duration::from_millis(30);
 
+const REDACTED_IP: &str = "[ip]";
+const REDACTED_ID: &str = "[id]";
+const MIN_HEX_ID_BYTES: usize = 16;
+const LONG_HEX_ID_BYTES: usize = 32;
+const ID_KEY_MARKERS: [&str; 14] = [
+    "tenant_id",
+    "tenant-id",
+    "conversation_id",
+    "conversation-id",
+    "user_id",
+    "user-id",
+    "account_id",
+    "account-id",
+    "chat_id",
+    "chat-id",
+    "room_id",
+    "room-id",
+    "call_id",
+    "call-id",
+];
+
 static PATH: OnceLock<PathBuf> = OnceLock::new();
 static ENABLED: AtomicBool = AtomicBool::new(false);
 
@@ -82,19 +103,211 @@ pub fn record_if_slow(label: &str, elapsed: std::time::Duration) {
 }
 
 pub fn record(message: impl AsRef<str>) {
-    let message = message.as_ref();
-    eprintln!("{message}");
     let Some(path) = PATH.get() else {
         return;
     };
+    write_line(path, is_enabled(), message.as_ref());
+}
+
+/// Single write boundary: while diagnostics are off nothing is printed or
+/// persisted, and every line is redacted before it reaches stderr or the file.
+fn write_line(path: &Path, enabled: bool, message: &str) {
+    if !enabled {
+        return;
+    }
+    let line = redact(message);
+    eprintln!("{line}");
     if let Err(error) = append_rotated(
         path,
         MAX_BYTES,
         RING_SLOTS,
-        &format!("{} {message}\n", line_prefix()),
+        &format!("{} {line}\n", line_prefix()),
     ) {
         eprintln!("diagnostics write failed: {error}");
     }
+}
+
+/// Mask addresses and identifiers at write time so no caller can persist a raw
+/// remote payload, including WebRTC ICE lines from `libwebrtc`.
+fn redact(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        if let Some((value_start, value_end)) = named_id_value(bytes, index) {
+            out.push_str(&text[index..value_start]);
+            out.push_str(REDACTED_ID);
+            index = value_end;
+            continue;
+        }
+        if let Some(end) = uuid_end(bytes, index) {
+            out.push_str(REDACTED_ID);
+            index = end;
+            continue;
+        }
+        if let Some(end) = ipv6_end(bytes, index) {
+            out.push_str(REDACTED_IP);
+            index = end;
+            continue;
+        }
+        if let Some(end) = ipv4_end(bytes, index) {
+            out.push_str(REDACTED_IP);
+            index = end;
+            continue;
+        }
+        if let Some(end) = long_hex_end(bytes, index) {
+            out.push_str(REDACTED_ID);
+            index = end;
+            continue;
+        }
+        let Some(character) = text[index..].chars().next() else {
+            break;
+        };
+        out.push(character);
+        index += character.len_utf8();
+    }
+    out
+}
+
+fn named_id_value(bytes: &[u8], index: usize) -> Option<(usize, usize)> {
+    let marker = ID_KEY_MARKERS
+        .iter()
+        .find(|marker| bytes[index..].starts_with(marker.as_bytes()))?;
+    let mut cursor = index + marker.len();
+    while bytes.get(cursor).is_some_and(u8::is_ascii_whitespace) {
+        cursor += 1;
+    }
+    if matches!(bytes.get(cursor), Some(b'"' | b'\'')) {
+        cursor += 1;
+    }
+    if !matches!(bytes.get(cursor), Some(b':' | b'=')) {
+        return None;
+    }
+    cursor += 1;
+    while bytes.get(cursor).is_some_and(u8::is_ascii_whitespace) {
+        cursor += 1;
+    }
+    if matches!(bytes.get(cursor), Some(b'"' | b'\'')) {
+        cursor += 1;
+    }
+    let value_start = cursor;
+    while bytes.get(cursor).is_some_and(|byte| {
+        byte.is_ascii_alphanumeric()
+            || matches!(byte, b'-' | b'_' | b'.' | b'@' | b'+' | b'/' | b'=')
+    }) {
+        cursor += 1;
+    }
+    (cursor > value_start).then_some((value_start, cursor))
+}
+
+fn uuid_end(bytes: &[u8], index: usize) -> Option<usize> {
+    const GROUPS: [usize; 5] = [8, 4, 4, 4, 12];
+    let mut cursor = index;
+    for (position, length) in GROUPS.iter().enumerate() {
+        if position > 0 && bytes.get(cursor) != Some(&b'-') {
+            return None;
+        }
+        if position > 0 {
+            cursor += 1;
+        }
+        let end = cursor + length;
+        if end > bytes.len() || !bytes[cursor..end].iter().all(u8::is_ascii_hexdigit) {
+            return None;
+        }
+        cursor = end;
+    }
+    if bytes.get(cursor).is_some_and(u8::is_ascii_hexdigit) || bytes.get(cursor) == Some(&b'-') {
+        return None;
+    }
+    Some(cursor)
+}
+
+fn ipv4_end(bytes: &[u8], index: usize) -> Option<usize> {
+    if index > 0 && matches!(bytes[index - 1], b'0'..=b'9' | b'.') {
+        return None;
+    }
+    let mut cursor = index;
+    for octet in 0..4 {
+        if octet > 0 && bytes.get(cursor) != Some(&b'.') {
+            return None;
+        }
+        if octet > 0 {
+            cursor += 1;
+        }
+        let start = cursor;
+        while bytes.get(cursor).is_some_and(u8::is_ascii_digit) && cursor - start < 3 {
+            cursor += 1;
+        }
+        if cursor == start {
+            return None;
+        }
+        let value = bytes[start..cursor]
+            .iter()
+            .fold(0u16, |value, digit| value * 10 + u16::from(*digit - b'0'));
+        if value > 255 {
+            return None;
+        }
+    }
+    if bytes.get(cursor).is_some_and(u8::is_ascii_digit) || bytes.get(cursor) == Some(&b'.') {
+        return None;
+    }
+    Some(cursor)
+}
+
+fn ipv6_end(bytes: &[u8], index: usize) -> Option<usize> {
+    if index > 0 && (bytes[index - 1].is_ascii_hexdigit() || bytes[index - 1] == b':') {
+        return None;
+    }
+    let mut cursor = index;
+    let mut groups = 0usize;
+    let mut colons = 0usize;
+    let mut double_colon = false;
+    let mut distinctive = false;
+    while let Some(byte) = bytes.get(cursor) {
+        if byte.is_ascii_hexdigit() {
+            let start = cursor;
+            while bytes.get(cursor).is_some_and(u8::is_ascii_hexdigit) {
+                cursor += 1;
+            }
+            groups += 1;
+            if cursor - start != 2 || bytes[start..cursor].iter().any(u8::is_ascii_alphabetic) {
+                distinctive = true;
+            }
+            continue;
+        }
+        if *byte == b':' {
+            if bytes.get(cursor + 1) == Some(&b':') {
+                double_colon = true;
+            }
+            colons += 1;
+            cursor += 1;
+            continue;
+        }
+        break;
+    }
+    if colons < 2 || groups < 2 || (!double_colon && !distinctive) {
+        return None;
+    }
+    if bytes.get(cursor) == Some(&b':') {
+        return None;
+    }
+    Some(cursor)
+}
+
+fn long_hex_end(bytes: &[u8], index: usize) -> Option<usize> {
+    if !bytes.get(index).is_some_and(u8::is_ascii_hexdigit) {
+        return None;
+    }
+    if index > 0 && bytes[index - 1].is_ascii_hexdigit() {
+        return None;
+    }
+    let mut cursor = index;
+    while bytes.get(cursor).is_some_and(u8::is_ascii_hexdigit) {
+        cursor += 1;
+    }
+    let length = cursor - index;
+    let has_letter = bytes[index..cursor].iter().any(u8::is_ascii_alphabetic);
+    (length >= MIN_HEX_ID_BYTES && (has_letter || length >= LONG_HEX_ID_BYTES)).then_some(cursor)
 }
 
 /// Chronological merge of rotated slots then current (capped), for support packages.
@@ -216,12 +429,12 @@ struct DiagnosticsLog;
 
 impl log::Log for DiagnosticsLog {
     fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
+        if !is_enabled() {
+            return false;
+        }
         let target = metadata.target();
         if target == "libwebrtc" {
             return true;
-        }
-        if !is_enabled() {
-            return false;
         }
         if is_own_crate(target) {
             return metadata.level() <= log::Level::Info;
@@ -282,7 +495,11 @@ fn is_endpoint_dump(text: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use log::Log;
+    use std::sync::Mutex;
     use tempfile::tempdir;
+
+    static TEST_ENABLED_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn audio_lines_are_kept_and_endpoint_dumps_and_noise_are_skipped() {
@@ -326,6 +543,7 @@ mod tests {
 
     #[test]
     fn enabled_gate_defaults_and_toggles() {
+        let _guard = TEST_ENABLED_LOCK.lock().unwrap();
         set_enabled(false);
         assert!(!is_enabled());
         set_enabled(true);
@@ -354,5 +572,51 @@ mod tests {
         assert!(is_own_crate("state::notice"));
         assert!(is_own_crate("app_base::diagnostics"));
         assert!(!is_own_crate("hyper::client"));
+    }
+
+    #[test]
+    fn webrtc_logging_is_gated_by_the_setting() {
+        let _guard = TEST_ENABLED_LOCK.lock().unwrap();
+        let metadata = log::Metadata::builder()
+            .level(log::Level::Warn)
+            .target("libwebrtc")
+            .build();
+        set_enabled(false);
+        assert!(!DiagnosticsLog.enabled(&metadata));
+        set_enabled(true);
+        assert!(DiagnosticsLog.enabled(&metadata));
+        set_enabled(false);
+    }
+
+    #[test]
+    fn redaction_masks_addresses_and_identifiers() {
+        let line = redact(
+            "ICE 10.0.0.1:3478 fe80::1 tenant_id=abc-123 conversation-id: 00000000-0000-0000-0000-000000000001 token=0123456789abcdef0123456789abcdef",
+        );
+        assert!(line.contains(REDACTED_IP));
+        assert!(line.contains(REDACTED_ID));
+        assert!(!line.contains("10.0.0.1"));
+        assert!(!line.contains("fe80::1"));
+        assert!(!line.contains("abc-123"));
+        assert!(!line.contains("00000000-0000-0000-0000-000000000001"));
+        assert!(!line.contains("0123456789abcdef0123456789abcdef"));
+        assert_eq!(redact(&line), line);
+        assert_eq!(redact("2026-11-24T12:34:56Z"), "2026-11-24T12:34:56Z");
+    }
+
+    #[test]
+    fn disabled_lines_are_not_written() {
+        let root = tempdir().unwrap();
+        let path = root.path().join(DIAGNOSTICS_FILE);
+        let ice = "webrtc: ICE failed for 192.168.1.10 tenant_id=abc123";
+        write_line(&path, false, ice);
+        assert!(!path.exists());
+        write_line(&path, true, ice);
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.contains("webrtc: ICE failed"));
+        assert!(text.contains(REDACTED_IP));
+        assert!(text.contains(REDACTED_ID));
+        assert!(!text.contains("192.168.1.10"));
+        assert!(!text.contains("abc123"));
     }
 }

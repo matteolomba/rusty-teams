@@ -28,6 +28,8 @@ const FRAME_PERIOD: Duration = Duration::from_millis(10);
 const MAX_LAG: Duration = Duration::from_millis(100);
 const SYSTEM_TONE_HZ: f32 = 660.0;
 const SYNTHETIC_AMPLITUDE: f32 = 0.3;
+const SHUTDOWN_WAIT: Duration = Duration::from_millis(250);
+const SHUTDOWN_POLL: Duration = Duration::from_millis(1);
 
 enum FrameSource {
     Captured(SampleQueue),
@@ -61,6 +63,7 @@ struct Feeder {
     far_end: SampleQueue,
     microphone_muted: Arc<AtomicBool>,
     running: Arc<AtomicBool>,
+    done: Arc<AtomicBool>,
 }
 
 impl Feeder {
@@ -109,6 +112,7 @@ impl Feeder {
                 Some(Err(_)) | None => break,
             }
         }
+        self.done.store(true, Ordering::SeqCst);
     }
 }
 
@@ -127,6 +131,7 @@ pub struct SoftwareAudio {
     pub microphone_notice: Option<&'static str>,
     microphone_muted: Arc<AtomicBool>,
     running: Arc<AtomicBool>,
+    feeder_done: Arc<AtomicBool>,
     feeder: Option<std::thread::JoinHandle<()>>,
     far_end_task: Option<JoinHandle<()>>,
     captures: Vec<Capture>,
@@ -239,6 +244,7 @@ impl SoftwareAudio {
         let track = factory.create_audio_track("microphone", source.clone());
         let far_end = SampleQueue::default();
         let running = Arc::new(AtomicBool::new(true));
+        let feeder_done = Arc::new(AtomicBool::new(false));
         let far_end_task = remote
             .map(|remote| tokio::spawn(feed_far_end(remote, far_end.clone(), running.clone())));
         let microphone_muted = Arc::new(AtomicBool::new(microphone_muted));
@@ -251,6 +257,7 @@ impl SoftwareAudio {
             far_end,
             microphone_muted: microphone_muted.clone(),
             running: running.clone(),
+            done: feeder_done.clone(),
         };
         let thread = std::thread::Builder::new()
             .name("share-audio".into())
@@ -265,6 +272,7 @@ impl SoftwareAudio {
             microphone_notice,
             microphone_muted,
             running,
+            feeder_done: feeder_done.clone(),
             feeder: Some(thread),
             far_end_task,
             captures,
@@ -283,12 +291,25 @@ impl SoftwareAudio {
 
 impl Drop for SoftwareAudio {
     fn drop(&mut self) {
-        // Signal stop so the far-end task closes its WebRTC sink on its own thread, then detach both
-        // workers. Joining the feeder on a Tokio worker used to hang when capture_frame waited on a
-        // drained queue; aborting the far-end mid-OnData raced with remove_sink.
+        // Signal stop so the far-end task closes its WebRTC sink on its own thread, then give both
+        // workers a bounded chance to finish. Joining an unfinished feeder on a Tokio worker used
+        // to hang when capture_frame waited on a drained queue; aborting the far-end mid-OnData
+        // raced with remove_sink, so only completed workers are joined.
         self.running.store(false, Ordering::SeqCst);
-        drop(self.far_end_task.take());
-        drop(self.feeder.take());
+        let far_end_finished = || {
+            self.far_end_task
+                .as_ref()
+                .is_none_or(|task| task.is_finished())
+        };
+        wait_for_shutdown(SHUTDOWN_WAIT, &self.feeder_done, far_end_finished);
+        if let Some(task) = self.far_end_task.take() {
+            task.abort();
+        }
+        if let Some(feeder) = self.feeder.take()
+            && self.feeder_done.load(Ordering::SeqCst)
+        {
+            let _ = feeder.join();
+        }
     }
 }
 
@@ -310,6 +331,24 @@ async fn feed_far_end(remote: RtcAudioTrack, queue: SampleQueue, running: Arc<At
 async fn wait_stopped(running: &AtomicBool) {
     while running.load(Ordering::SeqCst) {
         tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+}
+
+/// Waits up to `limit` for both workers to acknowledge the stop signal.
+fn wait_for_shutdown(
+    limit: Duration,
+    feeder_done: &AtomicBool,
+    far_end_finished: impl Fn() -> bool,
+) -> bool {
+    let deadline = Instant::now() + limit;
+    loop {
+        if feeder_done.load(Ordering::SeqCst) && far_end_finished() {
+            return true;
+        }
+        if Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(SHUTDOWN_POLL);
     }
 }
 
@@ -432,5 +471,23 @@ mod tests {
         assert_eq!(audio.loopback, None);
         tokio::time::sleep(Duration::from_millis(60)).await;
         drop(audio);
+    }
+
+    #[test]
+    fn shutdown_wait_returns_once_both_workers_are_done() {
+        let done = AtomicBool::new(true);
+        assert!(wait_for_shutdown(Duration::from_millis(20), &done, || true));
+        done.store(false, Ordering::SeqCst);
+        assert!(!wait_for_shutdown(Duration::from_millis(20), &done, || {
+            true
+        }));
+    }
+
+    #[test]
+    fn shutdown_wait_respects_the_deadline_for_a_stuck_worker() {
+        let done = AtomicBool::new(false);
+        assert!(!wait_for_shutdown(Duration::from_millis(20), &done, || {
+            false
+        }));
     }
 }

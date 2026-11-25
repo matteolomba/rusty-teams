@@ -19,10 +19,11 @@ fn capture_post_process(channel_index: usize, samples: &mut [f32]) {
     };
     // C++ calls this on the capture thread: a panic crossing the bridge aborts the whole app, so a
     // failing hook is dropped and the samples go out unprocessed instead.
-    let ran = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+    let ran = crate::helper::guard_callback_with("capture_post_process", false, || {
         hook(channel_index, samples);
-    }));
-    if ran.is_err() {
+        true
+    });
+    if !ran {
         set_capture_hook(None);
     }
 }

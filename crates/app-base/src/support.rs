@@ -1,4 +1,9 @@
+use std::collections::hash_map::RandomState;
+use std::hash::BuildHasher;
+use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::diagnostics;
 use crate::version;
@@ -10,6 +15,9 @@ pub const CRASH_LOG_FILE: &str = "crash.log";
 
 /// Upstream tracker — fork mirror has Issues disabled.
 pub const GITHUB_ISSUES_NEW: &str = "https://github.com/danieldaeschle/rusty-teams/issues/new";
+
+const RANDOM_COMPONENT_HEX_DIGITS: usize = 16;
+static RANDOM_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Runtime facts for Help, `client.md`, clipboard, and issue drafts. English keys only.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -249,16 +257,19 @@ pub fn list_bundle_files(bundle: &Path) -> std::io::Result<Vec<BundleFileEntry>>
 
 /// Remove one support package directory. Refuses paths outside `parent` when provided.
 pub fn delete_support_bundle(bundle: &Path, parent: Option<&Path>) -> std::io::Result<()> {
+    reject_symlink(bundle)?;
     if let Some(parent) = parent {
-        let canonical_parent = parent
-            .canonicalize()
-            .unwrap_or_else(|_| parent.to_path_buf());
-        let canonical_bundle = bundle
-            .canonicalize()
-            .unwrap_or_else(|_| bundle.to_path_buf());
+        // Fail closed: a canonicalization error must never turn into a raw path
+        // comparison that lets a caller escape the parent directory.
+        let canonical_parent = parent.canonicalize()?;
+        let canonical_bundle = match bundle.canonicalize() {
+            Ok(path) => path,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error),
+        };
         if !canonical_bundle.starts_with(&canonical_parent) {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
                 "bundle path is outside the support-bundles directory",
             ));
         }
@@ -271,6 +282,48 @@ pub fn delete_support_bundle(bundle: &Path, parent: Option<&Path>) -> std::io::R
 
 pub fn ensure_dir(path: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(path)
+}
+
+/// Refuse a symbolic link at the final path component. Callers use this before
+/// creating or removing diagnostic files so a pre-planted link cannot redirect
+/// either operation.
+pub(crate) fn reject_symlink(path: &Path) -> io::Result<()> {
+    match std::fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_symlink() => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "symbolic links are not allowed for diagnostic paths",
+        )),
+        Ok(_) => Ok(()),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+/// Create a diagnostic directory and restrict it to its owner on Unix. Windows
+/// inherits the owner-only ACL of the application data root (ADR 0023).
+pub(crate) fn ensure_private_dir(path: &Path) -> io::Result<()> {
+    reject_symlink(path)?;
+    std::fs::create_dir_all(path)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700))?;
+    }
+    Ok(())
+}
+
+/// Unpredictable, filesystem-safe name component. It is not a secret; it stops
+/// another process from pre-creating a guessed dump or demo path.
+pub(crate) fn random_path_component() -> String {
+    let seed = RandomState::new().hash_one((
+        std::process::id(),
+        RANDOM_COUNTER.fetch_add(1, Ordering::Relaxed),
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|elapsed| elapsed.as_nanos())
+            .unwrap_or_default(),
+    ));
+    format!("{:0width$x}", seed, width = RANDOM_COMPONENT_HEX_DIGITS)
 }
 
 pub fn format_bytes(size: u64) -> String {
@@ -506,5 +559,44 @@ mod tests {
         std::fs::create_dir_all(&outside).unwrap();
         assert!(delete_support_bundle(&outside, Some(&bundles)).is_err());
         assert!(outside.exists());
+    }
+
+    #[test]
+    fn random_path_components_are_distinct_and_safe() {
+        let first = random_path_component();
+        let second = random_path_component();
+        assert_ne!(first, second);
+        assert_eq!(first.len(), RANDOM_COMPONENT_HEX_DIGITS);
+        assert!(first.bytes().all(|byte| byte.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn private_directory_is_owner_only() {
+        let root = tempfile::tempdir().unwrap();
+        let directory = root.path().join("private");
+        ensure_private_dir(&directory).unwrap();
+        assert!(directory.is_dir());
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            let mode = std::fs::metadata(&directory).unwrap().permissions().mode();
+            assert_eq!(mode & 0o777, 0o700);
+        }
+    }
+
+    #[test]
+    fn delete_refuses_symlinked_bundle() {
+        #[cfg(unix)]
+        {
+            let root = tempfile::tempdir().unwrap();
+            let bundles = root.path().join(SUPPORT_BUNDLES_DIR);
+            let outside = root.path().join("outside");
+            std::fs::create_dir_all(&bundles).unwrap();
+            std::fs::create_dir_all(&outside).unwrap();
+            let link = bundles.join("support-link");
+            std::os::unix::fs::symlink(&outside, &link).unwrap();
+            assert!(delete_support_bundle(&link, Some(&bundles)).is_err());
+            assert!(outside.is_dir());
+        }
     }
 }

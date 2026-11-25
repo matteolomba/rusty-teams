@@ -28,13 +28,16 @@ pub(super) fn gathering_settled(complete: bool, since_udp_relay: Option<Duration
     complete || since_udp_relay.is_some_and(|since| since >= RELAY_SETTLE)
 }
 
+/// ICE callbacks run on WebRTC threads: a poisoned lock must not turn into a panic there.
+fn lock<T>(mutex: &std::sync::Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 impl Gathered {
     pub(super) fn settled(&self) -> bool {
-        let since_udp_relay = self
-            .relay_seen_at
-            .lock()
-            .expect("relay time lock")
-            .map(|at| at.elapsed());
+        let since_udp_relay = lock(&self.relay_seen_at).map(|at| at.elapsed());
         gathering_settled(self.complete.load(Ordering::SeqCst), since_udp_relay)
     }
 
@@ -46,11 +49,11 @@ impl Gathered {
         self.complete.store(true, Ordering::SeqCst);
         self.waited_ms
             .store(waited.elapsed().as_millis() as u64, Ordering::SeqCst);
-        self.candidates.lock().expect("candidates lock").clone()
+        lock(&self.candidates).clone()
     }
 
     pub(super) fn summary(&self) -> String {
-        let count = self.candidates.lock().expect("candidates lock").len();
+        let count = lock(&self.candidates).len();
         format!(
             "{count} candidate(s) after {} ms",
             self.waited_ms.load(Ordering::SeqCst)
@@ -138,39 +141,51 @@ pub(super) fn open_peer(
     let candidate_sink = gathered.candidates.clone();
     let relay_seen_at = gathered.relay_seen_at.clone();
     peer.on_ice_candidate(Some(Box::new(move |candidate| {
-        if candidate.sdp_mline_index() == 0 {
-            let text = candidate.candidate();
-            if is_udp_relay(&text) {
-                relay_seen_at
-                    .lock()
-                    .expect("relay time lock")
-                    .get_or_insert_with(Instant::now);
+        webrtc_sys::helper::guard_callback("PeerConnection::on_ice_candidate", || {
+            if candidate.sdp_mline_index() == 0 {
+                let text = candidate.candidate();
+                if is_udp_relay(&text) {
+                    lock(&relay_seen_at).get_or_insert_with(Instant::now);
+                }
+                lock(&candidate_sink).push(text);
             }
-            candidate_sink.lock().expect("candidates lock").push(text);
-        }
+        });
     })));
     let gathering_done = gathered.complete.clone();
-    peer.on_ice_gathering_state_change(Some(Box::new(move |state| match state {
-        IceGatheringState::Complete => gathering_done.store(true, Ordering::SeqCst),
-        IceGatheringState::Gathering => gathering_done.store(false, Ordering::SeqCst),
-        IceGatheringState::New => {}
+    peer.on_ice_gathering_state_change(Some(Box::new(move |state| {
+        webrtc_sys::helper::guard_callback("PeerConnection::on_ice_gathering_state_change", || {
+            match state {
+                IceGatheringState::Complete => gathering_done.store(true, Ordering::SeqCst),
+                IceGatheringState::Gathering => gathering_done.store(false, Ordering::SeqCst),
+                IceGatheringState::New => {}
+            }
+        });
     })));
     let ice_sender = sender.clone();
     peer.on_ice_connection_state_change(Some(Box::new(move |state| {
-        let _ = ice_sender.send(PeerEvent::Ice(state));
+        webrtc_sys::helper::guard_callback(
+            "PeerConnection::on_ice_connection_state_change",
+            || {
+                let _ = ice_sender.send(PeerEvent::Ice(state));
+            },
+        );
     })));
     let connection_sender = sender.clone();
     peer.on_connection_state_change(Some(Box::new(move |state| {
-        let _ = connection_sender.send(PeerEvent::Connection(state));
+        webrtc_sys::helper::guard_callback("PeerConnection::on_connection_state_change", || {
+            let _ = connection_sender.send(PeerEvent::Connection(state));
+        });
     })));
-    peer.on_track(Some(Box::new(move |event| match event.track {
-        MediaStreamTrack::Audio(track) => {
-            let _ = sender.send(PeerEvent::Track(track));
-        }
-        MediaStreamTrack::Video(track) => {
-            let mid = event.transceiver.mid().unwrap_or_default();
-            let _ = sender.send(PeerEvent::VideoTrack { mid, track });
-        }
+    peer.on_track(Some(Box::new(move |event| {
+        webrtc_sys::helper::guard_callback("PeerConnection::on_track", || match event.track {
+            MediaStreamTrack::Audio(track) => {
+                let _ = sender.send(PeerEvent::Track(track));
+            }
+            MediaStreamTrack::Video(track) => {
+                let mid = event.transceiver.mid().unwrap_or_default();
+                let _ = sender.send(PeerEvent::VideoTrack { mid, track });
+            }
+        });
     })));
     Ok(PeerSession {
         peer,
@@ -813,5 +828,40 @@ pub(super) fn mask_address(token: &str) -> String {
         "<addr>".to_owned()
     } else {
         token.to_owned()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn poison<T: Send + 'static>(mutex: Arc<std::sync::Mutex<T>>) {
+        let thread_mutex = mutex.clone();
+        let _ = std::thread::spawn(move || {
+            let _guard = thread_mutex.lock().unwrap();
+            panic!("poison the gathering lock");
+        })
+        .join();
+    }
+
+    #[test]
+    fn a_poisoned_candidate_lock_still_returns_its_contents() {
+        let candidates = Arc::new(std::sync::Mutex::new(vec!["candidate".to_owned()]));
+        poison(candidates.clone());
+        assert!(candidates.is_poisoned());
+        assert_eq!(
+            lock(&candidates).first().map(String::as_str),
+            Some("candidate")
+        );
+        lock(&candidates).push("second".to_owned());
+        assert_eq!(lock(&candidates).len(), 2);
+    }
+
+    #[test]
+    fn gathering_summary_survives_a_poisoned_lock() {
+        let gathered = Gathered::default();
+        poison(gathered.candidates.clone());
+        assert_eq!(gathered.summary(), "0 candidate(s) after 0 ms");
+        assert!(!gathered.settled());
     }
 }

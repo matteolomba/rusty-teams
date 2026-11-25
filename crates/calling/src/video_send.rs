@@ -218,6 +218,12 @@ pub struct LocalVideo {
     camera_bitrate_cap: Option<u64>,
 }
 
+fn record_detach_error(error: impl std::fmt::Display, label: &str, timeline: Option<&Timeline>) {
+    if let Some(timeline) = timeline {
+        timeline.record("video track not detached", format!("{label}: {error}"));
+    }
+}
+
 impl LocalVideo {
     pub fn new(
         factory: &PeerConnectionFactory,
@@ -478,12 +484,18 @@ impl LocalVideo {
         self.lines.is_some()
     }
 
+    fn detach_track(&self, sender: &RtpSender, label: &str) {
+        if let Err(error) = sender.set_track(None) {
+            record_detach_error(error, label, self.timeline.as_ref());
+        }
+    }
+
     pub fn clear_lines(&mut self) {
         if let Some(lines) = self.lines.take() {
-            let _ = lines.camera.sender().set_track(None);
+            self.detach_track(&lines.camera.sender(), "camera");
             let _ = Self::set_active(&lines.camera.sender(), false);
             if let Some(share) = lines.share {
-                let _ = share.sender().set_track(None);
+                self.detach_track(&share.sender(), "share");
                 let _ = Self::set_active(&share.sender(), false);
             }
         }
@@ -1011,5 +1023,16 @@ mod tests {
         assert_eq!(VideoMode::parse(Some("Pattern")), VideoMode::Pattern);
         assert_eq!(VideoMode::parse(Some("off")), VideoMode::Off);
         assert_eq!(VideoMode::parse(Some("whatever")), VideoMode::Platform);
+    }
+
+    #[test]
+    fn detach_failures_are_recorded_when_a_timeline_is_attached() {
+        let timeline = Timeline::new(false);
+        record_detach_error("bad sender", "camera", Some(&timeline));
+        record_detach_error("bad sender", "share", None);
+        let entries = timeline.entries();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].label, "video track not detached");
+        assert_eq!(entries[0].detail, "camera: bad sender");
     }
 }

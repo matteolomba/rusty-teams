@@ -15,7 +15,6 @@
 #[cfg(target_os = "android")]
 pub mod android;
 pub mod apm;
-pub mod noise_hook;
 pub mod audio_device_controller;
 pub mod audio_mixer;
 pub mod audio_resampler;
@@ -24,11 +23,11 @@ pub mod candidate;
 pub mod data_channel;
 #[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
 pub mod desktop_capturer;
-pub mod frame_cryptor;
 pub mod helper;
 pub mod jsep;
 pub mod media_stream;
 pub mod media_stream_track;
+pub mod noise_hook;
 pub mod packet_trailer;
 pub mod peer_connection;
 pub mod peer_connection_factory;

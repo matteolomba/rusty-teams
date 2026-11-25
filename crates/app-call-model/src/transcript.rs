@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 const RECENT_WINDOW: usize = 16;
-
+const MAX_ENTRIES: usize = 200;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TranscriptEntry {
     pub id: String,
@@ -29,8 +29,10 @@ impl Transcript {
             }
             None => self.entries.push(entry),
         }
+        if self.entries.len() > MAX_ENTRIES {
+            self.entries.drain(..self.entries.len() - MAX_ENTRIES);
+        }
     }
-
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
@@ -121,5 +123,22 @@ mod tests {
         assert_eq!(clock_label(Duration::from_secs(5)), "00:05");
         assert_eq!(clock_label(Duration::from_secs(75)), "01:15");
         assert_eq!(clock_label(Duration::from_secs(4_503)), "75:03");
+    }
+
+    #[test]
+    fn the_transcript_keeps_only_the_most_recent_entries() {
+        let mut transcript = Transcript::default();
+        for index in 0..MAX_ENTRIES + 25 {
+            transcript.note(entry(
+                &format!("e{index}"),
+                "Ana Example",
+                "hi",
+                index as u64,
+            ));
+        }
+        let entries = transcript.filtered("");
+        assert_eq!(entries.len(), MAX_ENTRIES);
+        assert_eq!(entries[0].id, "e25");
+        assert_eq!(entries[MAX_ENTRIES - 1].id, "e224");
     }
 }

@@ -14,6 +14,13 @@ pub fn needs_join_first(accounts: &CalendarAccounts) -> bool {
         .any(|target| target.provider != CalendarProvider::Outlook)
 }
 
+/// A created meeting plus the user-facing notice when only some calendars accepted it.
+#[derive(Debug)]
+pub struct CreateOutcome {
+    pub event: CreatedEvent,
+    pub notice: Option<String>,
+}
+
 /// Write targets used for New meeting (home + extras, de-duplicated).
 pub fn create_targets(accounts: &CalendarAccounts) -> Vec<CalendarRef> {
     accounts.resolved_write_targets()
@@ -32,12 +39,19 @@ pub async fn create_across_targets(
     draft: MeetingDraft,
     mut accounts: CalendarAccounts,
     store: Arc<Store>,
-) -> Result<CreatedEvent, String> {
+) -> Result<CreateOutcome, String> {
     if !needs_join_first(&accounts) {
-        return launcher.create_meeting(draft).await;
+        return launcher
+            .create_meeting(draft)
+            .await
+            .map(|event| CreateOutcome {
+                event,
+                notice: None,
+            });
     }
     let event = launcher.resolve_new_event(draft).await?;
     let join_url = launcher.create_meet_now(&event.subject).await?;
+    let total_targets = create_targets(&accounts).len();
     let targets = create_targets(&accounts);
     let outlook_invites = targets
         .iter()
@@ -64,19 +78,37 @@ pub async fn create_across_targets(
         }
     }
     let _ = store::save_calendar_accounts(&store, &accounts);
-    if !failed.is_empty() {
-        crate::diagnostics::record(partial_create_notice(&join_url, &failed));
-        if first_id.is_empty() {
-            return Err(partial_create_notice(&join_url, &failed));
-        }
+    finish_creation(join_url, first_id, failed, total_targets)
+}
+
+fn finish_creation(
+    join_url: String,
+    first_id: String,
+    failed: Vec<String>,
+    total_targets: usize,
+) -> Result<CreateOutcome, String> {
+    if !failed.is_empty() && failed.len() == total_targets {
+        let notice = format!(
+            "Nessun calendario ha salvato la riunione ({join_url}): {}",
+            failed.join(", ")
+        );
+        crate::diagnostics::record(notice.clone());
+        return Err(notice);
     }
-    Ok(CreatedEvent {
-        id: if first_id.is_empty() {
-            join_url.clone()
-        } else {
-            first_id
+    let notice = (!failed.is_empty()).then(|| partial_create_notice(&join_url, &failed));
+    if let Some(notice) = &notice {
+        crate::diagnostics::record(notice.clone());
+    }
+    Ok(CreateOutcome {
+        event: CreatedEvent {
+            id: if first_id.is_empty() {
+                join_url.clone()
+            } else {
+                first_id
+            },
+            join_url: Some(join_url),
         },
-        join_url: Some(join_url),
+        notice,
     })
 }
 
@@ -204,5 +236,37 @@ mod tests {
         );
         assert!(notice.contains("teams.microsoft.com"));
         assert!(notice.contains("Google:primary"));
+    }
+
+    #[test]
+    fn one_calendar_wins_and_the_failures_become_a_notice() {
+        let outcome = finish_creation(
+            "https://teams.microsoft.com/l/meetup-join/x".into(),
+            "outlook-id".into(),
+            vec!["Google:primary (offline)".into(), "CalDAV:c1 (403)".into()],
+            3,
+        )
+        .expect("Outlook created the event");
+        assert_eq!(outcome.event.id, "outlook-id");
+        assert_eq!(
+            outcome.event.join_url.as_deref(),
+            Some("https://teams.microsoft.com/l/meetup-join/x")
+        );
+        let notice = outcome.notice.expect("partial failures are reported");
+        assert!(notice.contains("Google:primary"));
+        assert!(notice.contains("CalDAV:c1"));
+    }
+
+    #[test]
+    fn no_calendar_wins_and_no_fake_event_is_returned() {
+        let error = finish_creation(
+            "https://teams.microsoft.com/l/meetup-join/x".into(),
+            String::new(),
+            vec!["Google:primary (offline)".into(), "CalDAV:c1 (403)".into()],
+            2,
+        )
+        .expect_err("every calendar failed");
+        assert!(error.contains("Google:primary"));
+        assert!(error.contains("https://teams.microsoft.com/l/meetup-join/x"));
     }
 }

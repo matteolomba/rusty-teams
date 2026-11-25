@@ -99,15 +99,29 @@ impl OutlookReminders {
             .is_some_and(|fire_time| now >= *fire_time)
     }
 
-    pub fn note(&mut self, event_id: &str, write: ReminderWrite) {
-        let Some(known) = self.known.as_mut() else {
-            return;
-        };
+    pub fn note(&mut self, event_id: &str, write: ReminderWrite) -> Option<DateTime<Utc>> {
+        let known = self.known.as_mut()?;
+        let previous = known.fire_times.get(event_id).copied();
         match write {
             ReminderWrite::Snooze(until) => {
                 known.fire_times.insert(event_id.to_owned(), until);
             }
             ReminderWrite::Dismiss => {
+                known.fire_times.remove(event_id);
+            }
+        }
+        previous
+    }
+
+    pub fn restore(&mut self, event_id: &str, previous: Option<DateTime<Utc>>) {
+        let Some(known) = self.known.as_mut() else {
+            return;
+        };
+        match previous {
+            Some(fire_time) => {
+                known.fire_times.insert(event_id.to_owned(), fire_time);
+            }
+            None => {
                 known.fire_times.remove(event_id);
             }
         }
@@ -150,25 +164,44 @@ impl AppState {
         .detach();
     }
 
-    pub(super) fn write_outlook_reminder(&mut self, event_id: String, write: ReminderWrite) {
+    pub(super) fn write_outlook_reminder(
+        &mut self,
+        event_id: String,
+        write: ReminderWrite,
+        cx: &mut Context<Self>,
+    ) {
         if self.mode.demo || self.mode.read_only {
             return;
         }
         let Some(launcher) = self.call_launcher.clone() else {
             return;
         };
-        self.meeting_toasts.outlook_mut().note(&event_id, write);
-        runtime::handle().spawn(async move {
-            let written = match write {
-                ReminderWrite::Snooze(until) => launcher.snooze_reminder(&event_id, until).await,
-                ReminderWrite::Dismiss => launcher.dismiss_reminder(&event_id).await,
-            };
-            if let Err(error) = written {
+        let previous = self.meeting_toasts.outlook_mut().note(&event_id, write);
+        let reminder_id = event_id.clone();
+        let receiver = runtime::spawn(async move {
+            match write {
+                ReminderWrite::Snooze(until) => launcher.snooze_reminder(&reminder_id, until).await,
+                ReminderWrite::Dismiss => launcher.dismiss_reminder(&reminder_id).await,
+            }
+        });
+        cx.spawn(async move |this, cx| {
+            let written = receiver
+                .await
+                .unwrap_or_else(|_| Err("reminder write was dropped".to_owned()));
+            if let Err(error) = &written {
                 crate::diagnostics::record(format!(
                     "calendar: Outlook reminder {write:?} not saved: {error}"
                 ));
+                this.update(cx, |state, _| {
+                    state
+                        .meeting_toasts
+                        .outlook_mut()
+                        .restore(&event_id, previous);
+                })
+                .ok();
             }
-        });
+        })
+        .detach();
     }
 }
 
@@ -287,5 +320,24 @@ mod tests {
         assert!(outlook.allows(&event("a"), at(9, 45)));
         outlook.note("a", ReminderWrite::Dismiss);
         assert!(!outlook.allows(&event("a"), at(9, 46)));
+    }
+
+    #[test]
+    fn a_restored_write_does_not_keep_a_reminder_suppressed() {
+        let mut outlook = known(vec![reminder("a", at(9, 30))], at(9, 39));
+        let previous = outlook.note("a", ReminderWrite::Snooze(at(9, 45)));
+        assert_eq!(previous, Some(at(9, 30)));
+        assert!(!outlook.allows(&event("a"), at(9, 44)));
+        outlook.restore("a", previous);
+        assert!(outlook.allows(&event("a"), at(9, 44)));
+    }
+
+    #[test]
+    fn a_failed_reminder_view_forgets_the_old_fire_times() {
+        let mut outlook = known(vec![reminder("a", at(9, 45))], at(9, 39));
+        assert!(!outlook.allows(&event("a"), at(9, 44)));
+        let (start, end) = outlook.poll_range(&[event("a")], at(9, 40)).unwrap();
+        outlook.apply(start, end, Err("outlook is offline".into()));
+        assert!(outlook.allows(&event("a"), at(9, 44)));
     }
 }

@@ -162,7 +162,9 @@ impl VideoPublishTimingObserverWrapper {
     }
 
     fn on_publish_timing(&self, event: ffi::VideoPublishTimingEvent) {
-        (self.observer)(event);
+        crate::helper::guard_callback("VideoPublishTimingObserver::on_publish_timing", move || {
+            (self.observer)(event);
+        });
     }
 }
 
@@ -176,6 +178,11 @@ impl VideoSubscribeTimingObserverWrapper {
     }
 
     fn on_subscribe_timing(&self, event: ffi::VideoSubscribeTimingEvent) {
-        (self.observer)(event);
+        crate::helper::guard_callback(
+            "VideoSubscribeTimingObserver::on_subscribe_timing",
+            move || {
+                (self.observer)(event);
+            },
+        );
     }
 }

@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
+use crate::sanitize::redact_identifiers;
 use session::App;
 
 pub(crate) const SLEEP_AFTER: Duration = Duration::from_secs(180);
@@ -17,24 +18,25 @@ pub(crate) struct Activity {
     pub subscribed: bool,
 }
 
-/// Names a protocol call without its content: the method, or for a script the host and first path segments it fetches.
 pub(crate) fn call_label(method: &str, params: &serde_json::Value) -> String {
-    if method != "Runtime.evaluate" {
-        return method.to_owned();
-    }
-    let expression = params
-        .get("expression")
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or_default();
-    if let Some(start) = expression.find("\"url\":\"https://") {
-        let rest = &expression[start + "\"url\":\"https://".len()..];
-        let end = rest.find(['"', '?', '\\']).unwrap_or(rest.len());
-        return rest[..end].split('/').take(3).collect::<Vec<_>>().join("/");
-    }
-    if expression.contains("return token;") {
-        return "token lookup".to_owned();
-    }
-    "script".to_owned()
+    let label = if method != "Runtime.evaluate" {
+        method.to_owned()
+    } else {
+        let expression = params
+            .get("expression")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default();
+        if let Some(start) = expression.find("\"url\":\"https://") {
+            let rest = &expression[start + "\"url\":\"https://".len()..];
+            let end = rest.find(['"', '?', '\\']).unwrap_or(rest.len());
+            rest[..end].split('/').take(3).collect::<Vec<_>>().join("/")
+        } else if expression.contains("return token;") {
+            "token lookup".to_owned()
+        } else {
+            "script".to_owned()
+        }
+    };
+    redact_identifiers(&label)
 }
 
 #[derive(Debug, Default)]
@@ -229,6 +231,19 @@ mod tests {
         tally.note("a".into());
         assert_eq!(tally.summary(), "a x2, b x1");
         assert_eq!(tally.summary(), "");
+    }
+
+    #[test]
+    fn network_logs_never_carry_tenant_or_conversation_ids() {
+        let fetch = serde_json::json!({"expression": "(async () => {})({\"requests\":[{\"method\":\"GET\",\"url\":\"https://teams.cloud.microsoft/8f3a2c10-6b4d-4f1e-9a02-7c1d5e8b0f44/19:abcDEF1234567890@thread.v2/x\"}]})"});
+        let label = call_label("Runtime.evaluate", &fetch);
+        assert!(!label.contains("8f3a2c10-6b4d-4f1e-9a02-7c1d5e8b0f44"));
+        assert!(!label.contains("19:abcDEF1234567890@thread.v2"));
+        assert_eq!(label, "teams.cloud.microsoft/{id}/{id}");
+        let mut tally = CallTally::default();
+        tally.note(label);
+        assert!(!tally.summary().contains("8f3a2c10"));
+        assert!(!tally.summary().contains("19:abcDEF"));
     }
 
     #[test]

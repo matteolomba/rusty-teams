@@ -102,17 +102,21 @@ impl DataChannelObserverWrapper {
     }
 
     fn on_state_change(&self, state: ffi::DataState) {
-        self.observer.on_state_change(state);
+        crate::helper::guard_callback("DataChannelObserver::on_state_change", || {
+            self.observer.on_state_change(state);
+        });
     }
 
     fn on_message(&self, buffer: ffi::DataBuffer) {
-        unsafe {
+        crate::helper::guard_callback("DataChannelObserver::on_message", move || unsafe {
             let data = std::slice::from_raw_parts(buffer.ptr, buffer.len);
             self.observer.on_message(data, buffer.binary);
-        }
+        });
     }
 
     fn on_buffered_amount_change(&self, sent_data_size: u64) {
-        self.observer.on_buffered_amount_change(sent_data_size);
+        crate::helper::guard_callback("DataChannelObserver::on_buffered_amount_change", || {
+            self.observer.on_buffered_amount_change(sent_data_size);
+        });
     }
 }

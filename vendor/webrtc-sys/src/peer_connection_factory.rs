@@ -244,47 +244,76 @@ impl PeerConnectionObserverWrapper {
     }
 
     fn on_signaling_change(&self, new_state: ffi::SignalingState) {
-        self.observer.on_signaling_change(new_state);
+        crate::helper::guard_callback("PeerConnectionObserver::on_signaling_change", || {
+            self.observer.on_signaling_change(new_state);
+        });
     }
 
     fn on_add_stream(&self, stream: SharedPtr<MediaStream>) {
-        self.observer.on_add_stream(stream);
+        crate::helper::guard_callback("PeerConnectionObserver::on_add_stream", move || {
+            self.observer.on_add_stream(stream);
+        });
     }
 
     fn on_remove_stream(&self, stream: SharedPtr<MediaStream>) {
-        self.observer.on_remove_stream(stream);
+        crate::helper::guard_callback("PeerConnectionObserver::on_remove_stream", move || {
+            self.observer.on_remove_stream(stream);
+        });
     }
 
     fn on_data_channel(&self, data_channel: SharedPtr<DataChannel>) {
-        self.observer.on_data_channel(data_channel);
+        crate::helper::guard_callback("PeerConnectionObserver::on_data_channel", move || {
+            self.observer.on_data_channel(data_channel);
+        });
     }
 
     fn on_renegotiation_needed(&self) {
-        self.observer.on_renegotiation_needed();
+        crate::helper::guard_callback("PeerConnectionObserver::on_renegotiation_needed", || {
+            self.observer.on_renegotiation_needed();
+        });
     }
 
     fn on_negotiation_needed_event(&self, event: u32) {
-        self.observer.on_negotiation_needed_event(event);
+        crate::helper::guard_callback(
+            "PeerConnectionObserver::on_negotiation_needed_event",
+            || {
+                self.observer.on_negotiation_needed_event(event);
+            },
+        );
     }
 
     fn on_ice_connection_change(&self, new_state: ffi::IceConnectionState) {
-        self.observer.on_ice_connection_change(new_state);
+        crate::helper::guard_callback("PeerConnectionObserver::on_ice_connection_change", || {
+            self.observer.on_ice_connection_change(new_state);
+        });
     }
 
     fn on_standardized_ice_connection_change(&self, new_state: ffi::IceConnectionState) {
-        self.observer.on_standardized_ice_connection_change(new_state);
+        crate::helper::guard_callback(
+            "PeerConnectionObserver::on_standardized_ice_connection_change",
+            || {
+                self.observer
+                    .on_standardized_ice_connection_change(new_state);
+            },
+        );
     }
 
     fn on_connection_change(&self, new_state: ffi::PeerConnectionState) {
-        self.observer.on_connection_change(new_state);
+        crate::helper::guard_callback("PeerConnectionObserver::on_connection_change", || {
+            self.observer.on_connection_change(new_state);
+        });
     }
 
     fn on_ice_gathering_change(&self, new_state: ffi::IceGatheringState) {
-        self.observer.on_ice_gathering_change(new_state);
+        crate::helper::guard_callback("PeerConnectionObserver::on_ice_gathering_change", || {
+            self.observer.on_ice_gathering_change(new_state);
+        });
     }
 
     fn on_ice_candidate(&self, candidate: SharedPtr<IceCandidate>) {
-        self.observer.on_ice_candidate(candidate);
+        crate::helper::guard_callback("PeerConnectionObserver::on_ice_candidate", move || {
+            self.observer.on_ice_candidate(candidate);
+        });
     }
 
     fn on_ice_candidate_error(
@@ -295,34 +324,65 @@ impl PeerConnectionObserverWrapper {
         error_code: i32,
         error_text: String,
     ) {
-        self.observer.on_ice_candidate_error(address, port, url, error_code, error_text);
+        crate::helper::guard_callback(
+            "PeerConnectionObserver::on_ice_candidate_error",
+            move || {
+                self.observer
+                    .on_ice_candidate_error(address, port, url, error_code, error_text);
+            },
+        );
     }
 
     fn on_ice_candidates_removed(&self, candidates: Vec<ffi::CandidatePtr>) {
-        self.observer.on_ice_candidates_removed(candidates.into_iter().map(|v| v.ptr).collect());
+        crate::helper::guard_callback(
+            "PeerConnectionObserver::on_ice_candidates_removed",
+            move || {
+                self.observer
+                    .on_ice_candidates_removed(candidates.into_iter().map(|v| v.ptr).collect());
+            },
+        );
     }
 
     fn on_ice_connection_receiving_change(&self, receiving: bool) {
-        self.observer.on_ice_connection_receiving_change(receiving);
+        crate::helper::guard_callback(
+            "PeerConnectionObserver::on_ice_connection_receiving_change",
+            || {
+                self.observer.on_ice_connection_receiving_change(receiving);
+            },
+        );
     }
 
     fn on_ice_selected_candidate_pair_changed(&self, event: ffi::CandidatePairChangeEvent) {
-        self.observer.on_ice_selected_candidate_pair_changed(event);
+        crate::helper::guard_callback(
+            "PeerConnectionObserver::on_ice_selected_candidate_pair_changed",
+            move || {
+                self.observer.on_ice_selected_candidate_pair_changed(event);
+            },
+        );
     }
 
     fn on_add_track(&self, receiver: SharedPtr<RtpReceiver>, streams: Vec<ffi::MediaStreamPtr>) {
-        self.observer.on_add_track(receiver, streams.into_iter().map(|v| v.ptr).collect());
+        crate::helper::guard_callback("PeerConnectionObserver::on_add_track", move || {
+            self.observer
+                .on_add_track(receiver, streams.into_iter().map(|v| v.ptr).collect());
+        });
     }
 
     fn on_track(&self, transceiver: SharedPtr<RtpTransceiver>) {
-        self.observer.on_track(transceiver);
+        crate::helper::guard_callback("PeerConnectionObserver::on_track", move || {
+            self.observer.on_track(transceiver);
+        });
     }
 
     fn on_remove_track(&self, receiver: SharedPtr<RtpReceiver>) {
-        self.observer.on_remove_track(receiver);
+        crate::helper::guard_callback("PeerConnectionObserver::on_remove_track", move || {
+            self.observer.on_remove_track(receiver);
+        });
     }
 
     fn on_interesting_usage(&self, usage_pattern: i32) {
-        self.observer.on_interesting_usage(usage_pattern);
+        crate::helper::guard_callback("PeerConnectionObserver::on_interesting_usage", || {
+            self.observer.on_interesting_usage(usage_pattern);
+        });
     }
 }

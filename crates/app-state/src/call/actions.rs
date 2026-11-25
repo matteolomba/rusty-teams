@@ -548,10 +548,6 @@ impl AppState {
                 self.raise_notice(localize_notice(&text), None, cx);
                 return;
             }
-            CallUpdate::WhiteboardUrl(url) => {
-                cx.open_url(&url);
-                return;
-            }
             CallUpdate::BreakoutMove(moved) => {
                 self.begin_breakout_move(moved, cx);
                 return;
@@ -1330,13 +1326,6 @@ impl AppState {
         let Some(entry) = self.rings.get(ring_id).cloned() else {
             return;
         };
-        if self.call.is_some() {
-            self.leave_call(cx);
-        }
-        if let Some(held) = &self.held_call {
-            let _ = held.commands.send(CallCommand::Hangup);
-        }
-        self.signal_ring(ring_id, RingSignal::Accept, cx);
         let conversation_id = entry.ring.thread_id.clone();
         let title = conversation_id
             .as_deref()
@@ -1347,7 +1336,7 @@ impl AppState {
         let model = CallModel::incoming(&title, &entry.ring.caller.mri, entry.caller_name());
         if entry.demo {
             let handle = start_demo_call(DemoCall::Incoming(demo_caller()));
-            self.begin_call(handle, model, conversation_id, cx);
+            self.apply_accepted_ring(ring_id, handle, model, conversation_id, cx);
             if mode == AcceptMode::Video {
                 self.send_call_command(CallCommand::SetCamera(true));
             }
@@ -1361,13 +1350,34 @@ impl AppState {
             crate::runtime::spawn(async move { launcher.accept_ring(ring_id, mode).await });
         cx.spawn(async move |this, cx| {
             let handle = receiver.await.ok().flatten();
-            this.update(cx, |state, cx| match handle {
-                Some(handle) => state.begin_call(handle, model, conversation_id, cx),
-                None => state.raise_notice(ANSWER_FAILED_NOTICE.to_owned(), None, cx),
+            this.update(cx, |state, cx| {
+                let Some(handle) = handle else {
+                    state.raise_notice(ANSWER_FAILED_NOTICE.to_owned(), None, cx);
+                    return;
+                };
+                state.apply_accepted_ring(ring_id, handle, model, conversation_id, cx);
             })
             .ok();
         })
         .detach();
+    }
+
+    fn apply_accepted_ring(
+        &mut self,
+        ring_id: u64,
+        handle: CallHandle,
+        model: CallModel,
+        conversation_id: Option<String>,
+        cx: &mut Context<Self>,
+    ) {
+        if self.call.is_some() {
+            self.leave_call(cx);
+        }
+        if let Some(held) = &self.held_call {
+            let _ = held.commands.send(CallCommand::Hangup);
+        }
+        self.signal_ring(ring_id, RingSignal::Accept, cx);
+        self.begin_call(handle, model, conversation_id, cx);
     }
 
     pub fn decline_ring(&mut self, ring_id: u64, cx: &mut Context<Self>) {
@@ -1461,9 +1471,11 @@ impl AppState {
             crate::runtime::spawn(async move { launcher.live_meeting(&thread_id).await });
         let conversation_id = conversation_id.to_owned();
         cx.spawn(async move |this, cx| {
-            let meeting = receiver.await.ok().flatten();
+            let fetched = receiver
+                .await
+                .unwrap_or_else(|_| Err("live meeting fetch was dropped".to_owned()));
             this.update(cx, |state, cx| {
-                state.apply_live_meeting(conversation_id, meeting, cx)
+                state.apply_live_meeting(conversation_id, fetched, cx)
             })
             .ok();
         })
@@ -1473,17 +1485,21 @@ impl AppState {
     pub fn apply_live_meeting(
         &mut self,
         conversation_id: String,
-        meeting: Option<LiveMeeting>,
+        meeting: Result<Option<LiveMeeting>, String>,
         cx: &mut Context<Self>,
     ) {
         self.live_refreshing.remove(&conversation_id);
         let changed = match meeting {
-            Some(meeting) => {
+            Ok(Some(meeting)) => {
                 self.live_meetings
                     .insert(conversation_id.clone(), meeting.clone())
                     != Some(meeting)
             }
-            None => self.live_meetings.remove(&conversation_id).is_some(),
+            Ok(None) => self.live_meetings.remove(&conversation_id).is_some(),
+            Err(error) => {
+                crate::diagnostics::record(format!("calendar: live meeting not read: {error}"));
+                false
+            }
         };
         if changed {
             cx.emit(AppEvent::LiveMeeting);
@@ -1520,6 +1536,7 @@ mod tests {
     use crate::call::background::BackgroundPick;
     use crate::call::demo::demo_ring;
     use crate::call::features::room_closed_move;
+    use crate::call::launcher::CallLauncher;
     use crate::call::model::BreakoutState;
     use crate::call::{CaptionPosition, CaptionSize, RecordAction, ViewSettings};
     use crate::data::Person;
@@ -2460,6 +2477,97 @@ mod tests {
     }
 
     #[gpui_kit::test]
+    fn a_closed_room_without_a_way_back_does_not_panic(cx: &mut TestAppContext) {
+        let mut room = live_meeting(false);
+        room.breakout = Some(BreakoutState {
+            room_name: "Room 1".into(),
+            main: None,
+            main_title: "Standup".into(),
+        });
+        let (app, _control) = app_with_commands(cx, room, None);
+        cx.update(|cx| {
+            app.update(cx, |state, _| {
+                let call = state.call.as_ref().unwrap();
+                assert!(room_closed_move(call, &EndReason::Remote(EndKind::RoomClosed)).is_none());
+                state.call.as_mut().unwrap().model.main_meeting = Some(main_target());
+                let call = state.call.as_ref().unwrap();
+                let moved = room_closed_move(call, &EndReason::Remote(EndKind::RoomClosed))
+                    .expect("the main meeting is the way back");
+                assert_eq!(moved.target, main_target());
+            });
+        });
+    }
+
+    #[gpui_kit::test]
+    fn a_failed_ring_accept_keeps_the_current_call_and_the_ring(cx: &mut TestAppContext) {
+        let (app, mut control) = app_with_commands(cx, live_meeting(false), None);
+        cx.update(|cx| {
+            app.update(cx, |state, cx| {
+                state.call_launcher = None;
+                state.rings.push(demo_ring(), false, Instant::now());
+                state.accept_ring(demo_ring().ring_id, calling::AcceptMode::Audio, cx);
+            });
+        });
+        cx.run_until_parked();
+        cx.update(|cx| {
+            app.update(cx, |state, _| {
+                assert!(state.call.is_some());
+                assert!(state.rings.is_ringing());
+                assert!(state.notice_count > 0);
+            });
+        });
+        assert_eq!(control.try_recv_command(), None);
+    }
+
+    #[gpui_kit::test]
+    fn an_unsafe_whiteboard_url_is_not_stored_for_clicking(cx: &mut TestAppContext) {
+        let (app, _control) = app_with_commands(cx, live_meeting(false), None);
+        let valid = "https://app.whiteboard.microsoft.com/me/whiteboards/safe";
+        cx.update(|cx| {
+            app.update(cx, |state, cx| {
+                state.apply_call_update(7, CallUpdate::WhiteboardUrl(valid.to_owned()), cx);
+                assert_eq!(
+                    state.call.as_ref().unwrap().model.whiteboard_url(),
+                    Some(valid)
+                );
+                state.apply_call_update(
+                    7,
+                    CallUpdate::WhiteboardUrl("https://evil.test/board".to_owned()),
+                    cx,
+                );
+                assert_eq!(state.call.as_ref().unwrap().model.whiteboard_url(), None);
+            });
+        });
+    }
+
+    #[gpui_kit::test]
+    fn a_live_meeting_error_keeps_the_last_meeting_and_clears_the_guard(cx: &mut TestAppContext) {
+        let app = app_with_call(cx);
+        cx.update(|cx| {
+            app.update(cx, |state, cx| {
+                let meeting = calling::meeting::LiveMeeting {
+                    thread_id: "19:meeting@thread.v2".into(),
+                    conversation_url: None,
+                    expiration: Some(0),
+                    organizer_id: None,
+                    tenant_id: None,
+                    meeting_code: None,
+                    passcode: None,
+                };
+                state.live_refreshing.insert("chat".into());
+                state.apply_live_meeting("chat".into(), Ok(Some(meeting.clone())), cx);
+                assert!(!state.live_refreshing.contains("chat"));
+                state.live_refreshing.insert("chat".into());
+                state.apply_live_meeting("chat".into(), Err("offline".into()), cx);
+                assert!(!state.live_refreshing.contains("chat"));
+                assert_eq!(state.live_meetings.get("chat"), Some(&meeting));
+                state.apply_live_meeting("chat".into(), Ok(None), cx);
+                assert!(state.live_meetings.is_empty());
+            });
+        });
+    }
+
+    #[gpui_kit::test]
     fn the_whiteboard_menu_asks_for_the_board_unless_someone_already_shares_one(
         cx: &mut TestAppContext,
     ) {
@@ -2822,9 +2930,9 @@ mod tests {
         cx.update(|cx| {
             app.update(cx, |state, cx| {
                 assert!(state.running_meeting("19:meeting@thread.v2").is_none());
-                state.apply_live_meeting("19:meeting@thread.v2".into(), Some(meeting), cx);
+                state.apply_live_meeting("19:meeting@thread.v2".into(), Ok(Some(meeting)), cx);
                 assert!(state.running_meeting("19:meeting@thread.v2").is_some());
-                state.apply_live_meeting("19:meeting@thread.v2".into(), None, cx);
+                state.apply_live_meeting("19:meeting@thread.v2".into(), Ok(None), cx);
                 assert!(state.running_meeting("19:meeting@thread.v2").is_none());
             })
         });

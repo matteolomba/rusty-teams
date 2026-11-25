@@ -14,6 +14,7 @@ const SHAREPOINT_HOST: &str = ".sharepoint.com/";
 const SECONDS_PER_MINUTE: u64 = 60;
 const SECONDS_PER_HOUR: u64 = 3600;
 const SECONDS_PER_DAY: u64 = 86_400;
+const MAX_DURATION_SECONDS: u64 = 30 * SECONDS_PER_DAY;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum CallPhase {
@@ -247,7 +248,8 @@ pub fn parse_duration_seconds(text: &str) -> Option<u64> {
         time_part,
         &[('H', SECONDS_PER_HOUR), ('M', SECONDS_PER_MINUTE), ('S', 1)],
     )?;
-    days.checked_add(time)
+    let seconds = days.checked_add(time)?;
+    (seconds <= MAX_DURATION_SECONDS).then_some(seconds)
 }
 
 fn sum_components(part: &str, units: &[(char, u64)]) -> Option<u64> {
@@ -260,8 +262,15 @@ fn sum_components(part: &str, units: &[(char, u64)]) -> Option<u64> {
         }
         let (_, factor) = units.iter().find(|(unit, _)| *unit == character)?;
         let value: f64 = number.parse().ok()?;
-        // `as` saturates a huge value; checked_add keeps the sum from wrapping.
-        total = u64::checked_add(total, (value * *factor as f64) as u64)?;
+        if !value.is_finite() || value < 0.0 {
+            return None;
+        }
+        let scaled = value * *factor as f64;
+        if !scaled.is_finite() || scaled < 0.0 || scaled > u64::MAX as f64 {
+            return None;
+        }
+        // `as` saturates at the boundary; the finite-value checks above keep it exact.
+        total = u64::checked_add(total, scaled as u64)?;
         number.clear();
     }
     number.is_empty().then_some(total)
@@ -287,6 +296,26 @@ pub fn format_duration(seconds: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn durations_past_thirty_days_are_rejected() {
+        assert_eq!(parse_duration_seconds("P30D"), Some(MAX_DURATION_SECONDS));
+        assert_eq!(parse_duration_seconds("P31D"), None);
+        assert_eq!(parse_duration_seconds("PT721H"), None);
+        assert_eq!(parse_duration_seconds("P30DT1S"), None);
+        assert_eq!(
+            parse_duration_seconds("PT2592000S"),
+            Some(MAX_DURATION_SECONDS)
+        );
+    }
+
+    #[test]
+    fn non_finite_duration_components_are_rejected() {
+        let huge_seconds = format!("PT{}S", "9".repeat(400));
+        assert_eq!(parse_duration_seconds(&huge_seconds), None);
+        assert_eq!(parse_duration_seconds("PT99999999999999999999H"), None);
+        assert_eq!(parse_duration_seconds("PT.S"), None);
+    }
 
     #[test]
     fn a_duration_too_large_to_add_up_is_rejected() {

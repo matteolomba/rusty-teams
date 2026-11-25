@@ -15,7 +15,7 @@ use tokio::sync::{
 use crate::dialog::{DialogCommand, DialogEvent, DialogHandle, DialogSpec};
 
 const ENDPOINT_NAME: &str = "WebView2";
-const READY_WAIT: Duration = Duration::from_secs(30);
+pub(crate) const READY_WAIT: Duration = Duration::from_secs(30);
 
 pub(crate) enum UiRequest {
     Call {

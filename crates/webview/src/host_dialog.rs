@@ -10,17 +10,20 @@ use webview2_com::{
 };
 use windows::Win32::Foundation::{COLORREF, HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
-    CreateSolidBrush, GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY,
-    MONITOR_FROM_FLAGS, MONITORINFO, MonitorFromWindow,
+    CreateSolidBrush, DeleteObject, FillRect, GetMonitorInfoW, HDC, HGDIOBJ,
+    MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY, MONITOR_FROM_FLAGS, MONITORINFO,
+    MonitorFromWindow,
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::HiDpi::{AdjustWindowRectExForDpi, GetDpiForWindow};
 use windows::Win32::UI::Shell::SHCreateMemStream;
 use windows::Win32::UI::WindowsAndMessaging::*;
-use windows::core::{HSTRING, Interface, PWSTR, w};
+use windows::core::{HRESULT, HSTRING, Interface, PWSTR, w};
 
 use crate::dialog::{DialogCommand, DialogEvent, DialogMode, DialogSpec, NEW_WINDOW_KIND};
+use crate::guards::EventSubscriptions;
 use crate::host::{Shared, fit, shared as running_host};
+use crate::sanitize::{ENV_CALL_SHADOW, env_flag};
 
 const DIALOG_CLASS: windows::core::PCWSTR = w!("RustyTeamsDialog");
 const DIALOG_STYLE: WINDOW_STYLE = WINDOW_STYLE(WS_CAPTION.0 | WS_SYSMENU.0);
@@ -39,11 +42,13 @@ const CALL_SHADOW_SCRIPT: &str = include_str!("call_shadow.js");
 struct DialogView {
     controller: ICoreWebView2Controller,
     webview: ICoreWebView2,
+    subscriptions: EventSubscriptions,
 }
 
 pub(crate) struct Dialog {
     window: HWND,
     view: Option<DialogView>,
+    background: u32,
     events: UnboundedSender<DialogEvent>,
 }
 
@@ -72,6 +77,7 @@ pub(crate) fn open(
         Dialog {
             window,
             view: None,
+            background: spec.background,
             events,
         },
     );
@@ -127,11 +133,12 @@ pub(crate) fn run(shared: &Rc<Shared>, id: u64, command: DialogCommand) {
 }
 
 pub(crate) fn close(shared: &Rc<Shared>, id: u64) {
-    let Some(dialog) = shared.dialogs.borrow_mut().remove(&id) else {
+    let Some(mut dialog) = shared.dialogs.borrow_mut().remove(&id) else {
         return;
     };
     unsafe {
-        if let Some(view) = &dialog.view {
+        if let Some(view) = &mut dialog.view {
+            view.subscriptions.clear();
             let _ = view.controller.Close();
         }
         let _ = DestroyWindow(dialog.window);
@@ -200,18 +207,24 @@ fn scaled(logical: u32, dpi: u32) -> i32 {
     (logical as u64 * dpi as u64 / BASE_DPI as u64) as i32
 }
 
+fn background_color(background: u32) -> COLORREF {
+    COLORREF((background & 0xff) << 16 | (background & 0xff00) | (background >> 16))
+}
+
 fn create_window(spec: &DialogSpec) -> windows::core::Result<HWND> {
     let instance = HINSTANCE(unsafe { GetModuleHandleW(None) }?.0);
-    let blue_green_red =
-        (spec.background & 0xff) << 16 | (spec.background & 0xff00) | (spec.background >> 16);
     let class = WNDCLASSW {
         lpfnWndProc: Some(dialog_procedure),
         hInstance: instance,
         lpszClassName: DIALOG_CLASS,
-        hbrBackground: unsafe { CreateSolidBrush(COLORREF(blue_green_red)) },
         ..Default::default()
     };
-    unsafe { RegisterClassW(&class) };
+    if unsafe { RegisterClassW(&class) } == 0 {
+        return Err(windows::core::Error::new(
+            HRESULT(-1),
+            "cannot register the dialog window class",
+        ));
+    }
     let owner = spec.owner.map(|raw| HWND(raw as *mut _));
     let (dpi, work, owner_bounds) = match owner {
         Some(owner) => {
@@ -314,21 +327,30 @@ fn attach(
             })?;
         webview.Settings()?.SetIsStatusBarEnabled(false)?;
     }
+    let mut subscriptions = EventSubscriptions::default();
     match page.mode {
         DialogMode::Hosted => {
-            serve_host_page(&webview, environment, &page)?;
+            serve_host_page(&webview, environment, &page, &mut subscriptions)?;
             let page_url = page.url.clone();
-            forward_messages(&webview, id, move |source| source == page_url)?;
-            close_on_escape(&controller, window)?;
+            forward_messages(
+                &webview,
+                id,
+                move |source| source == page_url,
+                &mut subscriptions,
+            )?;
+            close_on_escape(&controller, window, &mut subscriptions)?;
         }
         DialogMode::Call => {
-            allow_teams_media(&webview)?;
-            shadow_calls(&webview)?;
-            block_app_launch(&webview)?;
-            forward_messages(&webview, id, is_media_origin)?;
+            allow_teams_media(&webview, &mut subscriptions)?;
+            let shadow = std::env::var(ENV_CALL_SHADOW).ok();
+            if env_flag(shadow.as_deref()) {
+                shadow_calls(&webview)?;
+            }
+            block_app_launch(&webview, &mut subscriptions)?;
+            forward_messages(&webview, id, is_media_origin, &mut subscriptions)?;
         }
     }
-    forward_new_windows(&webview, id)?;
+    forward_new_windows(&webview, id, &mut subscriptions)?;
     unsafe {
         controller.SetIsVisible(true)?;
         webview.Navigate(&HSTRING::from(page.url.as_str()))?;
@@ -337,6 +359,7 @@ fn attach(
         dialog.view = Some(DialogView {
             controller,
             webview,
+            subscriptions,
         });
     }
     Ok(())
@@ -346,6 +369,7 @@ fn serve_host_page(
     webview: &ICoreWebView2,
     environment: &ICoreWebView2Environment,
     page: &HostPage,
+    subscriptions: &mut EventSubscriptions,
 ) -> windows::core::Result<()> {
     let filter = HSTRING::from(page.url.as_str());
     unsafe {
@@ -380,13 +404,19 @@ fn serve_host_page(
         unsafe { arguments.SetResponse(&response) }
     }));
     let mut token = 0;
-    unsafe { webview.add_WebResourceRequested(&handler, &mut token) }
+    unsafe { webview.add_WebResourceRequested(&handler, &mut token) }?;
+    let source = webview.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_WebResourceRequested(token);
+    });
+    Ok(())
 }
 
 fn forward_messages(
     webview: &ICoreWebView2,
     id: u64,
     accepts: impl Fn(&str) -> bool + 'static,
+    subscriptions: &mut EventSubscriptions,
 ) -> windows::core::Result<()> {
     let handler = WebMessageReceivedEventHandler::create(Box::new(move |_, arguments| {
         let Some(arguments) = arguments else {
@@ -404,10 +434,18 @@ fn forward_messages(
         Ok(())
     }));
     let mut token = 0;
-    unsafe { webview.add_WebMessageReceived(&handler, &mut token) }
+    unsafe { webview.add_WebMessageReceived(&handler, &mut token) }?;
+    let source = webview.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_WebMessageReceived(token);
+    });
+    Ok(())
 }
 
-fn allow_teams_media(webview: &ICoreWebView2) -> windows::core::Result<()> {
+fn allow_teams_media(
+    webview: &ICoreWebView2,
+    subscriptions: &mut EventSubscriptions,
+) -> windows::core::Result<()> {
     let handler = PermissionRequestedEventHandler::create(Box::new(move |_, arguments| {
         let Some(arguments) = arguments else {
             return Ok(());
@@ -427,7 +465,12 @@ fn allow_teams_media(webview: &ICoreWebView2) -> windows::core::Result<()> {
         Ok(())
     }));
     let mut token = 0;
-    unsafe { webview.add_PermissionRequested(&handler, &mut token) }
+    unsafe { webview.add_PermissionRequested(&handler, &mut token) }?;
+    let source = webview.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_PermissionRequested(token);
+    });
+    Ok(())
 }
 
 fn is_media_origin(origin: &str) -> bool {
@@ -444,7 +487,10 @@ fn shadow_calls(webview: &ICoreWebView2) -> windows::core::Result<()> {
     }
 }
 
-fn block_app_launch(webview: &ICoreWebView2) -> windows::core::Result<()> {
+fn block_app_launch(
+    webview: &ICoreWebView2,
+    subscriptions: &mut EventSubscriptions,
+) -> windows::core::Result<()> {
     let Ok(webview) = webview.cast::<ICoreWebView2_18>() else {
         return Ok(());
     };
@@ -455,10 +501,18 @@ fn block_app_launch(webview: &ICoreWebView2) -> windows::core::Result<()> {
         Ok(())
     }));
     let mut token = 0;
-    unsafe { webview.add_LaunchingExternalUriScheme(&handler, &mut token) }
+    unsafe { webview.add_LaunchingExternalUriScheme(&handler, &mut token) }?;
+    subscriptions.add(move || unsafe {
+        let _ = webview.remove_LaunchingExternalUriScheme(token);
+    });
+    Ok(())
 }
 
-fn forward_new_windows(webview: &ICoreWebView2, id: u64) -> windows::core::Result<()> {
+fn forward_new_windows(
+    webview: &ICoreWebView2,
+    id: u64,
+    subscriptions: &mut EventSubscriptions,
+) -> windows::core::Result<()> {
     let handler = NewWindowRequestedEventHandler::create(Box::new(move |_, arguments| {
         let Some(arguments) = arguments else {
             return Ok(());
@@ -473,12 +527,18 @@ fn forward_new_windows(webview: &ICoreWebView2, id: u64) -> windows::core::Resul
         Ok(())
     }));
     let mut token = 0;
-    unsafe { webview.add_NewWindowRequested(&handler, &mut token) }
+    unsafe { webview.add_NewWindowRequested(&handler, &mut token) }?;
+    let source = webview.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_NewWindowRequested(token);
+    });
+    Ok(())
 }
 
 fn close_on_escape(
     controller: &ICoreWebView2Controller,
     window: HWND,
+    subscriptions: &mut EventSubscriptions,
 ) -> windows::core::Result<()> {
     let handler = AcceleratorKeyPressedEventHandler::create(Box::new(move |_, arguments| {
         let Some(arguments) = arguments else {
@@ -499,7 +559,12 @@ fn close_on_escape(
         Ok(())
     }));
     let mut token = 0;
-    unsafe { controller.add_AcceleratorKeyPressed(&handler, &mut token) }
+    unsafe { controller.add_AcceleratorKeyPressed(&handler, &mut token) }?;
+    let source = controller.clone();
+    subscriptions.add(move || unsafe {
+        let _ = source.remove_AcceleratorKeyPressed(token);
+    });
+    Ok(())
 }
 
 extern "system" fn dialog_procedure(
@@ -526,6 +591,27 @@ extern "system" fn dialog_procedure(
             }
             LRESULT(0)
         }
+        WM_ERASEBKGND => {
+            let background = id_of(&shared, window).and_then(|id| {
+                shared
+                    .dialogs
+                    .borrow()
+                    .get(&id)
+                    .map(|dialog| dialog.background)
+            });
+            if let Some(background) = background {
+                unsafe {
+                    let brush = CreateSolidBrush(background_color(background));
+                    let mut client = RECT::default();
+                    let _ = GetClientRect(window, &mut client);
+                    FillRect(HDC(wparam.0 as *mut _), &client, brush);
+                    let _ = DeleteObject(HGDIOBJ(brush.0));
+                }
+                LRESULT(1)
+            } else {
+                unsafe { DefWindowProcW(window, message, wparam, lparam) }
+            }
+        }
         WM_CLOSE | WM_DESTROY => {
             if let Some(id) = id_of(&shared, window) {
                 close(&shared, id);
@@ -537,5 +623,15 @@ extern "system" fn dialog_procedure(
             }
         }
         _ => unsafe { DefWindowProcW(window, message, wparam, lparam) },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_erased_background_matches_the_webview_color() {
+        assert_eq!(background_color(0x112233).0, 0x332211);
     }
 }

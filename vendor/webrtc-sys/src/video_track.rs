@@ -171,14 +171,20 @@ impl VideoSinkWrapper {
     }
 
     fn on_frame(&self, frame: UniquePtr<VideoFrame>) {
-        self.observer.on_frame(frame);
+        crate::helper::guard_callback("VideoSink::on_frame", move || {
+            self.observer.on_frame(frame);
+        });
     }
 
     fn on_discarded_frame(&self) {
-        self.observer.on_discarded_frame();
+        crate::helper::guard_callback("VideoSink::on_discarded_frame", || {
+            self.observer.on_discarded_frame();
+        });
     }
 
     fn on_constraints_changed(&self, constraints: ffi::VideoTrackSourceConstraints) {
-        self.observer.on_constraints_changed(constraints);
+        crate::helper::guard_callback("VideoSink::on_constraints_changed", move || {
+            self.observer.on_constraints_changed(constraints);
+        });
     }
 }

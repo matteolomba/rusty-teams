@@ -88,10 +88,12 @@ impl AudioMixerSourceWrapper {
     }
 
     pub fn ssrc(&self) -> i32 {
-        self.source.ssrc()
+        crate::helper::guard_callback_with("AudioMixerSource::ssrc", 0, || self.source.ssrc())
     }
     pub fn preferred_sample_rate(&self) -> i32 {
-        self.source.preferred_sample_rate()
+        crate::helper::guard_callback_with("AudioMixerSource::preferred_sample_rate", 0, || {
+            self.source.preferred_sample_rate()
+        })
     }
 
     pub fn get_audio_frame_with_info(
@@ -99,7 +101,14 @@ impl AudioMixerSourceWrapper {
         target_sample_rate: i32,
         frame: Pin<&mut ffi::NativeAudioFrame>,
     ) -> AudioFrameInfo {
-        self.source.get_audio_frame_with_info(target_sample_rate, frame)
+        crate::helper::guard_callback_with(
+            "AudioMixerSource::get_audio_frame_with_info",
+            AudioFrameInfo::Error,
+            move || {
+                self.source
+                    .get_audio_frame_with_info(target_sample_rate, frame)
+            },
+        )
     }
 }
 

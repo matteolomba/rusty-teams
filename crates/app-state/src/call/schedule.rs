@@ -187,14 +187,20 @@ impl AppState {
             super::meeting_create::create_across_targets(launcher, draft, accounts, store).await
         });
         cx.spawn(async move |this, cx| {
-            let outcome = created
+            let created = created
                 .await
-                .unwrap_or_else(|_| Err("The request was cancelled.".to_owned()))
-                .map(|_| ());
-            if outcome.is_ok() {
-                this.update(cx, |state, cx| state.refresh_calendar(cx)).ok();
-            }
-            let _ = sender.send(outcome);
+                .unwrap_or_else(|_| Err("The request was cancelled.".to_owned()));
+            this.update(cx, |state, cx| match &created {
+                Ok(outcome) => {
+                    if let Some(notice) = &outcome.notice {
+                        state.raise_notice(notice.clone(), None, cx);
+                    }
+                    state.refresh_calendar(cx);
+                }
+                Err(_) => state.refresh_calendar(cx),
+            })
+            .ok();
+            let _ = sender.send(created.map(|_| ()));
         })
         .detach();
         receiver
@@ -527,10 +533,12 @@ impl AppState {
         let source = event.source;
         let account_id = event.account_id.clone();
         let calendar_id = event.calendar_id.clone();
+        let generation = next_response_generation(&mut self.calendar_week);
         self.set_event_response(&event_id, response_for(reply));
         cx.notify();
         let launcher = self.call_launcher.clone().filter(|_| !self.mode.demo);
         let Some(launcher) = launcher else {
+            self.set_event_response(&event_id, previous);
             return;
         };
         let send_response = self.rsvp_send_response;
@@ -596,6 +604,9 @@ impl AppState {
         cx.spawn(async move |this, cx| {
             let sent = answered.await.is_ok_and(|result| result.is_ok());
             this.update(cx, |state, cx| {
+                if generation != state.calendar_week.response_generation {
+                    return;
+                }
                 if sent {
                     state.refresh_calendar(cx);
                     return;
@@ -607,6 +618,11 @@ impl AppState {
         })
         .detach();
     }
+}
+
+fn next_response_generation(week: &mut super::week::CalendarWeek) -> u64 {
+    week.response_generation = week.response_generation.wrapping_add(1);
+    week.response_generation
 }
 
 #[cfg(test)]
@@ -750,5 +766,15 @@ mod tests {
         assert_eq!(response_for(Reply::Accept), ResponseType::Accepted);
         assert_eq!(response_for(Reply::Tentative), ResponseType::Tentative);
         assert_eq!(response_for(Reply::Decline), ResponseType::Declined);
+    }
+
+    #[test]
+    fn a_stale_rsvp_response_is_ignored_after_a_newer_choice() {
+        let mut week = super::super::week::CalendarWeek::default();
+        let first = next_response_generation(&mut week);
+        let second = next_response_generation(&mut week);
+        assert_ne!(first, second);
+        assert_eq!(second, week.response_generation);
+        assert!(first != week.response_generation);
     }
 }

@@ -129,7 +129,9 @@
       if (!WATCHED_HOST.test(target.hostname) || STATIC_PATH.test(target.pathname)) {
         return null;
       }
-      return target.hostname + target.pathname.replace(/[0-9a-f-]{16,}|[A-Za-z0-9_%:@.-]{32,}/g, "{id}");
+      return target.hostname + target.pathname
+        .replace(/19:[A-Za-z0-9_@.:-]{16,}/g, "{id}")
+        .replace(/[0-9a-f-]{16,}|[A-Za-z0-9_%:@.-]{32,}/g, "{id}");
     } catch (_) {
       return null;
     }

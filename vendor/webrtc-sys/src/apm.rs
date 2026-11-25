@@ -67,8 +67,20 @@ pub struct GainProcessor {
 }
 
 impl GainProcessor {
-    pub fn new(adaptive: bool, initial_gain_db: f32, fixed_gain_db: f32, max_gain_change_db_per_second: f32) -> Self {
-        Self { handle: ffi::create_gain_apm(adaptive, initial_gain_db, fixed_gain_db, max_gain_change_db_per_second) }
+    pub fn new(
+        adaptive: bool,
+        initial_gain_db: f32,
+        fixed_gain_db: f32,
+        max_gain_change_db_per_second: f32,
+    ) -> Self {
+        Self {
+            handle: ffi::create_gain_apm(
+                adaptive,
+                initial_gain_db,
+                fixed_gain_db,
+                max_gain_change_db_per_second,
+            ),
+        }
     }
 
     /// Processes one 10 ms mono frame in place; returns false when the module is missing or rejects the frame.
@@ -78,6 +90,11 @@ impl GainProcessor {
         }
         let length = frame.len();
         let pointer = frame.as_mut_ptr();
-        unsafe { self.handle.pin_mut().process_stream(pointer, length, pointer, length, sample_rate, 1) == 0 }
+        unsafe {
+            self.handle
+                .pin_mut()
+                .process_stream(pointer, length, pointer, length, sample_rate, 1)
+                == 0
+        }
     }
 }
