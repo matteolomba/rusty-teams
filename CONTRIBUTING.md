@@ -30,6 +30,23 @@ Most of this code is written with AI agents, and that is welcome here. Just say 
 - The PR title becomes the squash commit and a line in the release notes (`feat` under New, `fix` under Fixes). Write it as a user would read it: `fix(chat): a sent image no longer blinks`, not `fix(chat): handle download race`.
 - Rebase on `main` instead of merging it in. Answer actionable review comments or say that you will not.
 
+## When a PR is ready for review
+
+The upstream PR gate checks these rules. The fork does not run that bot; apply them manually before opening a PR.
+
+| Gate | Rule |
+|---|---|
+| Title | `type(scope): message`, from the user's view |
+| Template | Summary, AI model, Tests and Review filled in, not just the hints |
+| Problem | No `Closes #123`: a Problem section says what is wrong or missing, when a user hits it (steps or when/then) and what should happen instead |
+| Issue first | A `feat` PR or more than 400 changed lines (lockfiles do not count) links an issue labelled `status: accepted` |
+| Screenshot | A change to UI code (`crates/app/src/views/`, `settings/`, `components/`, `widgets/`, `*_view.rs`, `locales/`) shows the changed area with demo data, or ticks "No visible change" with a reason |
+| Tests | What ran and what did not. A change to Windows-only code says whether it was built on Windows |
+| Review | At least two independent reviews, each finding fixed or answered |
+| Scope | No planning folders (`openspec/`, `.specify/`, `.kiro/`). A change to `vendor/` says why in the description |
+| Open PRs | At most 5 open PRs, drafts included |
+
+A PR that meets these rules is ready for review. `gate: no visual` and `gate: skip` are maintainer-only labels upstream.
 ## Build and test
 
 Build setup is in the [README](README.md#quick-start), the Windows cross build in [docs/build-windows.md](docs/build-windows.md). The everyday commands (demo run, format, tests, UI check) are in [AGENTS.md](AGENTS.md#commands).
