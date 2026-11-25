@@ -601,6 +601,14 @@ mod tests {
     }
 
     #[test]
+    fn the_release_page_is_the_tag_url() {
+        assert_eq!(
+            release_page_url("v0.5.0"),
+            "https://github.com/danieldaeschle/rusty-teams/releases/tag/v0.5.0"
+        );
+    }
+
+    #[test]
     fn a_download_must_match_size_header_and_digest() {
         let bytes = EXECUTABLE_MAGIC;
         let digest: String = Sha256::digest(bytes)

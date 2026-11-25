@@ -98,6 +98,31 @@ fn installed_release() -> Option<&'static str> {
     }
 }
 
+/// Flatpak updates through the package. A build without a release tag does not look.
+pub fn checks_releases() -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        let flatpak = std::env::var_os("FLATPAK_ID");
+        if flatpak.is_some_and(|id| !id.is_empty()) {
+            return false;
+        }
+    }
+    app_base::version::release_tag().is_some()
+}
+
+/// Linux under `~/.local` replaces itself after the user agrees. Windows does that
+/// quietly from the shell poll, so this module does not download there.
+fn installed_release() -> Option<&'static str> {
+    #[cfg(target_os = "linux")]
+    {
+        crate::linux_install::updatable_release()
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        None
+    }
+}
+
 fn declined(cx: &App) -> Option<String> {
     cx.try_global::<LinuxUpdates>()
         .and_then(|updates| updates.declined.clone())
