@@ -478,6 +478,10 @@ pub(super) fn negotiation_tag(participant_id: &str, suffix: &str) -> String {
     format!("{participant_id}{suffix}")
 }
 
+pub(super) fn share_stop_suffix(camera_on: bool) -> &'static str {
+    if camera_on { ";v_2" } else { ";v_1" }
+}
+
 pub(super) fn tell_media_descriptions(
     remote: &RemoteCall,
     links: &BTreeMap<String, String>,
@@ -658,7 +662,7 @@ mod media_description_tests {
         assert_eq!(all[0].direction, "recvonly");
         assert_eq!(all[1].direction, "recvonly");
         assert_eq!(all[2].mid, "11");
-        assert_eq!(all[2].direction, "sendrecv");
+        assert_eq!(all[2].direction, "sendonly");
         assert_eq!(all[2].label, Some("applicationsharing-video"));
     }
 
@@ -682,5 +686,11 @@ mod media_description_tests {
     fn the_tag_is_the_participant_id_plus_the_change_suffix() {
         assert_eq!(negotiation_tag("p1", ";ss_1"), "p1;ss_1");
         assert_eq!(negotiation_tag("p1", ";v_2"), "p1;v_2");
+    }
+
+    #[test]
+    fn stopping_a_share_falls_back_to_the_camera_or_idle_tag() {
+        assert_eq!(share_stop_suffix(true), ";v_2");
+        assert_eq!(share_stop_suffix(false), ";v_1");
     }
 }

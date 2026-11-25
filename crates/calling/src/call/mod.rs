@@ -2453,7 +2453,7 @@ async fn drive(
                                     &remote,
                                     &media_links,
                                     media_descriptions(&media_mids(&current.peer), MediaDescription::share_line(local_video.share_mid().unwrap_or_else(|| SHARE_MID.to_owned()), false)),
-                                    Some(negotiation_tag(&remote.participant.participant_id, ";ss_1")),
+                                    Some(negotiation_tag(&remote.participant.participant_id, share_stop_suffix(local_video.camera_on()))),
                                     &mut media_description_request,
                                     timeline,
                                 );
@@ -2481,7 +2481,7 @@ async fn drive(
                                         local_video.share_mid().unwrap_or_else(|| SHARE_MID.to_owned()),
                                         false,
                                     )),
-            Some(negotiation_tag(&remote.participant.participant_id, ";ss_1")),
+            Some(negotiation_tag(&remote.participant.participant_id, share_stop_suffix(local_video.camera_on()))),
             &mut media_description_request,
             timeline,
         );

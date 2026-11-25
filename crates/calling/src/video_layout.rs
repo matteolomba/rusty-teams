@@ -254,7 +254,11 @@ impl MediaDescription {
     }
 
     pub fn share_line(mid: impl Into<String>, sending: bool) -> Self {
-        Self::line(mid.into(), sending, SHARE_LINE_LABEL)
+        let mut description = Self::line(mid.into(), sending, SHARE_LINE_LABEL);
+        if sending {
+            description.direction = "sendonly";
+        }
+        description
     }
 
     fn line(mid: String, sending: bool, label: &'static str) -> Self {
@@ -888,7 +892,7 @@ mod tests {
         );
         assert_eq!(
             MediaDescription::share(true).wire(),
-            json!({"mid": "11", "direction": "sendrecv", "label": "applicationsharing-video"})
+            json!({"mid": "11", "direction": "sendonly", "label": "applicationsharing-video"})
         );
         assert_eq!(
             MediaDescription::camera_line("7", true).wire(),
