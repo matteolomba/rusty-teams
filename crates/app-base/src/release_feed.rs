@@ -604,7 +604,7 @@ mod tests {
     fn the_release_page_is_the_tag_url() {
         assert_eq!(
             release_page_url("v0.5.0"),
-            "https://github.com/danieldaeschle/rusty-teams/releases/tag/v0.5.0"
+            "https://github.com/matteolomba/rusty-teams/releases/tag/v0.5.0"
         );
     }
 
