@@ -1433,7 +1433,7 @@ pub fn escalation_answer_body(
 ) -> Value {
     json!({
         "mediaAnswer": {
-            "callModalities": crate::hold::accepted_modalities(false),
+            "callModalities": crate::hold::accepted_modalities(crate::hold::offer_sends_video(answer_sdp)),
             "sender": from.wire(),
             "links": {"mediaAcknowledgement": callbacks.call("mediaAcknowledgement")},
             "clientContentForMediaController": media_controller_links(callbacks),
@@ -2271,6 +2271,24 @@ mod tests {
         assert_eq!(
             answer["mediaAnswer"]["callModalities"],
             json!(["Audio", "ScreenViewer"])
+        );
+    }
+
+    #[test]
+    fn an_answer_with_an_accepted_video_line_announces_video() {
+        let from = from();
+        let callbacks = callbacks();
+        let sdp = "v=0\r\n\
+            m=audio 9 UDP/TLS/RTP/SAVPF 105\r\n\
+            a=mid:0\r\n\
+            m=video 9 UDP/TLS/RTP/SAVPF 102\r\n\
+            a=mid:2\r\n\
+            a=label:main-video\r\n\
+            a=sendrecv\r\n";
+        let answer = escalation_answer_body(&from, &callbacks, sdp, "AB");
+        assert_eq!(
+            answer["mediaAnswer"]["callModalities"],
+            json!(["Audio", "Video", "ScreenViewer"])
         );
     }
 

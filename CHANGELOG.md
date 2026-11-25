@@ -10,6 +10,7 @@
 - Descrizioni video iniziali e seed di bandwidth sulle offerte di gruppo, allineate alla forma usata da Teams.
 - Rifiuti di sessione e accettazioni senza risposta SDP terminano la chiamata con uno stato esplicito invece di essere ignorati.
 - Riga di condivisione attiva come `sendonly` e tag di stop `;v_2`/`;v_1` scelto in base alla camera.
+- Modalità di rinnegoziazione diretta allineate a Teams: niente `ScreenViewer` nell'offerta, `Video` nella risposta quando la linea video è accettata.
 
 ## [0.7.0-rc.3] - 2026-11-25
 

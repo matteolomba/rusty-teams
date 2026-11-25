@@ -178,7 +178,10 @@ pub fn offer_sends_video(teams_sdp: &str) -> bool {
 }
 
 pub fn offer_modalities(video: bool, sharing: bool) -> Vec<String> {
-    let mut modalities = accepted_modalities(video);
+    let mut modalities = vec!["Audio".to_owned()];
+    if video {
+        modalities.push("Video".to_owned());
+    }
     if sharing {
         modalities.push(SCREEN_SHARER.to_owned());
     }
@@ -329,11 +332,11 @@ mod tests {
         );
         assert_eq!(
             super::offer_modalities(false, true),
-            vec!["Audio", "ScreenViewer", "ScreenSharer"]
+            vec!["Audio", "ScreenSharer"]
         );
         assert_eq!(
             super::offer_modalities(true, true),
-            vec!["Audio", "Video", "ScreenViewer", "ScreenSharer"]
+            vec!["Audio", "Video", "ScreenSharer"]
         );
     }
 }
