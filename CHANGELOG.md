@@ -4,13 +4,13 @@
 
 ### Changed
 - Sincronizzato con `danieldaeschle/rusty-teams` fino a `797e287e`; mantenute le scelte del fork su aggiornamenti, localizzazione e gate delle PR.
-- La preferenza dell'anteprima messaggi usa la chiave Teams `simpleCollabUserSettings.hasUserEnabledMessagePreviews`, con fallback alla vecchia chiave.
-- Lint Clippy di workspace per blocchi `unsafe` non documentati e attributi senza motivazione.
+- Message preview preference now uses the Teams key `simpleCollabUserSettings.hasUserEnabledMessagePreviews`, with a fallback to the legacy key.
+- Workspace Clippy lints for undocumented `unsafe` blocks and attributes without a reason.
 
 ### Fixed
-- Guest org con MFA interattivo: il dettaglio `AADSTS50076` non viene più perso, lo splash non blocca più il cambio organizzazione ed è disponibile il ritorno alla home org.
-- Il shutdown del browser limita a 500 ms il salvataggio della chiave MSAL e valida i campi dei cookie.
-- Parsing rigoroso di impostazioni e sessioni agent, web shadow e file locali: campi sconosciuti ed errori di decodifica non vengono più ignorati in silenzio.
+- Guest org with interactive MFA: `AADSTS50076` is no longer dropped, the splash no longer blocks org switching, and a Return to home org action is available.
+- Browser shutdown bounds the MSAL cache-key save to 500 ms and validates cookie fields.
+- Strict parsing for agent settings and sessions, web shadow events, and local files: unknown fields and decode errors are no longer silently ignored.
 - Condivisione remota invisibile: slot della riga `applicationsharing-video` piegata, indicatore e routing anche senza link di sottoscrizione, e riga già attiva all'apertura della chiamata.
 - Descrizioni video iniziali e seed di bandwidth sulle offerte di gruppo, allineate alla forma usata da Teams.
 - Rifiuti di sessione e accettazioni senza risposta SDP terminano la chiamata con uno stato esplicito invece di essere ignorati.
@@ -22,11 +22,11 @@
 ## [0.7.0-rc.3] - 2026-11-25
 
 ### Added
-- Gate semgrep locale con pinning delle action GitHub e baseline di sicurezza documentata.
+- Local semgrep gate with pinned GitHub Actions and a documented security baseline.
 
 ### Fixed
-- Hardening FFI, WebRTC e diagnostica: nessun panic attraversa i callback nativi, log e dump sono redatti e signal-safe, retry e download hanno limiti espliciti.
-- Disattivati self-swap Windows, comandi IPC di test, SSO silenzioso, flag Chromium che riducevano la protezione e funzioni diagnostiche non necessarie.
+- FFI, WebRTC and diagnostics hardening: no panic crosses native callbacks, logs and dumps are redacted and signal-safe, and retries and downloads have explicit limits.
+- Disabled Windows self-swap, test-only IPC commands, silent SSO, Chromium flags that weakened protection, and unnecessary diagnostic features.
 
 
 ## [0.7.0-rc.2] - 2026-11-24
