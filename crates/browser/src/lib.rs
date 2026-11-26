@@ -7,7 +7,6 @@ mod error;
 mod host;
 mod http;
 mod launch;
-mod msal_key;
 mod process;
 mod sign_in_choice;
 mod targets;

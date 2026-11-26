@@ -9,6 +9,8 @@
 - CI checks `cargo fmt --check` on every pull request.
 
 ### Fixed
+- Windows keeps the MSAL token-cache key while signed in, so a WebView2 restart no longer leaves the app online without tokens and reconnecting forever.
+- Trouter disconnect reasons are written to the diagnostics log and the Reconnecting banner offers Retry.
 - The MSAL cache key is persisted right after sign-in, so a crash or OOM kill no longer forces another sign-in.
 - The stopped-screen-share notice and the Help yes/no values use translation keys that exist in all locales.
 

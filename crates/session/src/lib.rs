@@ -3,6 +3,7 @@ mod error;
 mod events;
 mod host_check;
 mod http;
+pub mod msal_key;
 mod native;
 mod page_script;
 mod request;
