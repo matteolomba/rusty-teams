@@ -1,6 +1,8 @@
 use chatsvc::ForcedKind;
 use chrono::{DateTime, Datelike, Duration, NaiveTime, TimeZone, Utc};
 
+use crate::ui_locale::tr;
+
 pub const STATUS_CHOICES: [ForcedKind; 6] = [
     ForcedKind::Available,
     ForcedKind::Busy,
@@ -27,14 +29,14 @@ pub enum StatusDuration {
 }
 
 impl StatusDuration {
-    pub fn label(self) -> &'static str {
-        match self {
-            StatusDuration::HalfHour => "30 minutes",
-            StatusDuration::OneHour => "1 hour",
-            StatusDuration::TwoHours => "2 hours",
-            StatusDuration::Today => "Today",
-            StatusDuration::ThisWeek => "This week",
-        }
+    pub fn label(self) -> String {
+        tr(match self {
+            StatusDuration::HalfHour => "ui.settings.status.duration_half_hour",
+            StatusDuration::OneHour => "ui.settings.status.duration_one_hour",
+            StatusDuration::TwoHours => "ui.settings.status.duration_two_hours",
+            StatusDuration::Today => "ui.settings.status.duration_today",
+            StatusDuration::ThisWeek => "ui.settings.status.duration_this_week",
+        })
     }
 
     pub fn expires_at<Zone: TimeZone>(self, now: DateTime<Zone>) -> DateTime<Utc> {
@@ -73,21 +75,21 @@ pub fn end_of_week<Zone: TimeZone>(now: &DateTime<Zone>) -> DateTime<Utc> {
     end_of_local_date(now, 6 - days_since_sunday)
 }
 
-pub fn choice_label(kind: ForcedKind) -> &'static str {
+pub fn choice_label(kind: ForcedKind) -> String {
     match kind {
-        ForcedKind::Away => "Appear away",
-        ForcedKind::Offline => "Appear offline",
+        ForcedKind::Away => tr("ui.settings.status.appear_away"),
+        ForcedKind::Offline => tr("ui.settings.status.appear_offline"),
         other => state_label(other),
     }
 }
 
-pub fn state_label(kind: ForcedKind) -> &'static str {
-    match kind {
-        ForcedKind::Available => "Available",
-        ForcedKind::Busy => "Busy",
-        ForcedKind::DoNotDisturb => "Do not disturb",
-        ForcedKind::BeRightBack => "Be right back",
-        ForcedKind::Away => "Away",
-        ForcedKind::Offline => "Offline",
-    }
+pub fn state_label(kind: ForcedKind) -> String {
+    tr(match kind {
+        ForcedKind::Available => "ui.settings.status.available",
+        ForcedKind::Busy => "ui.settings.status.busy",
+        ForcedKind::DoNotDisturb => "ui.settings.status.do_not_disturb",
+        ForcedKind::BeRightBack => "ui.settings.status.be_right_back",
+        ForcedKind::Away => "ui.settings.status.away",
+        ForcedKind::Offline => "ui.settings.status.offline",
+    })
 }

@@ -3,8 +3,6 @@ use calling::{MeetingRole, Modality};
 use super::model::{CallKind, CallModel, Tile, TileState};
 
 const BOT_PREFIX: &str = "28:";
-const FLAT_TITLE: &str = "In this call";
-const OWN_NAME: &str = "You";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PersonRow {
@@ -12,7 +10,7 @@ pub struct PersonRow {
     pub name: String,
     pub user_id: Option<String>,
     pub own: bool,
-    pub label: Option<&'static str>,
+    pub label: Option<String>,
     pub muted: bool,
     pub mic_blocked: bool,
     pub camera_on: bool,
@@ -30,7 +28,7 @@ pub struct LobbyRow {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PeopleGroup {
-    pub title: &'static str,
+    pub title: String,
     pub rows: Vec<PersonRow>,
 }
 
@@ -42,20 +40,20 @@ pub struct PeopleSections {
     pub groups: Vec<PeopleGroup>,
 }
 
-pub fn role_label(role: MeetingRole) -> &'static str {
-    match role {
-        MeetingRole::Organizer => "Organizer",
-        MeetingRole::Presenter => "Presenter",
-        MeetingRole::Attendee => "Attendee",
-    }
+pub fn role_label(role: MeetingRole) -> String {
+    app_base::ui_locale::tr(match role {
+        MeetingRole::Organizer => "calendar.peek.organizer",
+        MeetingRole::Presenter => "ui.calls.role.presenter",
+        MeetingRole::Attendee => "ui.calls.role.attendee",
+    })
 }
 
-fn group_title(role: MeetingRole) -> &'static str {
-    match role {
-        MeetingRole::Organizer => "Organizers",
-        MeetingRole::Presenter => "Presenters",
-        MeetingRole::Attendee => "Attendees",
-    }
+fn group_title(role: MeetingRole) -> String {
+    app_base::ui_locale::tr(match role {
+        MeetingRole::Organizer => "ui.calls.role.organizers",
+        MeetingRole::Presenter => "ui.calls.role.presenters",
+        MeetingRole::Attendee => "ui.calls.role.attendees",
+    })
 }
 
 fn tile_row(model: &CallModel, tile: &Tile, role: Option<MeetingRole>) -> PersonRow {
@@ -79,7 +77,7 @@ fn own_row(model: &CallModel, role: Option<MeetingRole>) -> Option<PersonRow> {
     let mri = model.own_mri.clone()?;
     Some(PersonRow {
         mri,
-        name: OWN_NAME.to_owned(),
+        name: app_base::ui_locale::tr("common.you"),
         user_id: None,
         own: true,
         label: role.map(role_label),
@@ -161,7 +159,7 @@ pub fn people_sections(model: &CallModel) -> PeopleSections {
         let mut flat: Vec<PersonRow> = rows.into_iter().map(|(_, row)| row).collect();
         by_name(&mut flat);
         vec![PeopleGroup {
-            title: FLAT_TITLE,
+            title: app_base::ui_locale::tr("ui.calls.people.in_this_call"),
             rows: flat,
         }]
     };
@@ -213,8 +211,12 @@ mod tests {
         model
     }
 
-    fn titles(sections: &PeopleSections) -> Vec<&'static str> {
-        sections.groups.iter().map(|group| group.title).collect()
+    fn titles(sections: &PeopleSections) -> Vec<String> {
+        sections
+            .groups
+            .iter()
+            .map(|group| group.title.clone())
+            .collect()
     }
 
     fn names(group: &PeopleGroup) -> Vec<&str> {
@@ -230,7 +232,10 @@ mod tests {
             entry("8:orgid:c", "Cy", None),
         ]);
         let sections = people_sections(&model);
-        assert_eq!(titles(&sections), vec!["Organizers", "Attendees"]);
+        assert_eq!(
+            titles(&sections),
+            vec!["Organizers".to_owned(), "Attendees".to_owned()]
+        );
         assert_eq!(names(&sections.groups[0]), vec!["You"]);
         assert_eq!(names(&sections.groups[1]), vec!["Ana", "bo", "Cy"]);
         assert_eq!(sections.count, 4);
@@ -241,7 +246,7 @@ mod tests {
         )]);
         assert_eq!(
             titles(&people_sections(&presenter)),
-            vec!["Organizers", "Presenters"]
+            vec!["Organizers".to_owned(), "Presenters".to_owned()]
         );
     }
 
@@ -261,7 +266,7 @@ mod tests {
             since: Instant::now(),
         }));
         let sections = people_sections(&model);
-        assert_eq!(titles(&sections), vec!["In this call"]);
+        assert_eq!(titles(&sections), vec!["In this call".to_owned()]);
         assert_eq!(names(&sections.groups[0]), vec!["You", "Ana", "Bo"]);
         assert!(
             sections.groups[0]
@@ -304,7 +309,10 @@ mod tests {
         let sections = people_sections(&model);
         assert_eq!(sections.count, 1);
         assert_eq!(sections.groups[0].title, "Organizers");
-        assert_eq!(sections.groups[0].rows[0].label, Some("Organizer"));
+        assert_eq!(
+            sections.groups[0].rows[0].label,
+            Some("Organizer".to_owned())
+        );
     }
 
     #[test]

@@ -15,12 +15,13 @@ use super::widgets::icon;
 use crate::app_state::AppState;
 use crate::i18n::tr;
 use crate::theme;
+use app_base::ui_locale::tr_with;
 
 pub const GROUP_NAME_FORM: &str = "shell/islands/main/group-name-form";
 pub const GROUP_NAME_BUTTON: &str = "shell/islands/main/group-name-button";
-const BUTTON_TOOLTIP: &str = "Name group chat";
-const FIELD_LABEL: &str = "Group name";
-const PLACEHOLDER: &str = "Type a group name";
+const BUTTON_TOOLTIP: &str = "ui.chat.group.name_tooltip";
+const FIELD_LABEL: &str = "ui.chat.group.field_label";
+const PLACEHOLDER: &str = "ui.chat.group.placeholder";
 const FORM_WIDTH: f32 = 300.;
 const FORM_PADDING: f32 = 12.;
 const FORM_GAP: f32 = 8.;
@@ -30,10 +31,15 @@ const ICON_SIZE: f32 = 16.;
 pub fn problem_text(problem: TopicProblem) -> String {
     match problem {
         TopicProblem::TooLong => {
-            format!("Your group name can't be longer than {MAX_TOPIC_LENGTH} characters.")
+            let max = MAX_TOPIC_LENGTH.to_string();
+            tr_with("ui.chat.group.too_long", &[("max", &max)])
         }
         TopicProblem::InvalidCharacter => {
-            format!("'{INVALID_TOPIC_CHARACTER}' is not a valid character in group names.")
+            let character = INVALID_TOPIC_CHARACTER.to_string();
+            tr_with(
+                "ui.chat.group.invalid_character",
+                &[("character", &character)],
+            )
         }
     }
 }
@@ -56,7 +62,7 @@ impl GroupNameForm {
         cx: &mut Context<Self>,
     ) -> Self {
         let input = cx.new(|cx| {
-            let mut state = InputState::new(window, cx).placeholder(PLACEHOLDER);
+            let mut state = InputState::new(window, cx).placeholder(tr(PLACEHOLDER));
             state.set_value(title, window, cx);
             state
         });
@@ -119,7 +125,7 @@ impl Render for GroupNameForm {
                 div()
                     .text_size(px(LABEL_SIZE))
                     .text_color(theme::text_soft())
-                    .child(FIELD_LABEL),
+                    .child(tr(FIELD_LABEL)),
             )
             .child(Input::new(&self.input))
             .when_some(problem, |form, problem| {
@@ -169,7 +175,7 @@ pub fn group_name_button(
             Button::new("group-name-button")
                 .ghost()
                 .compact()
-                .tooltip(BUTTON_TOOLTIP)
+                .tooltip(tr(BUTTON_TOOLTIP))
                 .debug_selector(|| GROUP_NAME_BUTTON.into())
                 .child(icon(IconName::Pencil, ICON_SIZE, theme::text_soft())),
         )
@@ -196,9 +202,11 @@ pub fn group_name_button(
 #[cfg(test)]
 mod tests {
     use super::{TopicProblem, problem_text};
+    use app_base::ui_locale::apply_locale;
 
     #[test]
     fn problems_use_the_teams_wording() {
+        apply_locale("en");
         assert_eq!(
             problem_text(TopicProblem::TooLong),
             "Your group name can't be longer than 250 characters."

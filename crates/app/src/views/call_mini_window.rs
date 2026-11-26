@@ -7,11 +7,12 @@ use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 
 use super::avatar::person_avatar;
-use super::call_share_gallery::{SHOW_MORE_PEOPLE, view_switch_button};
+use super::call_share_gallery::view_switch_button;
 use super::call_view::{camera_button, leave_button, mute_button, round_control, status_line};
 use super::widgets::icon;
 use crate::app_state::AppState;
 use crate::call::{CallModel, CallWindows, Tile, TileState};
+use crate::i18n::tr;
 use crate::theme;
 
 pub(super) const CONTROLS_HEIGHT: f32 = 44.;
@@ -216,7 +217,7 @@ pub(super) fn controls_row(
                 theme::text(),
             )
             .size(px(CONTROL_SIZE))
-            .tooltip(|window, cx| Tooltip::new("Back to call").build(window, cx))
+            .tooltip(|window, cx| Tooltip::new(tr("ui.calls.mini.back_to_call")).build(window, cx))
             .on_click(move |_, _, cx| on_back(cx)),
         )
         .child(leave_button(app, model, ids.leave, true))
@@ -292,7 +293,7 @@ impl Render for MiniWindowView {
                             &self.windows,
                             "call-mini-window-more-people",
                             IconName::Users,
-                            SHOW_MORE_PEOPLE,
+                            tr("ui.calls.share.show_more_people"),
                         )
                         .size(px(CONTROL_SIZE)),
                     )

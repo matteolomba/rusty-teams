@@ -1,3 +1,4 @@
+use app_base::ui_locale::tr_with;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::tooltip::Tooltip;
 use gpui_kit::component::{ActiveTheme as _, h_flex, v_flex};
@@ -7,6 +8,7 @@ use teams_core::CardCodeBlock;
 
 use super::adaptive_card::{CardContext, slot_handler};
 use super::widgets::icon;
+use crate::i18n::tr;
 use crate::theme;
 
 const COLLAPSED_LINES: usize = 10;
@@ -20,7 +22,7 @@ const GUTTER_DIGIT_WIDTH: f32 = 8.;
 const GUTTER_GAP: f32 = 12.;
 const COPY_ICON_SIZE: f32 = 14.;
 const TAB_REPLACEMENT: &str = "    ";
-const COPY_TOOLTIP: &str = "Copy code";
+const COPY_TOOLTIP: &str = "ui.misc.copy_code";
 
 pub(super) fn code_block_view(
     block: &CardCodeBlock,
@@ -70,7 +72,7 @@ pub(super) fn code_block_view(
                         .p(px(2.))
                         .rounded(px(4.))
                         .hover(|button| button.bg(theme::row_hover()))
-                        .tooltip(|window, cx| Tooltip::new(COPY_TOOLTIP).build(window, cx))
+                        .tooltip(|window, cx| Tooltip::new(tr(COPY_TOOLTIP)).build(window, cx))
                         .on_click(move |_, _, cx| {
                             cx.stop_propagation();
                             cx.write_to_clipboard(ClipboardItem::new_string(code.clone()));
@@ -130,9 +132,12 @@ pub(super) fn code_block_view(
                         toggle(cx)
                     })
                     .child(if expanded {
-                        "Collapse".to_owned()
+                        tr("ui.misc.collapse")
                     } else {
-                        format!("Expand ({hidden} more lines)")
+                        tr_with(
+                            "ui.misc.expand_more_lines",
+                            &[("count", &hidden.to_string())],
+                        )
                     }),
             )
         })

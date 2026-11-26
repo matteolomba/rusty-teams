@@ -11,6 +11,7 @@ use store::ChannelTabRecord;
 use teams_core::channel_tab_link;
 
 use app_base::theme;
+use app_base::ui_locale::tr;
 
 const TAB_GAP: f32 = 4.;
 const TAB_PADDING: f32 = 10.;
@@ -22,12 +23,23 @@ const OVERFLOW_WIDTH: f32 = 44.;
 const EXTERNAL_ARROW: &str = "\u{2197}";
 const TITLE_CHAR_WIDTH: f32 = 8.;
 pub const HEADER_TITLE_MAX_WIDTH: f32 = 240.;
-
-pub const POSTS_LABEL: &str = "Posts";
-pub const SHARED_LABEL: &str = "Shared";
-pub const CHAT_LABEL: &str = "Chat";
-pub const RECAP_LABEL: &str = "Recap";
 pub const CHAT_SHARED_TAB_TAG: &str = "shell/islands/main/chat-shared-tab";
+
+pub fn posts_label() -> String {
+    tr("ui.settings.tabs.posts")
+}
+
+pub fn shared_label() -> String {
+    tr("ui.settings.tabs.shared")
+}
+
+pub fn chat_label() -> String {
+    tr("ui.settings.tabs.chat")
+}
+
+pub fn recap_label() -> String {
+    tr("ui.settings.tabs.recap")
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChannelPane {
@@ -74,7 +86,7 @@ pub fn header_title_width(title: &str) -> f32 {
 }
 
 pub fn visible_tab_count(tabs: &[ChannelTabRecord], available_width: f32) -> usize {
-    let fixed = label_width(POSTS_LABEL, false) + TAB_GAP + label_width(SHARED_LABEL, false);
+    let fixed = label_width(&posts_label(), false) + TAB_GAP + label_width(&shared_label(), false);
     let widths: Vec<f32> = tabs
         .iter()
         .map(|tab| TAB_GAP + label_width(&tab.name, true))
@@ -173,7 +185,7 @@ pub fn render_tab_bar(
     let select = actions.select.clone();
     let posts = tab_label(
         "channel-tab-posts".into(),
-        POSTS_LABEL,
+        &posts_label(),
         pane == ChannelPane::Posts,
         false,
         {
@@ -183,7 +195,7 @@ pub fn render_tab_bar(
     );
     let shared = tab_label(
         "channel-tab-shared".into(),
-        SHARED_LABEL,
+        &shared_label(),
         pane == ChannelPane::Shared,
         false,
         move |_, cx| select(ChannelPane::Shared, cx),
@@ -218,7 +230,7 @@ pub fn render_tab_bar(
 pub fn render_chat_bar(pane: ChannelPane, with_recap: bool, select: SelectPane) -> AnyElement {
     let chat = tab_label(
         "chat-tab-chat".into(),
-        CHAT_LABEL,
+        &chat_label(),
         pane == ChannelPane::Posts,
         false,
         {
@@ -228,7 +240,7 @@ pub fn render_chat_bar(pane: ChannelPane, with_recap: bool, select: SelectPane) 
     );
     let shared = tab_label(
         "chat-tab-shared".into(),
-        SHARED_LABEL,
+        &shared_label(),
         pane == ChannelPane::Shared,
         false,
         {
@@ -240,7 +252,7 @@ pub fn render_chat_bar(pane: ChannelPane, with_recap: bool, select: SelectPane) 
     let recap = with_recap.then(|| {
         tab_label(
             "chat-tab-recap".into(),
-            RECAP_LABEL,
+            &recap_label(),
             pane == ChannelPane::Recap,
             false,
             move |_, cx| select(ChannelPane::Recap, cx),

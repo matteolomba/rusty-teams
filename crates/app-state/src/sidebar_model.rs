@@ -23,10 +23,10 @@ pub const OTHERS_ID: &str = "others";
 pub const MUTED_NAME: &str = "Muted";
 pub const MUTED_ID: &str = "muted_chats";
 pub const SECTION_PAGE_SIZE: usize = 5;
-pub const EMPTY_FOLDER_HINT: &str = "Empty. Drag chats here.";
-pub const DELETED_PREVIEW: &str = "Message deleted";
-pub const DELETED_CHAT_PREVIEW: &str = "This message was deleted";
-const OWN_PREFIX: &str = "You";
+pub const EMPTY_FOLDER_HINT: &str = "ui.chat.sidebar.empty_folder";
+pub const DELETED_PREVIEW: &str = "ui.chat.message.deleted_preview";
+pub const DELETED_CHAT_PREVIEW: &str = "ui.chat.sidebar.deleted_preview";
+const OWN_PREFIX: &str = "ui.chat.sidebar.own_prefix";
 const GROUP_KIND: &str = "group";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -128,7 +128,7 @@ pub fn preview_for(chat: &ChatRecord, me: Option<&Person>) -> Preview {
         _ => false,
     };
     let prefix = if from_me {
-        Some(OWN_PREFIX.to_owned())
+        Some(app_base::ui_locale::tr(OWN_PREFIX))
     } else if is_one_on_one(chat) {
         None
     } else {
@@ -1188,6 +1188,7 @@ mod tests {
 
     #[test]
     fn preview_prefix_is_you_for_own_and_first_name_for_groups() {
+        app_base::ui_locale::apply_locale("en");
         let mut group = chat("g", "group", false);
         group.last_message_preview = Some("Hello".into());
         group.last_message_sender_id = Some("ada".into());

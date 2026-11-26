@@ -8,6 +8,7 @@ use gpui_kit::*;
 use super::runs::{AgentRun, AgentRuns, RunState, format_elapsed};
 use super::spinner::spinner;
 use super::{AgentRunsHandle, open_session, retry_run};
+use crate::i18n::tr;
 use crate::theme;
 use crate::views::widgets::icon;
 
@@ -21,7 +22,7 @@ fn with_runs(cx: &mut App, change: impl FnOnce(&mut AgentRuns, &mut Context<Agen
     cx.global::<AgentRunsHandle>().0.clone().update(cx, change);
 }
 
-fn chip_button(id: String, label: &'static str, primary: bool) -> Stateful<Div> {
+fn chip_button(id: String, label: impl Into<SharedString>, primary: bool) -> Stateful<Div> {
     div()
         .id(ElementId::Name(id.into()))
         .h(px(BUTTON_HEIGHT))
@@ -41,7 +42,7 @@ fn chip_button(id: String, label: &'static str, primary: bool) -> Stateful<Div> 
                 theme::surface_raised()
             })
         })
-        .child(label)
+        .child(label.into())
 }
 
 fn dismiss_button(run_id: u64) -> Stateful<Div> {
@@ -133,62 +134,74 @@ fn chip_row(run: &AgentRun, fill: Hsla) -> Stateful<Div> {
             .child(elapsed_text(run))
             .when(!session_id.is_empty(), |row| {
                 row.child(
-                    chip_button(format!("agent-open-{run_id}"), "Open session", true).on_click(
-                        move |_, _, cx| {
-                            cx.stop_propagation();
-                            open_session(&session_id, cx);
-                        },
-                    ),
+                    chip_button(
+                        format!("agent-open-{run_id}"),
+                        tr("ui.settings.agents.open_session"),
+                        true,
+                    )
+                    .on_click(move |_, _, cx| {
+                        cx.stop_propagation();
+                        open_session(&session_id, cx);
+                    }),
                 )
             })
             .child(dismiss_button(run_id)),
         RunState::Failed { .. } => {
             row.child(icon(IconName::X, STATUS_ICON, theme::red_soft()))
-                .child(label("Failed".to_owned(), theme::red_tint()))
+                .child(label(tr("ui.settings.agents.failed"), theme::red_tint()))
                 .child(step_text(run.current_step.clone()))
                 .child(
-                    chip_button(format!("agent-log-{run_id}"), "Log", false).on_click(
-                        move |_, _, cx| {
-                            cx.stop_propagation();
-                            with_runs(cx, |runs, cx| runs.toggle_expanded(run_id, cx));
-                        },
-                    ),
+                    chip_button(
+                        format!("agent-log-{run_id}"),
+                        tr("ui.settings.agents.log"),
+                        false,
+                    )
+                    .on_click(move |_, _, cx| {
+                        cx.stop_propagation();
+                        with_runs(cx, |runs, cx| runs.toggle_expanded(run_id, cx));
+                    }),
                 )
                 .child(
-                    chip_button(format!("agent-retry-{run_id}"), "Retry", false).on_click(
-                        move |_, _, cx| {
+                    chip_button(format!("agent-retry-{run_id}"), tr("common.retry"), false)
+                        .on_click(move |_, _, cx| {
                             cx.stop_propagation();
                             retry_run(run_id, cx);
-                        },
-                    ),
+                        }),
                 )
                 .when(!session_id.is_empty(), |row| {
                     row.child(
-                        chip_button(format!("agent-open-{run_id}"), "Open session", false)
-                            .on_click(move |_, _, cx| {
-                                cx.stop_propagation();
-                                open_session(&session_id, cx);
-                            }),
+                        chip_button(
+                            format!("agent-open-{run_id}"),
+                            tr("ui.settings.agents.open_session"),
+                            false,
+                        )
+                        .on_click(move |_, _, cx| {
+                            cx.stop_propagation();
+                            open_session(&session_id, cx);
+                        }),
                     )
                 })
                 .child(dismiss_button(run_id))
         }
-        RunState::Stopped => {
-            row.child(icon(IconName::Square, STATUS_ICON, theme::text_faint()))
-                .child(label(action_label, theme::text_soft()))
-                .child(step_text("Stopped".to_owned()))
-                .child(elapsed_text(run))
-                .when(!session_id.is_empty(), |row| {
-                    row.child(
-                        chip_button(format!("agent-open-{run_id}"), "Open session", false)
-                            .on_click(move |_, _, cx| {
-                                cx.stop_propagation();
-                                with_runs(cx, |runs, cx| runs.stop_and_open_session(run_id, cx));
-                            }),
+        RunState::Stopped => row
+            .child(icon(IconName::Square, STATUS_ICON, theme::text_faint()))
+            .child(label(action_label, theme::text_soft()))
+            .child(step_text(tr("ui.settings.agents.stopped")))
+            .child(elapsed_text(run))
+            .when(!session_id.is_empty(), |row| {
+                row.child(
+                    chip_button(
+                        format!("agent-open-{run_id}"),
+                        tr("ui.settings.agents.open_session"),
+                        false,
                     )
-                })
-                .child(dismiss_button(run_id))
-        }
+                    .on_click(move |_, _, cx| {
+                        cx.stop_propagation();
+                        with_runs(cx, |runs, cx| runs.stop_and_open_session(run_id, cx));
+                    }),
+                )
+            })
+            .child(dismiss_button(run_id)),
     }
 }
 
@@ -217,10 +230,12 @@ fn step_row(elapsed: String, text: String, current: bool) -> Div {
 
 fn stop_row(run_id: u64) -> Div {
     h_flex().mt(px(2.)).items_center().justify_end().child(
-        chip_button(format!("agent-stop-{run_id}"), "Stop", false).on_click(move |_, _, cx| {
-            cx.stop_propagation();
-            with_runs(cx, |runs, cx| runs.stop(run_id, cx));
-        }),
+        chip_button(format!("agent-stop-{run_id}"), tr("common.stop"), false).on_click(
+            move |_, _, cx| {
+                cx.stop_propagation();
+                with_runs(cx, |runs, cx| runs.stop(run_id, cx));
+            },
+        ),
     )
 }
 
@@ -237,7 +252,7 @@ fn detail_panel(run: &AgentRun, fill: Hsla) -> Div {
     if matches!(run.state, RunState::Failed { .. }) {
         let lines = run.log_lines();
         if lines.is_empty() {
-            return panel.child("No output");
+            return panel.child(tr("ui.settings.agents.no_output"));
         }
         return panel.children(lines.iter().map(|line| {
             div()
@@ -250,7 +265,7 @@ fn detail_panel(run: &AgentRun, fill: Hsla) -> Div {
     let steps = run.visible_steps();
     if steps.is_empty() {
         return panel
-            .child("No steps yet")
+            .child(tr("ui.settings.agents.no_steps"))
             .when(run.is_running(), |panel| panel.child(stop_row(run.id)));
     }
     let last = steps.len() - 1;

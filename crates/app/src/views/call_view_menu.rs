@@ -12,12 +12,12 @@ use super::call_view::{DISABLED_OPACITY, MENU_WIDTH};
 use super::shortcuts::keys_for_label;
 use crate::app_state::AppState;
 use crate::call::{CallLayout, CallModel};
+use crate::i18n::tr;
 use crate::theme;
 
 pub const FULL_SCREEN_LABEL: &str = "Full screen";
-const CONTENT_HINT: &str = "Only while someone shares";
 
-fn hint_row(label: &'static str, hint: String, dimmed: bool) -> Div {
+fn hint_row(label: String, hint: String, dimmed: bool) -> Div {
     h_flex()
         .w_full()
         .gap(px(16.))
@@ -36,7 +36,9 @@ fn hint_row(label: &'static str, hint: String, dimmed: bool) -> Div {
 fn layout_item(app: &Entity<AppState>, model: &CallModel, layout: CallLayout) -> PopupMenuItem {
     let unavailable = layout == CallLayout::Content && !model.has_content();
     let item = if unavailable {
-        PopupMenuItem::element(move |_, _| hint_row(layout.label(), CONTENT_HINT.to_owned(), true))
+        PopupMenuItem::element(move |_, _| {
+            hint_row(layout.label(), tr("ui.calls.view.content_hint"), true)
+        })
     } else {
         PopupMenuItem::new(layout.label())
     };
@@ -48,7 +50,7 @@ fn layout_item(app: &Entity<AppState>, model: &CallModel, layout: CallLayout) ->
 
 fn switch_item(
     id: &'static str,
-    label: &'static str,
+    label: String,
     on: bool,
     toggle: impl Fn(&mut AppState, &mut Context<AppState>) + Clone + 'static,
     app: &Entity<AppState>,
@@ -60,7 +62,7 @@ fn switch_item(
             .gap(px(16.))
             .items_center()
             .justify_between()
-            .child(label)
+            .child(label.clone())
             .child(Switch::new(id).checked(on))
     })
     .on_click(move |_, _, cx| app.update(cx, |state, cx| toggle(state, cx)))
@@ -76,7 +78,7 @@ pub(super) fn view_items(
     let full_screen_app = app.clone();
     let mut popup = popup
         .min_w(px(MENU_WIDTH))
-        .item(PopupMenuItem::label("Layout"));
+        .item(PopupMenuItem::label(tr("ui.calls.view.layout")));
     for layout in [
         CallLayout::Gallery,
         CallLayout::Speaker,
@@ -88,28 +90,28 @@ pub(super) fn view_items(
         .separator()
         .item(switch_item(
             "call-view-hide-no-video",
-            "Hide people without video",
+            tr("ui.calls.view.hide_without_video"),
             model.view.hide_no_video,
             |state, cx| state.toggle_call_hide_no_video(cx),
             app,
         ))
         .item(switch_item(
             "call-view-hide-me",
-            "Hide me",
+            tr("ui.calls.view.hide_me"),
             hide_me,
             move |state, cx| state.set_call_hide_me(!hide_me, cx),
             app,
         ))
         .item(switch_item(
             "call-view-hide-timer",
-            "Hide meeting timer",
+            tr("ui.calls.view.hide_timer"),
             model.view.hide_timer,
             |state, cx| state.toggle_call_hide_timer(cx),
             app,
         ))
         .item(switch_item(
             "call-view-chat-bubbles",
-            "Chat bubbles",
+            tr("ui.calls.view.chat_bubbles"),
             model.view.chat_bubbles,
             |state, cx| state.toggle_call_chat_bubbles(cx),
             app,
@@ -118,7 +120,7 @@ pub(super) fn view_items(
         .item(
             PopupMenuItem::element(move |_, _| {
                 hint_row(
-                    FULL_SCREEN_LABEL,
+                    tr("ui.calls.chrome.full_screen"),
                     keys_for_label(FULL_SCREEN_LABEL).unwrap_or_default(),
                     false,
                 )
@@ -139,7 +141,12 @@ pub(super) fn view_button(
     let model = model.clone();
     tool_trigger(
         "call-view",
-        tool_face("call-view-face", IconName::LayoutGrid, "View", false),
+        tool_face(
+            "call-view-face",
+            IconName::LayoutGrid,
+            tr("ui.calls.chrome.view"),
+            false,
+        ),
     )
     .dropdown_menu_with_anchor(Anchor::TopRight, move |popup, _, _| {
         view_items(popup, &app, &model, fullscreen)

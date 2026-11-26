@@ -65,7 +65,7 @@ fn status_submenu(item: &Item) -> MenuItem<Item> {
         let label = tray_status::choice_label(kind);
         entries.push(
             CheckmarkItem {
-                label: menu_label(label),
+                label: menu_label(&label),
                 checked: item.forced == Some(kind),
                 activate: Box::new(move |item: &mut Item| item.send(TrayCommand::SetStatus(kind))),
                 ..Default::default()
@@ -79,7 +79,7 @@ fn status_submenu(item: &Item) -> MenuItem<Item> {
     for duration in tray_status::STATUS_DURATIONS {
         duration_items.push(
             StandardItem {
-                label: menu_label(duration.label()),
+                label: menu_label(&duration.label()),
                 enabled: duration_enabled,
                 activate: Box::new(move |item: &mut Item| {
                     item.send(TrayCommand::SetStatusDuration(duration))
@@ -344,9 +344,21 @@ mod tests {
             })
             .collect();
         for kind in tray_status::STATUS_CHOICES {
-            assert!(labels.contains(&tray_status::choice_label(kind)));
+            assert!(
+                labels
+                    .iter()
+                    .any(|label| *label == tray_status::choice_label(kind).as_str())
+            );
         }
-        assert!(labels.contains(&tray_status::reset_label()));
-        assert!(labels.contains(&tray_status::duration_menu_label()));
+        assert!(
+            labels
+                .iter()
+                .any(|label| *label == tray_status::reset_label().as_str())
+        );
+        assert!(
+            labels
+                .iter()
+                .any(|label| *label == tray_status::duration_menu_label().as_str())
+        );
     }
 }

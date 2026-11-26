@@ -7,6 +7,7 @@ use mcp::{Outcome, ReactionOutcome};
 
 use super::{ConversationView, ReactionAttempt};
 use crate::agent_api::{self, ProposalEntry};
+use crate::i18n::tr;
 use crate::rows::reaction_glyph;
 use crate::views::composer::ComposerEvent;
 use crate::views::proposal_card::{
@@ -94,21 +95,18 @@ impl ConversationView {
         };
         let state = self.app.read(cx);
         let refusal = if state.mode.read_only || state.mode.demo {
-            Some("read-only mode")
+            Some(tr("ui.chat.proposal.read_only"))
         } else if state.engine.is_none() {
-            Some("not connected yet")
+            Some(tr("ui.chat.proposal.not_connected"))
         } else {
             None
         };
         if let Some(reason) = refusal {
-            agent_api::fail_proposal(&conversation_id, reason.to_owned(), cx);
+            agent_api::fail_proposal(&conversation_id, reason, cx);
             return;
         }
         if needs_upload(&entry) {
-            self.show_notice(
-                "Large images upload as files - check the draft and press Send",
-                cx,
-            );
+            self.show_notice(&tr("ui.chat.proposal.large_images"), cx);
             self.edit_proposal(window, cx);
             return;
         }

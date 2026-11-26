@@ -21,14 +21,15 @@ use crate::demo_recap;
 use crate::downloads::{self, DownloadState};
 use crate::i18n::tr;
 use crate::notice::short_error;
-use crate::recap::{DELETE_QUESTION, Load, save_name};
+use crate::recap::{Load, delete_question, save_name};
 use crate::rows::{MeetingInfo, MeetingSlot};
 use crate::runtime;
 use crate::views::channel_tabs::{ChannelPane, render_chat_bar};
 use crate::views::recap_tab::{RecapCommand, RecapDownload, RecapRun, RecapView, render_recap};
 use crate::views::shared_tab::{SharedCommand, SharedRun};
+use app_base::ui_locale::tr_with;
 
-const SEARCH_PLACEHOLDER: &str = "Search transcript";
+const SEARCH_PLACEHOLDER: &str = "ui.chat.recap.search_placeholder";
 const RECORDING_EXTENSION: &str = "mp4";
 const EXPIRY_OCCURRENCES: usize = 3;
 const EXPIRY_CACHE_PREFIX: &str = "recording_expiry/";
@@ -37,7 +38,7 @@ pub(super) fn search_input(
     window: &mut Window,
     cx: &mut Context<ConversationView>,
 ) -> Entity<InputState> {
-    cx.new(|cx| InputState::new(window, cx).placeholder(SEARCH_PLACEHOLDER))
+    cx.new(|cx| InputState::new(window, cx).placeholder(tr(SEARCH_PLACEHOLDER)))
 }
 
 pub(super) struct RecapState {
@@ -501,7 +502,7 @@ impl ConversationView {
                     window.close_dialog(cx);
                 });
             alert
-                .title(DELETE_QUESTION)
+                .title(delete_question())
                 .footer(DialogFooter::new().child(cancel).child(delete))
                 .on_ok(|_, _, _| false)
         });
@@ -547,7 +548,10 @@ impl ConversationView {
         cx: &mut Context<Self>,
     ) {
         if let Err(reason) = outcome {
-            self.notice = Some(format!("Recording not deleted: {reason}"));
+            self.notice = Some(tr_with(
+                "ui.chat.recap.delete_failed",
+                &[("reason", &reason)],
+            ));
             cx.notify();
             return;
         }
@@ -620,9 +624,10 @@ impl ConversationView {
             return;
         }
         let (Some(engine), Some(details)) = (engine, details) else {
-            self.recap
-                .downloads
-                .insert(download, DownloadState::Failed("not connected".to_owned()));
+            self.recap.downloads.insert(
+                download,
+                DownloadState::Failed(tr("ui.chat.recap.not_connected")),
+            );
             return;
         };
         drop(runtime::spawn(async move {

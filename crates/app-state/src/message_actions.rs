@@ -183,7 +183,11 @@ impl AppState {
             (entry.conversation_id.clone(), entry.message_id.clone());
         let root_id = (entry.root_id != entry.message_id).then(|| entry.root_id.clone());
         self.run_chat_action(
-            if saved { "Save" } else { "Unsave" },
+            if saved {
+                "ui.chat.message.save"
+            } else {
+                "ui.chat.message.unsave"
+            },
             async move {
                 engine
                     .set_saved(&conversation_id, &message_id, root_id.as_deref(), saved)
@@ -266,7 +270,7 @@ impl AppState {
         self.store_pins(chat_id, updated, cx);
         let Some(engine) = engine_or_demo else {
             if channel {
-                self.raise_notice(post_pin_notice(pinned).to_owned(), None, cx);
+                self.raise_notice(app_base::ui_locale::tr(post_pin_notice(pinned)), None, cx);
             }
             return;
         };
@@ -297,7 +301,11 @@ impl AppState {
             );
         } else {
             self.run_chat_action(
-                if pinned { "Pin" } else { "Unpin" },
+                if pinned {
+                    "ui.chat.channel_menu.pin"
+                } else {
+                    "ui.chat.channel_menu.unpin"
+                },
                 call,
                 revert,
                 |_, _| {},
@@ -318,7 +326,11 @@ impl AppState {
             }
             let link = teams_core::chat_message_link(conversation_id, message_id, None);
             cx.write_to_clipboard(ClipboardItem::new_string(link));
-            self.raise_notice("Link copied".to_owned(), None, cx);
+            self.raise_notice(
+                app_base::ui_locale::tr("ui.chat.menu.link_copied"),
+                None,
+                cx,
+            );
             return;
         };
         let (conversation_id, message_id) = (conversation_id.to_owned(), message_id.to_owned());
@@ -328,14 +340,25 @@ impl AppState {
             let outcome = match receiver.await {
                 Ok(Ok(link)) => Ok(link),
                 Ok(Err(error)) => Err(short_error(&error)),
-                Err(_) => Err("cancelled".to_owned()),
+                Err(_) => Err(app_base::ui_locale::tr("ui.chat.chat_actions.cancelled")),
             };
             this.update(cx, |state, cx| match outcome {
                 Ok(link) => {
                     cx.write_to_clipboard(ClipboardItem::new_string(link));
-                    state.raise_notice("Link copied".to_owned(), None, cx);
+                    state.raise_notice(
+                        app_base::ui_locale::tr("ui.chat.menu.link_copied"),
+                        None,
+                        cx,
+                    );
                 }
-                Err(reason) => state.raise_notice(format!("Copy link failed: {reason}"), None, cx),
+                Err(reason) => state.raise_notice(
+                    app_base::ui_locale::tr_with(
+                        "ui.chat.channel_menu.copy_failed",
+                        &[("reason", &reason)],
+                    ),
+                    None,
+                    cx,
+                ),
             })
             .ok();
         })
@@ -358,7 +381,11 @@ impl AppState {
         cx: &mut Context<Self>,
     ) {
         if self.mode.read_only {
-            self.raise_notice("Read-only mode: message not forwarded".to_owned(), None, cx);
+            self.raise_notice(
+                app_base::ui_locale::tr("ui.chat.forward.read_only"),
+                None,
+                cx,
+            );
             return;
         }
         let mut records: Vec<MessageRecord> = message_ids
@@ -380,7 +407,7 @@ impl AppState {
                     author: record
                         .sender_name
                         .clone()
-                        .unwrap_or_else(|| "Unknown".to_owned()),
+                        .unwrap_or_else(|| app_base::ui_locale::tr("ui.chat.conversation.unknown")),
                     time: forward_time(record.created_at, now),
                     text: message_text(record),
                 })

@@ -7,7 +7,7 @@ use gpui_kit::*;
 use super::avatar::person_avatar;
 use super::widgets::icon;
 use crate::app_state::AppState;
-use crate::call::end_screen::{CallEndScreen, DISMISS_LABEL};
+use crate::call::end_screen::{CallEndScreen, dismiss_label};
 use crate::theme;
 
 const CONTENT_WIDTH: f32 = 400.;
@@ -30,7 +30,7 @@ pub fn render_call_end(app: &Entity<AppState>, state: &AppState) -> Option<AnyEl
         .child(
             Button::new("call-end-dismiss")
                 .outline()
-                .label(DISMISS_LABEL)
+                .label(dismiss_label())
                 .on_click(move |_, _, cx| {
                     dismiss_app.update(cx, |state, cx| state.dismiss_call_end(cx))
                 }),

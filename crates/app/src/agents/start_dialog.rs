@@ -37,7 +37,7 @@ const FIELD_MIN_ROWS: usize = 3;
 const FIELD_MAX_ROWS: usize = 6;
 const PROMPT_SIZE: f32 = 12.;
 const DISABLED_OPACITY: f32 = 0.5;
-const DEFAULT_PLACEHOLDER: &str = "e.g. only the backend, open a PR when done";
+const DEFAULT_PLACEHOLDER: &str = "ui.settings.agents.prompt_placeholder";
 
 pub enum StartDialogEvent {
     Close,
@@ -84,7 +84,7 @@ impl StartDialog {
         let input = cx.new(|cx| {
             TextareaState::new(window, cx)
                 .auto_grow(FIELD_MIN_ROWS, FIELD_MAX_ROWS)
-                .placeholder(DEFAULT_PLACEHOLDER)
+                .placeholder(tr(DEFAULT_PLACEHOLDER))
         });
         input.update(cx, |input, cx| input.focus(window, cx));
         cx.subscribe(&input, |_, _, event: &InputEvent, cx| {
@@ -185,7 +185,7 @@ impl StartDialog {
         let placeholder = if session.is_some() {
             tr("agents.start.message_placeholder")
         } else {
-            DEFAULT_PLACEHOLDER.to_owned()
+            tr(DEFAULT_PLACEHOLDER)
         };
         self.input.update(cx, |input, cx| {
             input.set_placeholder(placeholder, window, cx)
@@ -231,11 +231,7 @@ impl StartDialog {
                     };
                     if chosen.is_some() && wanted.is_some() && chosen != wanted {
                         cx.update(|cx| {
-                            raise_notice(
-                                "That folder is in a different WSL distro than the agent"
-                                    .to_owned(),
-                                cx,
-                            )
+                            raise_notice(tr("ui.settings.agents.wsl_distro_mismatch"), cx)
                         });
                         return;
                     }
@@ -430,7 +426,10 @@ impl StartDialog {
         let browse_dialog = dialog.clone();
         let mut parts = vec![
             MenuPart::Header(tr("agents.start.recent")),
-            row(&self.default_working_dir, Some("action default")),
+            row(
+                &self.default_working_dir,
+                Some(&tr("ui.settings.agents.action_default_dir")),
+            ),
         ];
         parts.extend(
             self.recent_working_dirs
@@ -474,9 +473,11 @@ impl StartDialog {
             )
         });
         let working_dir_control = match &self.selected_session {
-            Some(session) => {
-                locked_select(session.working_dir.clone(), "from session").into_any_element()
-            }
+            Some(session) => locked_select(
+                session.working_dir.clone(),
+                tr("ui.settings.agents.from_session"),
+            )
+            .into_any_element(),
             None => select(
                 "agent-dialog-working-dir",
                 self.working_dir.clone(),

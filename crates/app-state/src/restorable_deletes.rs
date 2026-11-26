@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
-pub const DELETED_TOMBSTONE: &str = "This message has been deleted.";
-pub const UNDO_DELETE_LABEL: &str = "Undo";
-pub const RESTORE_FAILED_NOTICE: &str = "Message restore failed. Please try again";
+pub const DELETED_TOMBSTONE: &str = "ui.chat.delete.tombstone";
+pub const UNDO_DELETE_LABEL: &str = "ui.chat.delete.undo";
+pub const RESTORE_FAILED_NOTICE: &str = "ui.chat.delete.restore_failed";
 
 #[derive(Debug, Default, Clone)]
 pub struct RestorableDeletes {

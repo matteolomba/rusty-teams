@@ -18,8 +18,10 @@ use super::switcher::clamp_highlight;
 use super::widgets::icon;
 use crate::app_state::AppState;
 use crate::data::{self, Directory, Person};
+use crate::i18n::tr;
 use crate::runtime;
 use crate::theme::{self, ElevatedSurface as _};
+use app_base::ui_locale::tr_with;
 
 const SEARCH_DEBOUNCE: Duration = Duration::from_millis(200);
 const SUGGESTED_LIMIT: usize = 6;
@@ -30,10 +32,10 @@ const CHIP_NAME_MAX_WIDTH: f32 = 180.;
 const FIELD_MIN_HEIGHT: f32 = 36.;
 const FIELD_PADDING: f32 = 8.;
 const EMPTY_ICON_SIZE: f32 = 72.;
-const NEW_CONVERSATION_TITLE: &str = "You're starting a new conversation";
-const NEW_CONVERSATION_HINT: &str = "Type your first message below.";
-const TO_PLACEHOLDER: &str = "Enter name or email";
-const DEFAULT_PLACEHOLDER: &str = "Type a message";
+const NEW_CONVERSATION_TITLE: &str = "ui.chat.new.title";
+const NEW_CONVERSATION_HINT: &str = "ui.chat.new.hint";
+const TO_PLACEHOLDER: &str = "ui.chat.new.to_placeholder";
+const DEFAULT_PLACEHOLDER: &str = "ui.chat.new.message_placeholder";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Pick {
@@ -140,9 +142,11 @@ pub fn search_results(
 
 pub fn composer_placeholder(chips: &[Pick], group_name: &str) -> String {
     match chips {
-        [chip] => format!("Message {}", chip.name),
-        [_, _, ..] if !group_name.trim().is_empty() => format!("Message {}", group_name.trim()),
-        _ => DEFAULT_PLACEHOLDER.to_owned(),
+        [chip] => tr_with("ui.chat.new.message_named", &[("name", &chip.name)]),
+        [_, _, ..] if !group_name.trim().is_empty() => {
+            tr_with("ui.chat.new.message_named", &[("name", group_name.trim())])
+        }
+        _ => tr(DEFAULT_PLACEHOLDER),
     }
 }
 
@@ -234,8 +238,10 @@ impl EventEmitter<NewChatEvent> for NewChatDraft {}
 
 impl NewChatDraft {
     pub fn new(app: Entity<AppState>, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let query = cx.new(|cx| InputState::new(window, cx).placeholder(TO_PLACEHOLDER));
-        let name = cx.new(|cx| InputState::new(window, cx).placeholder("Group name (optional)"));
+        let query = cx.new(|cx| InputState::new(window, cx).placeholder(tr(TO_PLACEHOLDER)));
+        let name = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(tr("ui.chat.new.group_name_placeholder"))
+        });
         let subscriptions = vec![
             cx.subscribe_in(&query, window, Self::on_query_event),
             cx.subscribe_in(&name, window, Self::on_name_event),
@@ -583,9 +589,9 @@ impl NewChatDraft {
         let query = self.query_text(cx);
         let directory = &self.app.read(cx).directory;
         let label = if query.is_empty() {
-            "Suggested"
+            tr("ui.chat.new.suggested")
         } else {
-            "People"
+            tr("ui.chat.new.people")
         };
         let rows = results.into_iter().enumerate().map(|(index, pick)| {
             let detail = pick_detail(&pick);
@@ -663,16 +669,16 @@ impl NewChatDraft {
             })
             .children(rows)
             .when(self.search_failed, |popup| {
-                popup.child(note("Search failed".to_owned(), theme::red_soft()))
+                popup.child(note(tr("ui.chat.new.search_failed"), theme::red_soft()))
             })
             .when(self.searching && results_empty, |popup| {
-                popup.child(note("Searching ...".to_owned(), theme::text_muted()))
+                popup.child(note(tr("ui.chat.new.searching"), theme::text_muted()))
             })
             .when(
                 !self.searching && !self.search_failed && results_empty,
                 |popup| {
                     popup.child(note(
-                        format!("No people found for \"{query}\""),
+                        tr_with("ui.chat.new.no_people", &[("query", &query)]),
                         theme::text_muted(),
                     ))
                 },
@@ -718,7 +724,7 @@ impl NewChatDraft {
                 div()
                     .text_size(theme::text_body())
                     .text_color(theme::text_muted())
-                    .child("To:"),
+                    .child(tr("ui.chat.new.to_label")),
             )
             .children(chips)
             .child(
@@ -751,7 +757,7 @@ impl NewChatDraft {
                     div()
                         .text_size(theme::text_body())
                         .text_color(theme::text_muted())
-                        .child("Name"),
+                        .child(tr("ui.chat.new.name_label")),
                 )
                 .child(
                     div()
@@ -801,13 +807,13 @@ impl NewChatDraft {
                         .text_size(px(15.))
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_color(theme::text())
-                        .child(NEW_CONVERSATION_TITLE),
+                        .child(tr(NEW_CONVERSATION_TITLE)),
                 )
                 .child(
                     div()
                         .text_size(theme::text_label())
                         .text_color(theme::text_muted())
-                        .child(NEW_CONVERSATION_HINT),
+                        .child(tr(NEW_CONVERSATION_HINT)),
                 )
                 .into_any_element(),
             [chip] => column
@@ -828,7 +834,7 @@ impl NewChatDraft {
                     div()
                         .text_size(theme::text_small())
                         .text_color(theme::text_muted())
-                        .child("No messages yet. Say hi."),
+                        .child(tr("ui.chat.new.empty_hint")),
                 )
                 .into_any_element(),
             chips => {
@@ -847,9 +853,9 @@ impl NewChatDraft {
                         div()
                             .text_size(theme::text_label())
                             .text_color(theme::text_muted())
-                            .child(format!(
-                                "New group chat with you and {} people",
-                                chips.len()
+                            .child(tr_with(
+                                "ui.chat.new.group_summary",
+                                &[("count", &chips.len().to_string())],
                             )),
                     )
                     .into_any_element()
@@ -1033,6 +1039,7 @@ mod tests {
 
     #[test]
     fn placeholder_follows_the_recipients() {
+        app_base::ui_locale::apply_locale("en");
         let one = [pick("ann", "Ann", None)];
         let two = [pick("ann", "Ann", None), pick("bob", "Bob", None)];
         assert_eq!(composer_placeholder(&[], ""), "Type a message");

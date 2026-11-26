@@ -21,6 +21,7 @@ use crate::call::{
     Tile, TileSize, focus_stage_size, gallery_grid, gallery_page, measured_stage, shown_bubbles,
     speaker_split, strip_split,
 };
+use crate::i18n::{tr, tr_with};
 use crate::theme;
 
 const MEASURE_TOLERANCE: f32 = 0.5;
@@ -38,7 +39,6 @@ const BUBBLE_GAP: f32 = 8.;
 const BUBBLE_FADE_FROM: f32 = 0.9;
 const BUBBLE_BACKGROUND: f32 = 0.72;
 const CHIP_BACKGROUND: f32 = 0.6;
-pub const FULLSCREEN_HINT: &str = "Press Esc to exit full screen";
 pub const GALLERY_PAGER_TAG: &str = "shell/islands/main/call-stage/pager";
 const PAGER_HEIGHT: f32 = 32.;
 const PAGER_BUTTON: f32 = 28.;
@@ -96,10 +96,13 @@ fn without_video_chip(app: &Entity<AppState>, model: &CallModel) -> Option<AnyEl
                     .cursor_pointer()
                     .hover(|chip| chip.opacity(0.85))
                     .tooltip(|window, cx| {
-                        Tooltip::new("Show people without video").build(window, cx)
+                        Tooltip::new(tr("ui.calls.layout.show_without_video")).build(window, cx)
                     })
                     .child(icon(IconName::VideoOff, 15., theme::white()))
-                    .child(format!("{count} without video"))
+                    .child(tr_with(
+                        "ui.calls.layout.without_video_count",
+                        &[("count", &count.to_string())],
+                    ))
                     .on_click(move |_, _, cx| {
                         app.update(cx, |state, cx| state.toggle_call_hide_no_video(cx))
                     }),
@@ -123,9 +126,11 @@ fn show_me_pill(app: &Entity<AppState>, model: &CallModel, bottom: f32) -> Optio
                     .id("call-show-me")
                     .cursor_pointer()
                     .hover(|chip| chip.opacity(0.85))
-                    .tooltip(|window, cx| Tooltip::new("Show me").build(window, cx))
+                    .tooltip(|window, cx| {
+                        Tooltip::new(tr("ui.calls.layout.show_me")).build(window, cx)
+                    })
                     .child(icon(IconName::Eye, 15., theme::white()))
-                    .child("You")
+                    .child(tr("common.you"))
                     .on_click(move |_, _, cx| {
                         app.update(cx, |state, cx| state.set_call_hide_me(false, cx))
                     }),
@@ -219,7 +224,11 @@ fn fullscreen_hint(call: &ActiveCall, now: Instant, bottom: f32) -> Option<AnyEl
                 .bottom(px(bottom))
                 .flex()
                 .justify_center()
-                .child(dark_chip().h(px(32.)).child(FULLSCREEN_HINT))
+                .child(
+                    dark_chip()
+                        .h(px(32.))
+                        .child(tr("ui.calls.stage.exit_fullscreen_hint")),
+                )
                 .into_any_element()
         })
 }
@@ -355,11 +364,12 @@ fn pager_button(
     app: &Entity<AppState>,
     id: &'static str,
     glyph: IconName,
-    tooltip: &'static str,
+    tooltip: impl Into<SharedString>,
     forward: bool,
     enabled: bool,
 ) -> AnyElement {
     let app = app.clone();
+    let tooltip: SharedString = tooltip.into();
     let color = if enabled {
         theme::text()
     } else {
@@ -377,7 +387,7 @@ fn pager_button(
             button
                 .cursor_pointer()
                 .hover(|button| button.bg(theme::row_hover()))
-                .tooltip(move |window, cx| Tooltip::new(tooltip).build(window, cx))
+                .tooltip(move |window, cx| Tooltip::new(tooltip.clone()).build(window, cx))
                 .on_click(move |_, _, cx| {
                     app.update(cx, |state, cx| state.turn_call_gallery_page(forward, cx));
                 })
@@ -398,7 +408,7 @@ fn gallery_pager(app: &Entity<AppState>, page: usize, pages: usize) -> AnyElemen
             app,
             "call-gallery-previous",
             IconName::ChevronLeft,
-            "Previous page",
+            tr("ui.calls.layout.previous_page"),
             false,
             page > 0,
         ))
@@ -414,7 +424,7 @@ fn gallery_pager(app: &Entity<AppState>, page: usize, pages: usize) -> AnyElemen
             app,
             "call-gallery-next",
             IconName::ChevronRight,
-            "Next page",
+            tr("ui.calls.layout.next_page"),
             true,
             page + 1 < pages,
         ))

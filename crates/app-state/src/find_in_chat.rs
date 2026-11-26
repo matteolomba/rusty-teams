@@ -2,27 +2,31 @@ use std::collections::HashSet;
 use std::ops::Range;
 
 use app_base::format::Zone;
+use app_base::ui_locale::{tr, tr_with};
 use chatsvc::substrate_search::{MessageFilter, SearchMessage, split_highlights};
 use chrono::{DateTime, Datelike, Duration, NaiveDate, Utc};
 use store::{HIGHLIGHT_END, HIGHLIGHT_START, MessageRecord, SearchHit};
 
-pub const FIND_IN_CHAT: &str = "Find in chat";
-pub const FIND_IN_CHANNEL: &str = "Find in channel";
-pub const EMPTY_HINT: &str = "Find messages and links shared in this chat.";
-pub const NO_RESULTS_CHAT: &str = "We couldn't find any results in this chat";
-pub const NO_RESULTS_CHANNEL: &str = "We couldn't find any results in this channel";
-pub const LOAD_ERROR: &str = "Something went wrong while loading the results.";
-pub const LOADING: &str = "Fetching Data...";
-pub const FROM_LABEL: &str = "From";
-pub const DATE_LABEL: &str = "Date";
-pub const HAS_ATTACHMENT_LABEL: &str = "Has attachment";
-pub const MENTIONS_LABEL: &str = "@Mentions";
-pub const THIS_MONTH: &str = "This month";
-pub const LAST_MONTH: &str = "Last month";
+pub const FIND_IN_CHAT: &str = "ui.chat.find.in_chat";
+pub const FIND_IN_CHANNEL: &str = "ui.chat.find.in_channel";
+pub const EMPTY_HINT: &str = "ui.chat.find.empty_hint";
+pub const NO_RESULTS_CHAT: &str = "ui.chat.find.no_results_chat";
+pub const NO_RESULTS_CHANNEL: &str = "ui.chat.find.no_results_channel";
+pub const LOAD_ERROR: &str = "ui.chat.find.load_error";
+pub const LOADING: &str = "ui.chat.find.loading";
+pub const FROM_LABEL: &str = "ui.chat.find.from";
+pub const DATE_LABEL: &str = "ui.chat.find.date";
+pub const HAS_ATTACHMENT_LABEL: &str = "ui.chat.find.has_attachment";
+pub const MENTIONS_LABEL: &str = "ui.chat.find.mentions";
+pub const THIS_MONTH: &str = "ui.chat.find.this_month";
+pub const LAST_MONTH: &str = "ui.chat.find.last_month";
 const ORG_PREFIX: &str = "8:orgid:";
 
 pub fn no_results_with_filters(search_term: &str) -> String {
-    format!("We couldn't find any results for '{search_term}' with the applied filters.")
+    tr_with(
+        "ui.chat.find.no_results_with_filters",
+        &[("term", search_term)],
+    )
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,10 +59,10 @@ impl DateRange {
 
     pub fn label(self) -> &'static str {
         match self {
-            DateRange::Today => "Today",
-            DateRange::Yesterday => "Yesterday",
-            DateRange::ThisWeek => "This week",
-            DateRange::ThisMonth => "This month",
+            DateRange::Today => "ui.chat.find.range_today",
+            DateRange::Yesterday => "ui.chat.find.range_yesterday",
+            DateRange::ThisWeek => "ui.chat.find.range_this_week",
+            DateRange::ThisMonth => "ui.chat.find.range_this_month",
         }
     }
 
@@ -248,8 +252,8 @@ pub fn merge(local: Vec<FindHit>, server: Vec<FindHit>) -> Vec<FindHit> {
 pub fn month_label(date: NaiveDate, today: NaiveDate) -> String {
     let months = |date: NaiveDate| date.year() * 12 + date.month0() as i32;
     match months(today) - months(date) {
-        0 => THIS_MONTH.to_owned(),
-        1 => LAST_MONTH.to_owned(),
+        0 => tr(THIS_MONTH),
+        1 => tr(LAST_MONTH),
         _ => crate::format::month_year_label(date),
     }
 }
@@ -341,11 +345,19 @@ mod tests {
             hit("d", 1, 7),
         ];
         let groups = group_by_month(&hits, today(), utc());
-        let labels: Vec<(&str, usize)> = groups
+        let labels: Vec<(String, usize)> = groups
             .iter()
-            .map(|group| (group.label.as_str(), group.hits.len()))
+            .map(|group| (group.label.clone(), group.hits.len()))
             .collect();
-        assert_eq!(labels, [(THIS_MONTH, 2), (LAST_MONTH, 1), ("July 2026", 1)]);
+        app_base::ui_locale::apply_locale("en");
+        assert_eq!(
+            labels,
+            [
+                (tr(THIS_MONTH), 2),
+                (tr(LAST_MONTH), 1),
+                ("July 2026".to_owned(), 1)
+            ]
+        );
         assert_eq!(
             month_label(NaiveDate::from_ymd_opt(2025, 10, 3).unwrap(), today()),
             "October 2025"

@@ -61,11 +61,11 @@ impl HealthState {
     }
 }
 
-pub fn level_text(level: NetworkLevel) -> &'static str {
+pub fn level_text(level: NetworkLevel) -> String {
     match level {
-        NetworkLevel::Good => "Good",
-        NetworkLevel::Poor => "Poor",
-        NetworkLevel::Bad => "Bad",
+        NetworkLevel::Good => app_base::ui_locale::tr("ui.calls.health.good"),
+        NetworkLevel::Poor => app_base::ui_locale::tr("ui.calls.health.poor"),
+        NetworkLevel::Bad => app_base::ui_locale::tr("ui.calls.health.bad"),
     }
 }
 
@@ -80,33 +80,48 @@ fn rate_text(kilobits_per_second: f64) -> String {
     }
 }
 
-pub fn network_rows(sample: &HealthSample) -> Vec<(&'static str, String)> {
+pub fn network_rows(sample: &HealthSample) -> Vec<(String, String)> {
+    let label = |key: &str| app_base::ui_locale::tr(key);
     vec![
         (
-            "Packet loss",
+            label("ui.calls.health.packet_loss"),
             format!(
                 "{}%",
                 app_base::format::decimal_label(sample.loss_percent, 1)
             ),
         ),
-        ("Round trip", format!("{:.0} ms", sample.round_trip_ms)),
-        ("Jitter", format!("{:.0} ms", sample.jitter_ms)),
-        ("Sent", rate_text(sample.sent_kbps)),
-        ("Received", rate_text(sample.received_kbps)),
+        (
+            label("ui.calls.health.round_trip"),
+            format!("{:.0} ms", sample.round_trip_ms),
+        ),
+        (
+            label("ui.calls.health.jitter"),
+            format!("{:.0} ms", sample.jitter_ms),
+        ),
+        (label("ui.calls.health.sent"), rate_text(sample.sent_kbps)),
+        (
+            label("ui.calls.health.received"),
+            rate_text(sample.received_kbps),
+        ),
     ]
 }
 
 pub fn transport_text(health: &CallHealth) -> String {
     match health.transport.srtp_cipher.as_str() {
-        "" => "Transport: DTLS-SRTP".to_owned(),
-        cipher => format!("Transport: DTLS-SRTP ({cipher})"),
+        "" => app_base::ui_locale::tr("ui.calls.health.transport"),
+        cipher => {
+            app_base::ui_locale::tr_with("ui.calls.health.transport_cipher", &[("cipher", cipher)])
+        }
     }
 }
 
 pub fn media_text(health: &CallHealth, peer_name: &str) -> Option<String> {
     match health.path {
-        MediaPath::Direct => Some(format!("Media: direct to {peer_name}")),
-        MediaPath::Mixer => Some("Media: via Microsoft media server".to_owned()),
+        MediaPath::Direct => Some(app_base::ui_locale::tr_with(
+            "ui.calls.health.media_direct",
+            &[("name", peer_name)],
+        )),
+        MediaPath::Mixer => Some(app_base::ui_locale::tr("ui.calls.health.media_mixer")),
         MediaPath::Pending => None,
     }
 }

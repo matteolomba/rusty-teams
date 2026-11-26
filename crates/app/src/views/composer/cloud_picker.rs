@@ -13,9 +13,10 @@ use crate::runtime;
 use crate::theme::{self, ElevatedSurface as _};
 use crate::views::shared_tab::{entry_badge, modified_text};
 use crate::views::widgets::symbol;
+use app_base::ui_locale::tr_with;
 
 pub const CLOUD_PICKER_TAG: &str = "composer/cloud-picker";
-pub const ATTACH_CLOUD_LABEL: &str = "Attach cloud files";
+pub const ATTACH_CLOUD_LABEL: &str = "ui.chat.cloud.attach_label";
 const PANEL_WIDTH: f32 = 1052.;
 const PANEL_HEIGHT: f32 = 742.;
 const PANEL_MARGIN: f32 = 32.;
@@ -37,11 +38,23 @@ enum Place {
 }
 
 impl Place {
-    fn columns(self) -> [&'static str; 3] {
+    fn columns(self) -> [String; 3] {
         match self {
-            Place::Home => ["Name", "Opened", "Owner"],
-            Place::Shared => ["Name", "Date shared", "Shared by"],
-            Place::MyFiles | Place::Site(_) => ["Name", "Modified", "Modified By"],
+            Place::Home => [
+                tr("ui.chat.cloud.name"),
+                tr("ui.chat.cloud.opened"),
+                tr("ui.chat.cloud.owner"),
+            ],
+            Place::Shared => [
+                tr("ui.chat.cloud.name"),
+                tr("ui.chat.cloud.date_shared"),
+                tr("ui.chat.cloud.shared_by"),
+            ],
+            Place::MyFiles | Place::Site(_) => [
+                tr("ui.chat.cloud.name"),
+                tr("ui.chat.cloud.modified"),
+                tr("ui.chat.cloud.modified_by"),
+            ],
         }
     }
 }
@@ -117,9 +130,15 @@ fn demo_rows() -> Vec<DriveEntry> {
 pub fn opened_ago(time: DateTime<Utc>, now: DateTime<Utc>) -> Option<String> {
     let minutes = (now - time).num_minutes().max(0);
     match minutes {
-        0 => Some("Just now".into()),
-        1..60 => Some(format!("{minutes}m ago")),
-        60..1440 => Some(format!("{}h ago", minutes / 60)),
+        0 => Some(tr("ui.chat.cloud.just_now")),
+        1..60 => Some(tr_with(
+            "ui.chat.cloud.minutes_ago",
+            &[("minutes", &minutes.to_string())],
+        )),
+        60..1440 => Some(tr_with(
+            "ui.chat.cloud.hours_ago",
+            &[("hours", &(minutes / 60).to_string())],
+        )),
         _ => None,
     }
 }
@@ -228,8 +247,8 @@ impl CloudPicker {
 
     fn root_name(&self) -> String {
         match self.place {
-            Place::Site(_) => "Documents".into(),
-            _ => "My files".into(),
+            Place::Site(_) => tr("ui.chat.cloud.documents"),
+            _ => tr("ui.chat.cloud.my_files"),
         }
     }
 
@@ -306,8 +325,8 @@ impl CloudPicker {
 
     fn title(&self) -> String {
         match self.place {
-            Place::Home => "Home".into(),
-            Place::Shared => "Shared with you".into(),
+            Place::Home => tr("ui.chat.cloud.home"),
+            Place::Shared => tr("ui.chat.cloud.shared_with_you"),
             Place::MyFiles | Place::Site(_) => self
                 .crumbs
                 .last()
@@ -365,7 +384,7 @@ impl CloudPicker {
                 .text_size(theme::text_label())
                 .font_weight(FontWeight::SEMIBOLD)
                 .text_color(theme::text())
-                .child(label)
+                .child(tr(label))
         };
         let mut sites = Vec::with_capacity(self.sites.len());
         for (index, site) in self.sites.iter().enumerate() {
@@ -392,23 +411,29 @@ impl CloudPicker {
                     .text_color(theme::text_strong())
                     .child("OneDrive"),
             )
-            .child(self.nav_row("cloud-picker-home", "home", "Home".into(), Place::Home, cx))
+            .child(self.nav_row(
+                "cloud-picker-home",
+                "home",
+                tr("ui.chat.cloud.home"),
+                Place::Home,
+                cx,
+            ))
             .child(self.nav_row(
                 "cloud-picker-mine",
                 "folder",
-                "My files".into(),
+                tr("ui.chat.cloud.my_files"),
                 Place::MyFiles,
                 cx,
             ))
             .child(self.nav_row(
                 "cloud-picker-shared",
                 "group",
-                "Shared".into(),
+                tr("ui.chat.cloud.shared"),
                 Place::Shared,
                 cx,
             ))
             .when(!self.sites.is_empty(), |nav| {
-                nav.child(section("Quick access")).child(
+                nav.child(section("ui.chat.cloud.quick_access")).child(
                     v_flex()
                         .id("cloud-picker-sites")
                         .flex_1()
@@ -573,14 +598,16 @@ impl CloudPicker {
                 .p(px(16.))
                 .text_size(theme::text_label())
                 .text_color(theme::text_soft())
-                .child(text)
+                .child(tr(text))
                 .into_any_element()
         };
         let now = Utc::now();
         let body: Vec<AnyElement> = match &self.rows {
-            Rows::Loading => vec![note("Loading ...")],
-            Rows::Failed => vec![note("Couldn't load files.")],
-            Rows::Ready(entries) if entries.is_empty() => vec![note("This folder is empty.")],
+            Rows::Loading => vec![note("ui.chat.cloud.loading")],
+            Rows::Failed => vec![note("ui.chat.cloud.failed")],
+            Rows::Ready(entries) if entries.is_empty() => {
+                vec![note("ui.chat.cloud.empty")]
+            }
             Rows::Ready(entries) => entries
                 .iter()
                 .enumerate()
@@ -688,6 +715,7 @@ mod tests {
 
     #[test]
     fn home_shows_hours_ago_like_the_onedrive_picker() {
+        app_base::ui_locale::apply_locale("en");
         let now = Utc.with_ymd_and_hms(2026, 11, 10, 22, 0, 0).unwrap();
         assert_eq!(
             opened_ago(now - chrono::Duration::hours(9), now).as_deref(),
@@ -702,6 +730,7 @@ mod tests {
 
     #[test]
     fn each_place_has_the_picker_columns() {
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(Place::Home.columns(), ["Name", "Opened", "Owner"]);
         assert_eq!(
             Place::Shared.columns(),

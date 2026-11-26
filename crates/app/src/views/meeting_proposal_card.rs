@@ -7,6 +7,7 @@ use mcp::MeetingProposal;
 
 use super::proposal_card::{CardAction, age_label, card_button};
 use crate::agent_api::{self, meetings};
+use crate::i18n::{tr, tr_with};
 use crate::theme;
 
 pub const MEETING_PROPOSAL_CARD: &str = "calendar/meeting-proposal";
@@ -63,9 +64,12 @@ fn card(proposal: &MeetingProposal, now: DateTime<Utc>) -> Div {
             div()
                 .text_size(theme::text_small())
                 .text_color(theme::accent_text())
-                .child(format!(
-                    "{agent} proposes a meeting - {}",
-                    age_label(proposal.created_at, now)
+                .child(tr_with(
+                    "ui.calls.proposal.proposes",
+                    &[
+                        ("agent", agent),
+                        ("age", age_label(proposal.created_at, now).as_str()),
+                    ],
                 )),
         )
         .child(
@@ -83,7 +87,10 @@ fn card(proposal: &MeetingProposal, now: DateTime<Utc>) -> Div {
             div()
                 .text_size(theme::text_small())
                 .text_color(theme::text_muted())
-                .child(format!("Invites {}", draft.attendees.join(", "))),
+                .child(tr_with(
+                    "ui.calls.proposal.invites",
+                    &[("names", &draft.attendees.join(", "))],
+                )),
         )
         .children(description_excerpt(&draft.description).map(|excerpt| {
             div()
@@ -98,14 +105,14 @@ fn card(proposal: &MeetingProposal, now: DateTime<Utc>) -> Div {
                 .gap(px(8.))
                 .child(card_button(
                     "meeting-proposal-create",
-                    "Create",
+                    tr("common.create"),
                     theme::accent(),
                     theme::on_accent(),
                     create,
                 ))
                 .child(card_button(
                     "meeting-proposal-discard",
-                    "Discard",
+                    tr("ui.calls.proposal.discard"),
                     theme::surface_raised(),
                     theme::text(),
                     discard,

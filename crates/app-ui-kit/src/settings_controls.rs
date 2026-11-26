@@ -27,11 +27,12 @@ pub struct MenuEntry {
 }
 
 pub fn field(
-    label: &'static str,
+    label: impl Into<SharedString>,
     control: impl IntoElement,
     hint: Option<AnyElement>,
     problem: Option<String>,
 ) -> Div {
+    let label = label.into();
     v_flex()
         .w_full()
         .gap(px(6.))
@@ -52,11 +53,11 @@ pub fn field(
         }))
 }
 
-pub fn hint(text: &'static str) -> AnyElement {
+pub fn hint(text: impl Into<SharedString>) -> AnyElement {
     div()
         .text_size(theme::text_caption())
         .text_color(theme::text_faint())
-        .child(text)
+        .child(text.into())
         .into_any_element()
 }
 
@@ -102,7 +103,7 @@ pub fn boxed(content: impl IntoElement, invalid: bool, cx: &App) -> Div {
         .child(content)
 }
 
-pub fn raised_button(id: &'static str, label: &'static str) -> Stateful<Div> {
+pub fn raised_button(id: &'static str, label: impl Into<SharedString>) -> Stateful<Div> {
     h_flex()
         .id(id)
         .h(px(FIELD_HEIGHT))
@@ -113,7 +114,7 @@ pub fn raised_button(id: &'static str, label: &'static str) -> Stateful<Div> {
         .bg(theme::surface_raised())
         .hover(|button| button.bg(theme::popup_hover()))
         .text_size(theme::text_label())
-        .child(label)
+        .child(label.into())
 }
 
 pub fn dropdown(id: &'static str, label: String, entries: Vec<MenuEntry>) -> impl IntoElement {
@@ -137,12 +138,12 @@ pub fn dropdown(id: &'static str, label: String, entries: Vec<MenuEntry>) -> imp
 
 pub fn link_dropdown(
     id: &'static str,
-    label: &'static str,
+    label: impl Into<SharedString>,
     entries: Vec<MenuEntry>,
 ) -> impl IntoElement {
     Button::new(id)
         .link()
-        .label(label)
+        .label(label.into())
         .dropdown_menu(move |menu, _, _| {
             entries.iter().fold(menu, |menu, entry| {
                 let choose = entry.choose.clone();

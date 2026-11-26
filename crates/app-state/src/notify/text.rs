@@ -1,11 +1,9 @@
+use app_base::ui_locale::{tr, tr_with};
+
 use super::rules::{ChatKind, Preview};
 use super::stack::ToastModel;
 use crate::format;
 use crate::importance::urgent_toast_title;
-
-const PREVIEW_OFF: &str = "New message";
-const IMAGE_LABEL: &str = "Image";
-const UNKNOWN_SENDER: &str = "Unknown";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToastText {
@@ -22,8 +20,9 @@ impl ToastText {
 }
 
 pub fn describe(model: &ToastModel, preview_on: bool) -> ToastText {
+    let unknown_sender = tr("ui.notify.unknown_sender");
     let sender = if model.sender_name.trim().is_empty() {
-        UNKNOWN_SENDER
+        unknown_sender.as_str()
     } else {
         model.sender_name.as_str()
     };
@@ -38,9 +37,9 @@ pub fn describe(model: &ToastModel, preview_on: bool) -> ToastText {
     };
     let body = match (&model.preview, preview_on) {
         (Preview::Text(text), false) if model.status_change => text.clone(),
-        (_, false) => PREVIEW_OFF.to_owned(),
+        (_, false) => tr("ui.notify.preview_off"),
         (Preview::Text(text), true) => text.clone(),
-        (Preview::Image, true) => IMAGE_LABEL.to_owned(),
+        (Preview::Image, true) => tr("ui.notify.image"),
     };
     let prefixed = preview_on && model.kind != ChatKind::Direct;
     let preview = if prefixed {
@@ -58,8 +57,11 @@ pub fn describe(model: &ToastModel, preview_on: bool) -> ToastText {
 
 fn subtitle_of(kind: &ChatKind) -> String {
     match kind {
-        ChatKind::Direct => "Direct".to_owned(),
-        ChatKind::Group { member_count } => format!("Group, {member_count} people"),
+        ChatKind::Direct => tr("ui.notify.direct"),
+        ChatKind::Group { member_count } => tr_with(
+            "ui.notify.group_people",
+            &[("count", &member_count.to_string())],
+        ),
         ChatKind::Channel { team, channel } => format!("{team} > {channel}"),
     }
 }

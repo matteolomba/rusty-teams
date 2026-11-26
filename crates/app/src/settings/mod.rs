@@ -21,4 +21,6 @@ pub use dialog::metrics;
 pub use dialog::{SettingsDialog, SettingsDialogEvent};
 #[cfg(test)]
 pub use nav::{item_selector, label, label_selector};
-pub(crate) use rows::{select_selector, switch};
+#[cfg(test)]
+pub(crate) use rows::select_selector;
+pub(crate) use rows::switch;

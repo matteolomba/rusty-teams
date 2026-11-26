@@ -66,7 +66,8 @@ impl TransferPicker {
             .into_iter()
             .map(|candidate| (candidate.name.clone(), candidate))
             .collect();
-        let search = cx.new(|cx| InputState::new(window, cx).placeholder("Search people"));
+        let search =
+            cx.new(|cx| InputState::new(window, cx).placeholder(tr("ui.calls.transfer.search")));
         let subscription = cx.subscribe_in(&search, window, Self::on_search_event);
         search.update(cx, |input, cx| input.focus(window, cx));
         let results = visible_candidates(&candidates, "");
@@ -188,7 +189,7 @@ impl TransferPicker {
     fn action(
         &self,
         id: &'static str,
-        label: &'static str,
+        label: String,
         primary: bool,
         run: fn(&mut AppState, TransferCandidate, &mut Context<AppState>),
     ) -> AnyElement {
@@ -236,13 +237,13 @@ impl Render for TransferPicker {
                 PickerMode::Transfer => vec![
                     self.action(
                         "transfer-consult",
-                        "Consult first",
+                        tr("ui.calls.transfer.consult_first"),
                         false,
                         AppState::start_consult,
                     ),
                     self.action(
                         "transfer-now",
-                        "Transfer now",
+                        tr("ui.calls.transfer.transfer_now"),
                         true,
                         AppState::transfer_call_blind,
                     ),
@@ -250,7 +251,7 @@ impl Render for TransferPicker {
                 PickerMode::Invite => {
                     vec![self.action(
                         "transfer-invite",
-                        "Invite",
+                        tr("common.invite"),
                         true,
                         AppState::invite_call_person,
                     )]
@@ -299,8 +300,8 @@ impl Render for TransferPicker {
                                     .text_size(px(15.))
                                     .font_weight(FontWeight::SEMIBOLD)
                                     .child(match self.mode {
-                                        PickerMode::Transfer => "Transfer call",
-                                        PickerMode::Invite => "Invite people",
+                                        PickerMode::Transfer => tr("ui.calls.transfer.title"),
+                                        PickerMode::Invite => tr("ui.calls.transfer.invite_title"),
                                     }),
                             )
                             .child(

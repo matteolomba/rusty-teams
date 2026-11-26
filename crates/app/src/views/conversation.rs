@@ -25,6 +25,7 @@ use teams_core::{
 mod channel_details;
 pub(crate) mod chat_header_actions;
 mod copilot;
+#[cfg(test)]
 pub use channel_details::{
     CHANNEL_DETAILS_BUTTON, CHANNEL_DETAILS_PINNED_TAG, CHANNEL_DETAILS_SHARED_TAG,
     CHANNEL_DETAILS_TAG,
@@ -108,6 +109,7 @@ use crate::sidebar_model::{AvatarSpec, Face, channel_unread};
 use crate::theme;
 use crate::translation::TranslationLine;
 use crate::typing::typing_tooltip;
+use app_base::ui_locale::tr_with;
 use app_ui_kit::layout::{COMFY_RUNWAY_WIDTH, ISLAND_GAP, RAIL_WIDTH, SIDEBAR_WIDTH};
 use detached::DetachedWindow;
 use feed::{FeedStash, subject_input};
@@ -121,7 +123,7 @@ pub const TIMELINE_TAG: &str = "shell/islands/main/timeline";
 pub const FEED_EDGE_TAG: &str = "shell/islands/main/timeline/divider-feed";
 const SENT_PREVIEWS_KEPT: usize = 16;
 const HOVER_LEAVE_GRACE: Duration = Duration::from_millis(250);
-const POSTED_WITHOUT_BANNER: &str = "Posted, but Teams did not take the banner.";
+const POSTED_WITHOUT_BANNER: &str = "ui.chat.conversation.posted_without_banner";
 const QUIET_RETRY_DELAYS: [Duration; 3] = [
     Duration::from_secs(2),
     Duration::from_secs(5),
@@ -432,28 +434,23 @@ enum DropTarget {
 
 fn drop_overlay_text(title: &str, target: DropTarget, count: usize) -> (String, String) {
     let files = if count == 1 {
-        "1 file".to_owned()
+        tr("ui.chat.conversation.file_count_one")
     } else {
-        format!("{count} files")
+        tr_with(
+            "ui.chat.conversation.file_count_many",
+            &[("count", &count.to_string())],
+        )
     };
+    let attach = tr_with("ui.chat.conversation.drop_attach", &[("title", title)]);
+    let upload = tr_with("ui.chat.conversation.drop_upload", &[("title", title)]);
+    let detail = |key: &str| tr_with(key, &[("files", &files)]);
     match target {
-        DropTarget::Chat => (
-            format!("Drop to attach to {title}"),
-            format!("{files}. Images go into the message, other files to your OneDrive."),
-        ),
-        DropTarget::Channel => (
-            format!("Drop to attach to {title}"),
-            format!("{files}. Images go into the message, other files to the channel's Files."),
-        ),
-        DropTarget::Library => (
-            format!("Drop to upload to {title}"),
-            format!("{files}. Files go into the folder you have open."),
-        ),
+        DropTarget::Chat => (attach, detail("ui.chat.conversation.drop_chat_detail")),
+        DropTarget::Channel => (attach, detail("ui.chat.conversation.drop_channel_detail")),
+        DropTarget::Library => (upload, detail("ui.chat.conversation.drop_library_detail")),
         DropTarget::NewChat => (
-            "Drop to attach to the new chat".to_owned(),
-            format!(
-                "{files}. Images go into the message. Files can be added once the chat exists."
-            ),
+            tr("ui.chat.conversation.drop_new_chat"),
+            detail("ui.chat.conversation.drop_new_chat_detail"),
         ),
     }
 }
@@ -639,7 +636,8 @@ impl ConversationView {
             return;
         }
         let Some(engine) = engine else {
-            self.downloads.finish(&key, Err("not connected".to_owned()));
+            self.downloads
+                .finish(&key, Err(tr("ui.chat.conversation.not_connected")));
             return;
         };
         drop(runtime::spawn(async move {
@@ -1620,7 +1618,7 @@ impl ConversationView {
             author: record
                 .sender_name
                 .clone()
-                .unwrap_or_else(|| "Unknown".to_owned()),
+                .unwrap_or_else(|| tr("ui.chat.conversation.unknown")),
             excerpt: reply_excerpt(&record),
         };
         Some((record, preview))
@@ -2331,7 +2329,7 @@ impl ConversationView {
             sync.failed = true;
             sync.receipts = false;
         }
-        self.notice = Some("No access to this chat".to_owned());
+        self.notice = Some(tr("ui.chat.conversation.no_access"));
     }
 
     fn mark_fetched_new(
@@ -2446,11 +2444,11 @@ impl ConversationView {
                 .iter()
                 .map(|(key, receipt)| {
                     let label = if *receipt == Receipt::Read {
-                        "Seen"
+                        tr("ui.chat.conversation.receipt_seen")
                     } else {
-                        "Sent"
+                        tr("ui.chat.conversation.receipt_sent")
                     };
-                    (key.clone(), label.to_owned())
+                    (key.clone(), label)
                 })
                 .collect();
             return (receipts, labels);
@@ -2651,9 +2649,12 @@ impl ConversationView {
                 ));
                 current.older_blocked = true;
                 self.notice = Some(if is_location_lookup_failure(&reason) {
-                    "Older messages are not available in this chat".to_owned()
+                    tr("ui.chat.conversation.older_unavailable")
                 } else {
-                    format!("Could not load older messages: {}", short_error(&error))
+                    tr_with(
+                        "ui.chat.conversation.older_failed",
+                        &[("detail", &short_error(&error))],
+                    )
                 });
             }
             Err(_) => current.older_blocked = true,
@@ -2763,7 +2764,7 @@ impl ConversationView {
         };
         if mode.read_only || mode.demo {
             self.restore_unsent(
-                "Read-only mode: nothing was sent",
+                &tr("ui.chat.conversation.read_only_not_sent"),
                 &outgoing,
                 reply_root.as_deref(),
                 window,
@@ -2774,7 +2775,7 @@ impl ConversationView {
         let Some(engine) = engine else {
             self.discard_outbox_row(&id, cx);
             self.restore_unsent(
-                "Not connected yet: nothing was sent",
+                &tr("ui.chat.conversation.not_connected_not_sent"),
                 &outgoing,
                 reply_root.as_deref(),
                 window,
@@ -2894,7 +2895,13 @@ impl ConversationView {
             (draft.chips().to_vec(), topic)
         };
         if recipients.is_empty() {
-            self.restore_unsent("Add at least one person first", &outgoing, None, window, cx);
+            self.restore_unsent(
+                &tr("ui.chat.conversation.add_person_first"),
+                &outgoing,
+                None,
+                window,
+                cx,
+            );
             self.draft
                 .update(cx, |draft, cx| draft.focus_query(window, cx));
             return;
@@ -2904,14 +2911,20 @@ impl ConversationView {
             .iter()
             .any(|row| matches!(row.delivery, Delivery::Sending))
         {
-            self.restore_unsent("Still creating the chat", &outgoing, None, window, cx);
+            self.restore_unsent(
+                &tr("ui.chat.conversation.still_creating"),
+                &outgoing,
+                None,
+                window,
+                cx,
+            );
             return;
         }
         let state = self.app.read(cx);
         let (mode, engine) = (state.mode, state.engine.clone());
         if mode.read_only {
             self.restore_unsent(
-                "Read-only mode: nothing was sent",
+                &tr("ui.chat.conversation.read_only_not_sent"),
                 &outgoing,
                 None,
                 window,
@@ -2921,7 +2934,7 @@ impl ConversationView {
         }
         if mode.demo && outgoing.has_attachments() {
             self.restore_unsent(
-                "Read-only mode: nothing was sent",
+                &tr("ui.chat.conversation.read_only_not_sent"),
                 &outgoing,
                 None,
                 window,
@@ -2935,7 +2948,7 @@ impl ConversationView {
         }
         let Some(engine) = engine else {
             self.restore_unsent(
-                "Not connected yet: nothing was sent",
+                &tr("ui.chat.conversation.not_connected_not_sent"),
                 &outgoing,
                 None,
                 window,
@@ -3021,14 +3034,11 @@ impl ConversationView {
                 if let Some(row) = self.pending.iter_mut().find(|row| row.key == key) {
                     row.delivery = Delivery::Failed(error.unwrap_or_default());
                 }
-                self.draft_error = Some(
-                    if created.is_some() {
-                        "Couldn't send the message."
-                    } else {
-                        "Couldn't create the chat."
-                    }
-                    .to_owned(),
-                );
+                self.draft_error = Some(if created.is_some() {
+                    tr("ui.chat.conversation.send_failed")
+                } else {
+                    tr("ui.chat.conversation.create_failed")
+                });
                 self.rebuild(false, cx);
             }
         }
@@ -3227,7 +3237,7 @@ impl ConversationView {
         let (mode, engine, store) = (state.mode, state.engine.clone(), state.store.clone());
         let engine = engine.filter(|_| !mode.read_only);
         if !mode.demo && engine.is_none() {
-            self.show_notice("Read-only mode: reaction not sent", cx);
+            self.show_notice(&tr("ui.chat.conversation.reaction_read_only"), cx);
             return ReactionAttempt::Blocked;
         }
         let my_user_id = self.row_context(cx).my_user_id;
@@ -3476,7 +3486,7 @@ impl ConversationView {
             return;
         }
         let Some(engine) = engine.filter(|_| !mode.read_only) else {
-            self.notice = Some("Read-only mode: edit not saved".to_owned());
+            self.notice = Some(tr("ui.chat.conversation.edit_read_only"));
             self.show_main_composer(cx);
             self.composer
                 .update(cx, |composer, cx| composer.restore(&outgoing, window, cx));
@@ -3514,18 +3524,17 @@ impl ConversationView {
                 this.rebuild(false, cx);
                 let same_chat = this.conversation_id().as_deref() == Some(&*edited_conversation);
                 if failed && !same_chat {
-                    this.notice = Some("Edit failed".to_owned());
+                    this.notice = Some(tr("ui.chat.conversation.edit_failed"));
                     cx.notify();
                 } else if failed {
                     this.show_main_composer(cx);
                     if !this.composer.read(cx).is_editing() {
-                        this.notice =
-                            Some("Edit failed: your text is back in the composer".to_owned());
+                        this.notice = Some(tr("ui.chat.conversation.edit_failed_restore"));
                         this.composer.update(cx, |composer, cx| {
                             composer.begin_edit(outgoing.clone(), window, cx)
                         });
                     } else {
-                        this.notice = Some("Edit failed".to_owned());
+                        this.notice = Some(tr("ui.chat.conversation.edit_failed"));
                     }
                     cx.notify();
                 }
@@ -3693,9 +3702,9 @@ impl ConversationView {
             Some(TranslationLine::Translated {
                 showing_original: false,
                 ..
-            }) => "See original",
-            Some(TranslationLine::Translated { .. }) => "See translation",
-            _ => "Translate",
+            }) => tr("ui.chat.conversation.see_original"),
+            Some(TranslationLine::Translated { .. }) => tr("ui.chat.conversation.see_translation"),
+            _ => tr("ui.chat.conversation.translate"),
         };
         let action = |run: fn(&mut Self, &str, &mut Window, &mut Context<Self>)| -> Action {
             let (view, key) = (view.clone(), key.to_owned());
@@ -3820,7 +3829,7 @@ impl ConversationView {
         cx: &mut Context<Self>,
     ) {
         if matches!(result, Ok(Ok(Delivered::WithoutBanner))) {
-            self.notice = Some(POSTED_WITHOUT_BANNER.to_owned());
+            self.notice = Some(tr(POSTED_WITHOUT_BANNER));
         }
         if let Ok(Ok(Delivered::Complete {
             message_id: Some(message_id),
@@ -4176,13 +4185,13 @@ impl ConversationView {
                     .hover(|button| button.bg(theme::row_hover()))
                     .on_click(cx.listener(|this, _, _, cx| this.back_to_threads(cx)))
                     .child(icon(IconName::ChevronLeft, 16., theme::accent_text()))
-                    .child("Back to channel"),
+                    .child(tr("ui.chat.conversation.back_to_channel")),
             );
         }
         let channel_note = match current.mode {
             ViewMode::Flat => None,
-            ViewMode::ThreadList => Some("Posts"),
-            ViewMode::Thread(_) => Some("Conversation"),
+            ViewMode::ThreadList => Some(tr("ui.chat.conversation.posts")),
+            ViewMode::Thread(_) => Some(tr("ui.chat.conversation.conversation")),
         };
         if let Some(note) = channel_note {
             subline = note.to_owned();
@@ -4195,16 +4204,15 @@ impl ConversationView {
         let sync = &current.sync;
         let loading_window = current.window_request.is_some();
         if sync.failed {
-            subline = "Not up to date".to_owned();
+            subline = tr("ui.chat.conversation.not_up_to_date");
         } else if loading_window {
-            subline = "Loading message ...".to_owned();
+            subline = tr("ui.chat.conversation.loading_message");
         } else if sync.shown_at.is_some() {
             subline = if sync.slow {
-                "Taking longer than usual ..."
+                tr("ui.chat.conversation.taking_longer")
             } else {
-                "Loading messages ..."
-            }
-            .to_owned();
+                tr("ui.chat.conversation.loading_messages")
+            };
         }
         let inline_tabs = tabs.map(|tabs| h_flex().h_full().flex_1().child(tabs));
         let overflow = self.header_overflows();
@@ -4288,7 +4296,7 @@ impl ConversationView {
                 .ghost()
                 .size(px(POP_IN_BUTTON_SIZE))
                 .rounded(px(8.))
-                .tooltip(chat_pop_out::POP_IN_TOOLTIP)
+                .tooltip(tr(chat_pop_out::POP_IN_TOOLTIP))
                 .on_click(move |_, window, cx| {
                     chat_pop_out::return_to_main_window(&app, &chat_id, window, cx)
                 })
@@ -4330,7 +4338,7 @@ impl Render for ConversationView {
                 .items_center()
                 .justify_center()
                 .text_color(theme::text_muted())
-                .child("Select a chat or channel")
+                .child(tr("ui.chat.conversation.select_chat"))
                 .into_any_element();
         }
         let in_feed = self.in_feed();
@@ -4403,7 +4411,7 @@ impl Render for ConversationView {
                             .text_size(theme::text_small())
                             .text_color(theme::text_muted())
                             .child(icon(IconName::Loader, 12., theme::text_muted()))
-                            .child("Loading older messages")
+                            .child(tr("ui.chat.conversation.loading_older"))
                             .into_any_element()
                     }
                     Some(Row::LoadNewer) => {
@@ -4422,7 +4430,7 @@ impl Render for ConversationView {
                             .text_size(theme::text_small())
                             .text_color(theme::text_muted())
                             .child(icon(IconName::Loader, 12., theme::text_muted()))
-                            .child("Loading newer messages")
+                            .child(tr("ui.chat.conversation.loading_newer"))
                             .into_any_element()
                     }
                     Some(Row::Start(start)) => {
@@ -4460,7 +4468,7 @@ impl Render for ConversationView {
                                 div()
                                     .text_size(theme::text_small())
                                     .text_color(theme::text_muted())
-                                    .child("This is the beginning of the conversation"),
+                                    .child(tr("ui.chat.conversation.beginning")),
                             )
                             .into_any_element()
                     }
@@ -4473,10 +4481,10 @@ impl Render for ConversationView {
         .wheel_mask(false)
         .jump_button(!in_feed)
         .force_jump_button(detached)
-        .with_jump_button_label(jump::JUMP_TO_NEWEST_LABEL)
+        .with_jump_button_label(&tr(jump::JUMP_TO_NEWEST_LABEL))
         .with_jump_button_renderer(|button| {
             button
-                .label(jump::JUMP_TO_NEWEST_LABEL)
+                .label(tr(jump::JUMP_TO_NEWEST_LABEL))
                 .tooltip(jump::jump_to_newest_tooltip())
                 .border_0()
                 .bg(theme::accent())
@@ -4568,7 +4576,7 @@ impl Render for ConversationView {
                 .justify_center()
                 .text_size(theme::text_label())
                 .text_color(theme::text_muted())
-                .child("No posts in this channel yet")
+                .child(tr("ui.chat.conversation.no_posts"))
                 .into_any_element()
         } else {
             scroller.into_any_element()
@@ -4779,7 +4787,7 @@ fn add_people_button(app: &Entity<AppState>, chat_id: &str) -> AnyElement {
         .ghost()
         .compact()
         .icon(IconName::UserPlus)
-        .tooltip("Add people")
+        .tooltip(tr("ui.chat.members.add_people"))
         .on_click(move |_, window, cx| open_add_people(&app, &chat_id, true, window, cx))
         .into_any_element()
 }
@@ -4813,6 +4821,7 @@ mod tests {
 
     #[test]
     fn chat_overlay_names_the_chat_and_the_onedrive() {
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(
             drop_overlay_text("Mara Lin", DropTarget::Chat, 3),
             (
@@ -4824,6 +4833,7 @@ mod tests {
 
     #[test]
     fn channel_overlay_points_to_the_channel_files() {
+        app_base::ui_locale::apply_locale("en");
         let (_, detail) = drop_overlay_text("Squad / General", DropTarget::Channel, 1);
         assert_eq!(
             detail,
@@ -4833,6 +4843,7 @@ mod tests {
 
     #[test]
     fn new_chat_overlay_says_files_wait_for_the_chat() {
+        app_base::ui_locale::apply_locale("en");
         let (heading, detail) = drop_overlay_text("", DropTarget::NewChat, 2);
         assert_eq!(heading, "Drop to attach to the new chat");
         assert_eq!(

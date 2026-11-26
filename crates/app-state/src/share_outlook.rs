@@ -6,8 +6,9 @@ use crate::app_state::AppState;
 use crate::notice::short_error;
 use crate::rows::message_text;
 use crate::runtime;
+use app_base::ui_locale::{tr, tr_with};
 
-pub const SHARE_TO_OUTLOOK_LABEL: &str = "Share to Outlook";
+pub const SHARE_TO_OUTLOOK_LABEL: &str = "ui.chat.share.action";
 
 pub fn share_subject(record: &MessageRecord, conversation_title: &str) -> String {
     record
@@ -69,11 +70,15 @@ impl AppState {
             let link = match receiver.await {
                 Ok(Ok(link)) => Ok(link),
                 Ok(Err(error)) => Err(short_error(&error)),
-                Err(_) => Err("cancelled".to_owned()),
+                Err(_) => Err(tr("ui.chat.share.cancelled")),
             };
             this.update(cx, |state, cx| {
                 if let Err(reason) = &link {
-                    state.raise_notice(format!("No link to the message: {reason}"), None, cx);
+                    state.raise_notice(
+                        tr_with("ui.chat.share.no_link", &[("reason", reason)]),
+                        None,
+                        cx,
+                    );
                 }
                 let body = share_body(&record, link.as_deref().ok());
                 cx.open_url(&teams_core::outlook_compose_link(&subject, &body));

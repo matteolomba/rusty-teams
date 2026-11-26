@@ -23,6 +23,7 @@ use super::translation_line::translation_line;
 use super::widgets::{icon, symbol};
 use crate::agents::run_chip;
 use crate::data::Directory;
+use crate::i18n::tr;
 use crate::rows::{Delivery, MessageRow, PostRow};
 use crate::theme;
 
@@ -33,20 +34,20 @@ const AVATAR_GAP: f32 = 10.;
 const CARD_PADDING: f32 = 12.;
 const CARD_RADIUS: f32 = 10.;
 const CARD_GAP: f32 = 12.;
-const PINNED_LABEL: &str = "Pinned";
+const PINNED_LABEL: &str = "ui.chat.pin.label";
 const SLOTS_PER_POST: usize = 64;
 const TOOLBAR_RIGHT_INSET: f32 = 8.;
 const SUBJECT_SIZE: f32 = 14.;
 const FOOTER_AVATAR: f32 = 20.;
 const FOOTER_BUTTON_PADDING: f32 = 6.;
 const FOOTER_BUTTON_VERTICAL: f32 = 4.;
-const REPLY_IN_THREAD: &str = "Reply in thread";
+const REPLY_IN_THREAD: &str = "ui.chat.post.reply_in_thread";
 const NEW_STRIPE_WIDTH: f32 = 3.;
 const NEW_BADGE_HEIGHT: f32 = 20.;
-const NEW_LABEL: &str = "New";
-const POST_IN_CHANNEL: &str = "Post in channel";
-const POST_LABEL: &str = "Post";
-const ANNOUNCEMENT_LABEL: &str = "Announcement";
+const NEW_LABEL: &str = "ui.chat.post.new";
+const POST_IN_CHANNEL: &str = "ui.chat.post.post_in_channel";
+const POST_LABEL: &str = "ui.chat.post.post";
+const ANNOUNCEMENT_LABEL: &str = "ui.chat.post.announcement";
 pub const POST_IN_CHANNEL_ANNOUNCE_TAG: &str = "post-in-channel/announcement";
 pub const POST_CARD_TAG: &str = "post-card";
 pub const POST_AVATAR_TAG: &str = "post-card/avatar";
@@ -79,7 +80,7 @@ fn edited_marker() -> Div {
         .text_size(theme::text_caption())
         .italic()
         .text_color(theme::text_muted())
-        .child("Edited")
+        .child(tr("ui.chat.message.edited"))
 }
 
 fn pinned_marker() -> Div {
@@ -89,7 +90,7 @@ fn pinned_marker() -> Div {
         .text_size(theme::text_caption())
         .text_color(theme::text_muted())
         .child(icon(IconName::Pin, 11., theme::text_muted()))
-        .child(PINNED_LABEL)
+        .child(tr(PINNED_LABEL))
 }
 
 fn message_content(
@@ -476,7 +477,7 @@ fn reply_footer(
                     })
                     .on_click(move |_, window, cx| open(window, cx))
                     .children(own_avatar)
-                    .child(REPLY_IN_THREAD),
+                    .child(tr(REPLY_IN_THREAD)),
             ),
         ),
     )
@@ -499,7 +500,7 @@ fn card_action(label: &'static str, glyph: IconName, primary: bool) -> Div {
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(color)
         .child(icon(glyph, 14., color))
-        .child(label)
+        .child(tr(label))
 }
 
 pub fn post_in_channel_card(
@@ -535,7 +536,7 @@ pub fn post_in_channel_card(
                         .text_size(theme::text_label())
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_color(theme::text_strong())
-                        .child(POST_IN_CHANNEL),
+                        .child(tr(POST_IN_CHANNEL)),
                 ),
         )
         .child(
@@ -570,7 +571,7 @@ fn new_post_badge() -> Div {
         .text_size(theme::text_caption())
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme::accent_text())
-        .child(NEW_LABEL)
+        .child(tr(NEW_LABEL))
 }
 
 fn new_post_stripe() -> Div {

@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 
-use calling::camera::{DEFAULT_CAMERA_LABEL, list_cameras};
+use app_base::ui_locale::tr_with;
+use calling::camera::list_cameras;
 use calling::devices::{DeviceLists, list_devices, shared_factory};
 use calling::{
     CameraEffects, DeviceChoice, DeviceEntry, MicSettings, NoiseSuppression, camera_entries,
@@ -12,6 +13,7 @@ use gpui_kit::*;
 use super::rows::{Choice, caption, control_row, row, select, text_button, toggle_row};
 use crate::app_state::AppState;
 use crate::call::{BackgroundPick, CameraPreview, preview_backgrounds};
+use crate::i18n::tr;
 use crate::theme;
 use crate::views::prejoin_view::demo_devices;
 
@@ -19,13 +21,16 @@ const FPS_TICK: Duration = Duration::from_millis(500);
 const PREVIEW_WIDTH: f32 = 288.;
 const PREVIEW_HEIGHT: f32 = 162.;
 const PREVIEW_RADIUS: f32 = 10.;
-const SOFT_FOCUS_LEVELS: [(&str, u8); 3] = [("Low", 25), ("Medium", 50), ("High", 75)];
-const CAMERA_IN_USE: &str = "Camera is in use by the call";
-const DEFAULT_DEVICE_LABEL: &str = "Default device";
+const SOFT_FOCUS_LEVELS: [(&str, u8); 3] = [
+    ("ui.settings.devices.soft_focus_low", 25),
+    ("ui.settings.devices.soft_focus_medium", 50),
+    ("ui.settings.devices.soft_focus_high", 75),
+];
+const CAMERA_IN_USE: &str = "ui.settings.devices.camera_in_use";
 
 struct Effect {
     id: &'static str,
-    title: &'static str,
+    title_key: &'static str,
     read: fn(&CameraEffects) -> bool,
     flip: fn(&mut CameraEffects),
 }
@@ -33,25 +38,25 @@ struct Effect {
 const EFFECTS: [Effect; 4] = [
     Effect {
         id: "effect-mirror",
-        title: "Mirror my video",
+        title_key: "ui.settings.devices.effect_mirror",
         read: |effects| effects.mirror,
         flip: |effects| effects.mirror = !effects.mirror,
     },
     Effect {
         id: "effect-framing",
-        title: "Auto framing",
+        title_key: "ui.settings.devices.effect_framing",
         read: |effects| effects.auto_framing,
         flip: |effects| effects.auto_framing = !effects.auto_framing,
     },
     Effect {
         id: "effect-brightness",
-        title: "Adjust brightness",
+        title_key: "ui.settings.devices.effect_brightness",
         read: |effects| effects.adjust_brightness,
         flip: |effects| effects.adjust_brightness = !effects.adjust_brightness,
     },
     Effect {
         id: "effect-soft-focus",
-        title: "Soft focus",
+        title_key: "ui.settings.devices.effect_soft_focus",
         read: |effects| effects.soft_focus,
         flip: |effects| effects.soft_focus = !effects.soft_focus,
     },
@@ -224,16 +229,14 @@ impl DevicesView {
 
     fn preview_status(&self) -> String {
         if self.preview_blocked {
-            return CAMERA_IN_USE.to_owned();
+            return tr(CAMERA_IN_USE);
         }
         match self.preview.failure() {
-            Some(reason) => format!("Camera could not start: {reason}"),
-            None => self
-                .preview
-                .fps()
-                .map_or("Starting camera...".to_owned(), |fps| {
-                    format!("{fps:.0} fps")
-                }),
+            Some(reason) => tr_with("ui.settings.devices.camera_failed", &[("reason", &reason)]),
+            None => self.preview.fps().map_or_else(
+                || tr("ui.settings.devices.starting_camera"),
+                |fps| tr_with("ui.settings.devices.fps", &[("fps", &format!("{fps:.0}"))]),
+            ),
         }
     }
 
@@ -267,30 +270,35 @@ impl DevicesView {
             self.audio_devices.output_entries(),
             self.audio_devices.input_entries(),
         );
-        let speaker_label = label_of(&outputs, &output, DEFAULT_DEVICE_LABEL);
-        let microphone_label = label_of(&inputs, &input, DEFAULT_DEVICE_LABEL);
+        let default_label = tr("ui.settings.devices.default_device");
+        let speaker_label = label_of(&outputs, &output, &default_label);
+        let microphone_label = label_of(&inputs, &input, &default_label);
         let noise_choices = NoiseSuppression::ALL
             .iter()
             .map(|level| {
                 let (view, level) = (view.clone(), *level);
-                Choice::new(level.label(), level == mic.noise_suppression, move |cx| {
-                    view.update(cx, |view, cx| {
-                        view.set_mic(
-                            MicSettings {
-                                noise_suppression: level,
-                                ..mic
-                            },
-                            cx,
-                        )
-                    })
-                })
+                Choice::new(
+                    crate::labels::noise_suppression_label(level),
+                    level == mic.noise_suppression,
+                    move |cx| {
+                        view.update(cx, |view, cx| {
+                            view.set_mic(
+                                MicSettings {
+                                    noise_suppression: level,
+                                    ..mic
+                                },
+                                cx,
+                            )
+                        })
+                    },
+                )
             })
             .collect();
         let music_view = view.clone();
         let call_app = self.app.clone();
         vec![
             control_row(
-                "Speaker",
+                tr("ui.settings.devices.speaker"),
                 "",
                 select(
                     "settings-speaker",
@@ -301,7 +309,7 @@ impl DevicesView {
             )
             .into_any_element(),
             control_row(
-                "Microphone",
+                tr("ui.settings.devices.microphone"),
                 "",
                 select(
                     "settings-microphone",
@@ -312,15 +320,15 @@ impl DevicesView {
             )
             .into_any_element(),
             control_row(
-                "Noise suppression",
+                tr("ui.settings.devices.noise_suppression"),
                 if mic.music_mode {
-                    "Off while music mode is on"
+                    tr("ui.settings.devices.noise_off_music")
                 } else {
-                    "Echo, hum and background noise"
+                    tr("ui.settings.devices.noise_detail")
                 },
                 select(
                     "noise-suppression-select",
-                    mic.noise_suppression.label(),
+                    crate::labels::noise_suppression_label(mic.noise_suppression),
                     mic.music_mode,
                     noise_choices,
                 ),
@@ -328,8 +336,8 @@ impl DevicesView {
             .into_any_element(),
             toggle_row(
                 "music-mode-row",
-                "Music mode",
-                "Keeps echo cancellation, turns off the rest",
+                tr("ui.settings.devices.music_mode"),
+                tr("ui.settings.devices.music_mode_detail"),
                 theme::text_muted(),
                 mic.music_mode,
             )
@@ -346,11 +354,11 @@ impl DevicesView {
             })
             .into_any_element(),
             control_row(
-                "Make a test call",
-                "Echo bot, checks your speaker and microphone",
-                text_button("settings-test-call", "Make a test call").on_click(move |_, _, cx| {
-                    call_app.update(cx, |state, cx| state.start_test_call(cx))
-                }),
+                tr("ui.settings.devices.test_call"),
+                tr("ui.settings.devices.test_call_detail"),
+                text_button("settings-test-call", tr("ui.settings.devices.test_call")).on_click(
+                    move |_, _, cx| call_app.update(cx, |state, cx| state.start_test_call(cx)),
+                ),
             )
             .into_any_element(),
         ]
@@ -358,7 +366,8 @@ impl DevicesView {
 
     fn camera_block(&self, cx: &mut Context<Self>) -> Div {
         let view = cx.entity();
-        let camera_label = label_of(&self.cameras, &self.camera, DEFAULT_CAMERA_LABEL);
+        let default_camera = tr("ui.settings.devices.default_camera");
+        let camera_label = label_of(&self.cameras, &self.camera, &default_camera);
         let camera_choices = self
             .cameras
             .iter()
@@ -375,7 +384,10 @@ impl DevicesView {
         let background_label = backgrounds
             .iter()
             .find(|(pick, _)| *pick == self.background)
-            .map_or("None".to_owned(), |(_, label)| label.clone());
+            .map_or_else(
+                || tr("ui.settings.devices.none"),
+                |(_, label)| label.clone(),
+            );
         let background_choices = backgrounds
             .into_iter()
             .map(|(pick, label)| {
@@ -414,9 +426,9 @@ impl DevicesView {
                     .child(
                         v_flex()
                             .gap(px(12.))
-                            .child(device_label("Camera"))
+                            .child(device_label(tr("ui.settings.devices.camera")))
                             .child(select("camera-select", camera_label, false, camera_choices))
-                            .child(device_label("Background"))
+                            .child(device_label(tr("ui.settings.devices.background")))
                             .child(select(
                                 "background-select",
                                 background_label,
@@ -443,7 +455,7 @@ impl DevicesView {
                 let flip = effect.flip;
                 toggle_row(
                     effect.id,
-                    effect.title,
+                    tr(effect.title_key),
                     "",
                     theme::text_muted(),
                     (effect.read)(&effects),
@@ -465,9 +477,9 @@ impl DevicesView {
     }
 
     fn strength_row(&self, effects: CameraEffects, cx: &mut Context<Self>) -> Div {
-        let levels = SOFT_FOCUS_LEVELS.map(|(label, level)| {
+        let levels = SOFT_FOCUS_LEVELS.map(|(key, level)| {
             let view = cx.entity();
-            text_button(label, label)
+            text_button(key, tr(key))
                 .when(effects.soft_focus_strength == level, |button| {
                     button.bg(theme::accent()).text_color(theme::on_accent())
                 })
@@ -482,14 +494,15 @@ impl DevicesView {
                 })
         });
         control_row(
-            "Soft focus strength",
+            tr("ui.settings.devices.soft_focus_strength"),
             "",
             h_flex().gap(px(8.)).children(levels),
         )
     }
 }
 
-fn device_label(text: &'static str) -> Div {
+fn device_label(text: impl Into<SharedString>) -> Div {
+    let text: SharedString = text.into();
     div()
         .text_size(theme::text_small())
         .text_color(theme::text_muted())
@@ -502,17 +515,17 @@ impl Render for DevicesView {
         let report_app = self.app.clone();
         v_flex()
             .w_full()
-            .child(caption("AUDIO DEVICES"))
+            .child(caption(tr("ui.settings.devices.caption_audio")))
             .children(self.audio_rows(cx))
-            .child(caption("CAMERA"))
+            .child(caption(tr("ui.settings.devices.caption_camera")))
             .child(self.camera_block(cx))
             .children(self.effect_rows(cx))
-            .child(caption("DIAGNOSTICS"))
+            .child(caption(tr("ui.settings.devices.caption_diagnostics")))
             .child(
                 toggle_row(
                     "call-report-row",
-                    "Save a test report after each call",
-                    "Pseudonymized, stays on this computer",
+                    tr("ui.settings.devices.save_report"),
+                    tr("ui.settings.devices.save_report_detail"),
                     theme::text_muted(),
                     report_on,
                 )

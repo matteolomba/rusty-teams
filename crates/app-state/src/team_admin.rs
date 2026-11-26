@@ -3,13 +3,13 @@ use store::TeamRights;
 use teams_core::{ChannelPrivacy, MAX_CHANNEL_NAME_LENGTH};
 
 use crate::app_state::{AppState, Selection};
+use app_base::ui_locale::tr_with;
 
-pub const CREATE_CHANNEL_FAILURE: &str = "We couldn't create the channel.";
-pub const EDIT_CHANNEL_FAILURE: &str = "Channel wasn't renamed.";
-pub const CHANNEL_NAME_CHARACTERS: &str =
-    "Channel names can't contain ~ # % & * { } + / \\ : < > ? | ' \" , or ..";
-pub const CHANNEL_NAME_EDGES: &str = "Channel names can't start with _ or . and can't end with .";
-pub const CHANNEL_NAME_LENGTH: &str = "Channel names can have up to 50 characters.";
+pub const CREATE_CHANNEL_FAILURE: &str = "ui.chat.team_admin.create_failed";
+pub const EDIT_CHANNEL_FAILURE: &str = "ui.chat.team_admin.edit_failed";
+pub const CHANNEL_NAME_CHARACTERS: &str = "ui.chat.team_admin.name_characters";
+pub const CHANNEL_NAME_EDGES: &str = "ui.chat.team_admin.name_edges";
+pub const CHANNEL_NAME_LENGTH: &str = "ui.chat.team_admin.name_length";
 const FORBIDDEN_CHARACTERS: &[char] = &[
     '~', '#', '%', '&', '*', '{', '}', '+', '/', '\\', ':', '<', '>', '?', '|', '\'', '"', ',',
 ];
@@ -34,11 +34,17 @@ pub fn can_create_channel(raw: &str) -> bool {
 }
 
 pub fn delete_channel_failure(channel_name: &str) -> String {
-    format!("We couldn't delete the {channel_name} channel. Try deleting it again.")
+    tr_with(
+        "ui.chat.team_admin.delete_failed",
+        &[("channel", channel_name)],
+    )
 }
 
 pub fn channel_deleted_notice(channel_name: &str) -> String {
-    format!("{channel_name} has been deleted")
+    tr_with(
+        "ui.chat.team_admin.deleted_notice",
+        &[("channel", channel_name)],
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

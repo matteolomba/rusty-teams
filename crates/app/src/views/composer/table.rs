@@ -11,11 +11,13 @@ use gpui_kit::*;
 use teams_core::{Cell, PICKER_COLUMNS, PICKER_ROWS, TABLE_MARK, Table, TableEdit};
 
 use super::{Composer, StepKind};
+use crate::i18n::tr;
 use crate::theme::{self, ElevatedSurface as _};
 use crate::views::actions::{
     DeleteTable, DeleteTableColumn, DeleteTableRow, InsertTableColumnLeft, InsertTableColumnRight,
     InsertTableRowAbove, InsertTableRowBelow,
 };
+use app_base::ui_locale::tr_with;
 
 pub(super) const TOKEN_PREFIX: &str = "table-";
 const CELL_MAX_ROWS: usize = 12;
@@ -598,7 +600,7 @@ impl Composer {
                 .on_click(cx.listener(move |this, _, window, cx| {
                     this.accept_table_menu(Some(edit), window, cx)
                 }))
-                .child(edit.label())
+                .child(tr(edit_label(edit)))
         });
         Some(
             v_flex()
@@ -672,7 +674,13 @@ impl Composer {
                     div()
                         .text_size(theme::text_small())
                         .text_color(theme::text_muted())
-                        .child(format!("Insert {}x{} table", picker.columns, picker.rows)),
+                        .child(tr_with(
+                            "ui.chat.composer.insert_table",
+                            &[
+                                ("columns", &picker.columns.to_string()),
+                                ("rows", &picker.rows.to_string()),
+                            ],
+                        )),
                 )
                 .child(grid)
                 .into_any_element(),
@@ -733,22 +741,34 @@ impl Composer {
     }
 }
 
+fn edit_label(edit: TableEdit) -> &'static str {
+    match edit {
+        TableEdit::InsertRowAbove => "ui.chat.table.insert_row_above",
+        TableEdit::InsertRowBelow => "ui.chat.table.insert_row_below",
+        TableEdit::InsertColumnLeft => "ui.chat.table.insert_column_left",
+        TableEdit::InsertColumnRight => "ui.chat.table.insert_column_right",
+        TableEdit::DeleteRow => "ui.chat.table.delete_row",
+        TableEdit::DeleteColumn => "ui.chat.table.delete_column",
+        TableEdit::DeleteTable => "ui.chat.table.delete_table",
+    }
+}
+
 fn table_menu(menu: NativeMenu) -> NativeMenu {
     let menu = TableEdit::INSERTS
         .into_iter()
         .fold(menu, |menu, edit| {
-            menu.menu(edit.label(), edit_action(edit))
+            menu.menu(&tr(edit_label(edit)), edit_action(edit))
         })
         .separator();
     TableEdit::DELETES
         .into_iter()
         .fold(menu, |menu, edit| {
-            menu.menu(edit.label(), edit_action(edit))
+            menu.menu(&tr(edit_label(edit)), edit_action(edit))
         })
         .separator()
-        .menu("Cut", Box::new(Cut))
-        .menu("Copy", Box::new(Copy))
-        .menu("Paste", Box::new(Paste))
+        .menu(&tr("ui.chat.composer.cut"), Box::new(Cut))
+        .menu(&tr("ui.chat.composer.copy"), Box::new(Copy))
+        .menu(&tr("ui.chat.composer.paste"), Box::new(Paste))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

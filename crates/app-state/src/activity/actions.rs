@@ -29,7 +29,7 @@ impl AppState {
             return;
         };
         self.run_chat_action(
-            "Mark all as read",
+            "ui.chat.activity.mark_all_read",
             async move { engine.mark_all_activity_read().await },
             |_, cx| cx.emit(AppEvent::Activity),
             |_, _| {},

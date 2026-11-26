@@ -101,31 +101,34 @@ fn search_terms(section: SettingsSection) -> Vec<String> {
             CALENDAR_ACCOUNTS_TERMS.iter().map(|key| tr(key)).collect()
         }
         SettingsSection::Devices => vec![
-            "Speaker".to_owned(),
-            "Microphone".to_owned(),
-            "Noise suppression".to_owned(),
-            "Music mode".to_owned(),
-            "Camera".to_owned(),
-            "Background".to_owned(),
-            "Soft focus".to_owned(),
-            "Adjust brightness".to_owned(),
-            "Mirror my video".to_owned(),
-            "Make a test call".to_owned(),
-            "Save a test report after each call".to_owned(),
+            tr("ui.settings.devices.speaker"),
+            tr("ui.settings.devices.microphone"),
+            tr("ui.settings.devices.noise_suppression"),
+            tr("ui.settings.devices.music_mode"),
+            tr("ui.settings.devices.camera"),
+            tr("ui.settings.devices.background"),
+            tr("ui.settings.devices.effect_soft_focus"),
+            tr("ui.settings.devices.effect_brightness"),
+            tr("ui.settings.devices.effect_mirror"),
+            tr("ui.settings.devices.test_call"),
+            tr("ui.settings.devices.save_report"),
         ],
-        SettingsSection::Agents => vec!["Claude".to_owned(), "Agent runs".to_owned()],
+        SettingsSection::Agents => vec!["Claude".to_owned(), tr("ui.settings.nav.term_agent_runs")],
         SettingsSection::Mcp => vec![
-            "Model Context Protocol".to_owned(),
-            "Conversation access".to_owned(),
+            tr("ui.settings.nav.term_model_context_protocol"),
+            tr("ui.settings.nav.term_conversation_access"),
         ],
         SettingsSection::Help => vec![
             tr("settings.help.create_bundle"),
             tr("settings.help.open_issue"),
             "GitHub".to_owned(),
-            "diagnostics".to_owned(),
-            "support".to_owned(),
+            tr("ui.settings.nav.term_diagnostics"),
+            tr("ui.settings.nav.term_support"),
         ],
-        SettingsSection::About => vec!["Version".to_owned(), "Build".to_owned()],
+        SettingsSection::About => vec![
+            tr("ui.settings.about.version"),
+            tr("ui.settings.about.build"),
+        ],
     }
 }
 
@@ -464,6 +467,19 @@ mod tests {
             ],
             SettingsSection::Calendar => &super::CALENDAR_VIEW_TERMS,
             SettingsSection::CalendarAccounts => &super::CALENDAR_ACCOUNTS_TERMS,
+            SettingsSection::Devices => &[
+                "ui.settings.devices.speaker",
+                "ui.settings.devices.microphone",
+                "ui.settings.devices.noise_suppression",
+                "ui.settings.devices.music_mode",
+                "ui.settings.devices.camera",
+                "ui.settings.devices.background",
+                "ui.settings.devices.effect_soft_focus",
+                "ui.settings.devices.effect_brightness",
+                "ui.settings.devices.effect_mirror",
+                "ui.settings.devices.test_call",
+                "ui.settings.devices.save_report",
+            ],
             _ => &[],
         }
     }

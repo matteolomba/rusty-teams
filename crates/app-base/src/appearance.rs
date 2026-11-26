@@ -87,13 +87,13 @@ impl ThemeChoice {
             .find(|choice| choice.key() == key)
     }
 
-    pub fn label(self) -> &'static str {
-        match self {
-            ThemeChoice::FollowOperatingSystem => "Follow operating system theme",
-            ThemeChoice::Light => "Light",
-            ThemeChoice::Dark => "Dark",
-            ThemeChoice::HighContrast => "High contrast",
-        }
+    pub fn label(self) -> String {
+        crate::ui_locale::tr(match self {
+            ThemeChoice::FollowOperatingSystem => "settings.appearance.theme_follow_os",
+            ThemeChoice::Light => "settings.appearance.theme_light",
+            ThemeChoice::Dark => "settings.appearance.theme_dark",
+            ThemeChoice::HighContrast => "settings.appearance.theme_high_contrast",
+        })
     }
 
     pub fn shade(self, system: SystemTheme) -> Shade {

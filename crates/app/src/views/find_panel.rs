@@ -21,6 +21,7 @@ use crate::find_in_chat::{
     no_results_with_filters, same_user, step_index,
 };
 use crate::format;
+use crate::i18n::tr;
 use crate::runtime;
 use crate::theme;
 
@@ -278,7 +279,7 @@ impl FindPanel {
                     .rounded(px(7.))
                     .cursor_pointer()
                     .hover(|button| button.bg(theme::row_hover()))
-                    .tooltip(|window, cx| Tooltip::new("Close").build(window, cx))
+                    .tooltip(|window, cx| Tooltip::new(tr("common.close")).build(window, cx))
                     .child(icon(IconName::Close, 14., theme::text_muted()))
                     .on_click(cx.listener(|_, _, _, cx| cx.emit(FindPanelEvent::Close))),
             )
@@ -316,14 +317,14 @@ impl FindPanel {
             .child(self.date_chip(panel))
             .child(self.toggle_chip(
                 "find-has-attachment",
-                HAS_ATTACHMENT_LABEL,
+                &tr(HAS_ATTACHMENT_LABEL),
                 self.filters.has_attachment,
                 |filters| filters.has_attachment = !filters.has_attachment,
                 cx,
             ))
             .child(self.toggle_chip(
                 "find-mentions",
-                MENTIONS_LABEL,
+                &tr(MENTIONS_LABEL),
                 self.filters.mentions_me,
                 |filters| filters.mentions_me = !filters.mentions_me,
                 cx,
@@ -334,7 +335,7 @@ impl FindPanel {
         let selected = self.filters.from.clone();
         let label = selected
             .as_ref()
-            .map_or(FROM_LABEL.to_owned(), |sender| sender.name.clone());
+            .map_or_else(|| tr(FROM_LABEL), |sender| sender.name.clone());
         let senders = self.senders.clone();
         chip_button("find-from", label, selected.is_some()).dropdown_menu(move |menu, _, _| {
             senders.iter().fold(menu, |menu, sender| {
@@ -360,22 +361,24 @@ impl FindPanel {
 
     fn date_chip(&self, panel: WeakEntity<FindPanel>) -> impl IntoElement {
         let selected = self.filters.date;
-        let label = selected.map_or(DATE_LABEL, DateRange::label);
+        let label = selected.map_or_else(|| tr(DATE_LABEL), |range| tr(range.label()));
         chip_button("find-date", label.to_owned(), selected.is_some()).dropdown_menu(
             move |menu, _, _| {
                 DateRange::ALL.into_iter().fold(menu, |menu, range| {
                     let checked = selected == Some(range);
                     let panel = panel.clone();
-                    menu.item(PopupMenuItem::new(range.label()).checked(checked).on_click(
-                        move |_, _, cx| {
-                            let pick = (!checked).then_some(range);
-                            panel
-                                .update(cx, |panel, cx| {
-                                    panel.update_filters(|filters| filters.date = pick, cx)
-                                })
-                                .ok();
-                        },
-                    ))
+                    menu.item(
+                        PopupMenuItem::new(tr(range.label()))
+                            .checked(checked)
+                            .on_click(move |_, _, cx| {
+                                let pick = (!checked).then_some(range);
+                                panel
+                                    .update(cx, |panel, cx| {
+                                        panel.update_filters(|filters| filters.date = pick, cx)
+                                    })
+                                    .ok();
+                            }),
+                    )
                 })
             },
         )
@@ -384,7 +387,7 @@ impl FindPanel {
     fn toggle_chip(
         &self,
         id: &'static str,
-        label: &'static str,
+        label: &str,
         selected: bool,
         change: fn(&mut FindFilters),
         cx: &mut Context<Self>,
@@ -407,7 +410,7 @@ impl FindPanel {
                     .text_color(theme::text_soft())
                     .hover(|chip| chip.bg(theme::border_strong()))
             })
-            .child(label)
+            .child(label.to_owned())
             .on_click(cx.listener(move |panel, _, _, cx| panel.update_filters(change, cx)))
     }
 
@@ -417,15 +420,15 @@ impl FindPanel {
                 no_results_with_filters(&self.query)
             } else {
                 match self.selection {
-                    Selection::Chat(_) => NO_RESULTS_CHAT.to_owned(),
-                    Selection::Channel(_) => NO_RESULTS_CHANNEL.to_owned(),
+                    Selection::Chat(_) => tr(NO_RESULTS_CHAT),
+                    Selection::Channel(_) => tr(NO_RESULTS_CHANNEL),
                 }
             }
         };
         match self.status {
-            Status::Idle => Some(EMPTY_HINT.to_owned()),
-            Status::Failed => Some(LOAD_ERROR.to_owned()),
-            Status::Loading if self.hits.is_empty() => Some(LOADING.to_owned()),
+            Status::Idle => Some(tr(EMPTY_HINT)),
+            Status::Failed => Some(tr(LOAD_ERROR)),
+            Status::Loading if self.hits.is_empty() => Some(tr(LOADING)),
             Status::Ready if self.hits.is_empty() => Some(no_results()),
             _ => None,
         }
@@ -588,10 +591,10 @@ fn chip_button(id: &'static str, label: String, selected: bool) -> Button {
         })
 }
 
-fn panel_title(selection: &Selection) -> &'static str {
+fn panel_title(selection: &Selection) -> String {
     match selection {
-        Selection::Chat(_) => FIND_IN_CHAT,
-        Selection::Channel(_) => FIND_IN_CHANNEL,
+        Selection::Chat(_) => tr(FIND_IN_CHAT),
+        Selection::Channel(_) => tr(FIND_IN_CHANNEL),
     }
 }
 

@@ -5,9 +5,12 @@ use super::call_stage::{StageMode, render_stage};
 use super::shortcuts::{ZoomShareIn, ZoomShareOut, ZoomShareReset};
 use crate::app_state::AppState;
 use crate::call::ZoomStep;
+use crate::i18n::tr;
 use crate::theme;
 
-pub const POP_OUT_TITLE: &str = "Shared content";
+pub fn pop_out_title() -> String {
+    tr("ui.calls.share.pop_out_title")
+}
 pub const POP_OUT_SIZE: (f32, f32) = (960., 600.);
 const KEY_CONTEXT: &str = "SharePopOut";
 

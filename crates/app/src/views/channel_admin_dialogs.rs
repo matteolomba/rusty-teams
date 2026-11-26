@@ -10,6 +10,7 @@ use crate::app_state::AppState;
 use crate::i18n::tr;
 use crate::team_admin::{can_create_channel, channel_name_problem};
 use crate::theme;
+use app_base::ui_locale::tr_with;
 
 const DIALOG_WIDTH: f32 = 480.;
 const FIELD_GAP: f32 = 12.;
@@ -34,12 +35,11 @@ impl EditChannelForm {
     ) -> Self {
         let name = cx.new(|cx| {
             InputState::new(window, cx)
-                .placeholder("Letters, numbers, and spaces are allowed")
+                .placeholder(tr("ui.chat.channel.name_placeholder"))
                 .default_value(current_name.to_owned())
         });
         let description = cx.new(|cx| {
-            InputState::new(window, cx)
-                .placeholder("Help others find the right channel by providing a description")
+            InputState::new(window, cx).placeholder(tr("ui.chat.channel.description_placeholder"))
         });
         let subscriptions = vec![
             cx.subscribe_in(&name, window, Self::on_input),
@@ -119,16 +119,22 @@ impl Render for EditChannelForm {
         v_flex()
             .debug_selector(|| "edit-channel".into())
             .gap(px(FIELD_GAP))
-            .child(labeled("Channel name", Input::new(&self.name)))
+            .child(labeled(
+                &tr("ui.chat.channel.name_label"),
+                Input::new(&self.name),
+            ))
             .when_some(problem, |form, problem| {
                 form.child(
                     div()
                         .text_size(px(ERROR_SIZE))
                         .text_color(theme::red_soft())
-                        .child(problem),
+                        .child(tr(problem)),
                 )
             })
-            .child(labeled("Description", Input::new(&self.description)))
+            .child(labeled(
+                &tr("ui.chat.channel.description_label"),
+                Input::new(&self.description),
+            ))
     }
 }
 
@@ -147,7 +153,10 @@ pub fn open_edit_channel_dialog(
             .unwrap_or_default();
         (channel_name, team_name)
     };
-    let title = format!("Edit \"{channel_name}\" channel in \"{team_name}\" team");
+    let title = tr_with(
+        "ui.chat.channel.edit_title",
+        &[("channel", &channel_name), ("team", &team_name)],
+    );
     let channel_id = channel_id.to_owned();
     let form = cx.new(|cx| EditChannelForm::new(state, channel_id, &channel_name, window, cx));
     let field = form.read(cx).name.clone();
@@ -196,12 +205,14 @@ pub fn confirm_delete_channel(
         )
     };
     let description = if private {
-        format!(
-            "Are you sure you want to delete the {channel_name} channel? All files and conversations will be deleted."
+        tr_with(
+            "ui.chat.channel.delete_with_files",
+            &[("channel", &channel_name)],
         )
     } else {
-        format!(
-            "Are you sure you want to delete the {channel_name} channel? All conversations will be deleted."
+        tr_with(
+            "ui.chat.channel.delete_conversations",
+            &[("channel", &channel_name)],
         )
     };
     let channel_id = channel_id.to_owned();
@@ -218,7 +229,7 @@ pub fn confirm_delete_channel(
                 window.close_dialog(cx);
             });
         alert
-            .title("Delete channel")
+            .title(tr("ui.chat.channel.delete_title"))
             .description(description.clone())
             .footer(DialogFooter::new().child(cancel).child(delete))
             .on_ok(|_, _, _| false)

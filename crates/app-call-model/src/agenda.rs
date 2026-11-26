@@ -5,7 +5,6 @@ use crate::week_grid::is_effective_all_day;
 
 const JOIN_LEAD_MINUTES: i64 = 5;
 const AGENDA_DAYS: i64 = 7;
-const ALL_DAY_LABEL: &str = "All day";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AgendaRow {
@@ -47,13 +46,13 @@ pub fn join_available(
     now >= row_start - Duration::minutes(JOIN_LEAD_MINUTES) && now < row_end
 }
 
-pub fn response_label(response: ResponseType) -> &'static str {
+pub fn response_label(response: ResponseType) -> String {
     match response {
-        ResponseType::Organizer => "Organizer",
-        ResponseType::Accepted => "Accepted",
-        ResponseType::Tentative => "Tentative",
-        ResponseType::Declined => "Declined",
-        ResponseType::NotResponded => "Respond",
+        ResponseType::Organizer => app_base::ui_locale::tr("calendar.peek.organizer"),
+        ResponseType::Accepted => app_base::ui_locale::tr("calendar.peek.accepted"),
+        ResponseType::Tentative => app_base::ui_locale::tr("calendar.peek.tentative"),
+        ResponseType::Declined => app_base::ui_locale::tr("calendar.peek.declined"),
+        ResponseType::NotResponded => app_base::ui_locale::tr("ui.calls.agenda.respond"),
     }
 }
 
@@ -69,14 +68,14 @@ pub fn day_heading(day: NaiveDate, today: NaiveDate) -> String {
 
 fn detail_label(event: &CalendarEvent) -> String {
     if event.response == ResponseType::Organizer {
-        return response_label(event.response).to_owned();
+        return response_label(event.response);
     }
     event.organizer_name.clone().unwrap_or_default()
 }
 
 fn time_label(event: &CalendarEvent, offset: FixedOffset) -> String {
     if is_effective_all_day(event, offset) {
-        return ALL_DAY_LABEL.to_owned();
+        return app_base::ui_locale::tr("calendar.peek.all_day");
     }
     format!(
         "{} - {}",
@@ -107,7 +106,7 @@ fn agenda_row(event: &CalendarEvent, offset: FixedOffset) -> AgendaRow {
         key: event.object_id.clone(),
         time_label: time_label(event, offset),
         subject: if event.subject.is_empty() {
-            "(No title)".to_owned()
+            app_base::ui_locale::tr("calendar.peek.no_title")
         } else {
             event.subject.clone()
         },

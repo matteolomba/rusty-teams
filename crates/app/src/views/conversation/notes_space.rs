@@ -2,12 +2,13 @@ use gpui_kit::component::v_flex;
 use gpui_kit::*;
 
 use crate::data::Directory;
+use crate::i18n::tr;
 use crate::rows::StartInfo;
 use crate::theme;
 use crate::views::avatar::person_avatar;
 
-const NOTES_SPACE_TITLE: &str = "This is your space";
-const NOTES_SPACE_TEXT: &str = "This chat is just for you...with you. Use it for drafts, send files to yourself, or get to know chat features a little better.";
+const NOTES_SPACE_TITLE: &str = "ui.chat.notes.title";
+const NOTES_SPACE_TEXT: &str = "ui.chat.notes.text";
 const NOTES_SPACE_AVATAR_SIZE: f32 = 72.;
 const NOTES_SPACE_TEXT_WIDTH: f32 = 360.;
 
@@ -34,14 +35,14 @@ pub(super) fn render_notes_space(directory: &Directory, start: &StartInfo) -> An
                         .text_size(theme::text_heading())
                         .font_weight(FontWeight::BOLD)
                         .text_color(theme::text())
-                        .child(NOTES_SPACE_TITLE),
+                        .child(tr(NOTES_SPACE_TITLE)),
                 )
                 .child(
                     div()
                         .text_center()
                         .text_size(theme::text_label())
                         .text_color(theme::text_muted())
-                        .child(NOTES_SPACE_TEXT),
+                        .child(tr(NOTES_SPACE_TEXT)),
                 ),
         )
         .into_any_element()

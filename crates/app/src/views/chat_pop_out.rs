@@ -9,8 +9,8 @@ use super::shell::AppShell;
 use crate::app_state::{AppState, Selection, selection_title};
 use crate::theme;
 
-pub const POP_OUT_CHAT_LABEL: &str = "Pop out chat";
-pub const POP_IN_TOOLTIP: &str = "Pop in back to the main window";
+pub const POP_OUT_CHAT_LABEL: &str = "ui.chat.pop_out";
+pub const POP_IN_TOOLTIP: &str = "ui.chat.pop_in";
 const CHAT_WINDOW_SIZE: (f32, f32) = (760., 820.);
 const CHAT_WINDOW_MIN_SIZE: (f32, f32) = (420., 480.);
 

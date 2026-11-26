@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use super::{ConversationView, HoverSlot, ViewMode};
 use crate::backend::Engine;
+use crate::i18n::tr;
 use crate::notice::{short_error, truncated};
 use crate::outbox::{deliver, new_outbox_id, outbox_record};
 use crate::rows::MessageRow;
@@ -17,9 +18,9 @@ use crate::scheduled_rows::{
     draft_id_of, draft_key, scheduled_feed_rows, scheduled_outgoing, scheduled_rows,
 };
 use crate::views::composer::{EditPreview, Outgoing};
+use app_base::ui_locale::tr_with;
 
-const SCHEDULED_EDIT_LOST_NOTICE: &str =
-    "This scheduled message can no longer be changed: your text is back in the composer";
+const SCHEDULED_EDIT_LOST_NOTICE: &str = "ui.chat.scheduled.edit_lost";
 use crate::views::message_actions::Action;
 use crate::views::message_row::{DeliveryActions, RowAction};
 use crate::views::scheduled_toolbar::ScheduledMenu;
@@ -110,7 +111,7 @@ impl ConversationView {
         let state = self.app.read(cx);
         let engine = state.engine.clone().filter(|_| !state.mode.read_only);
         if engine.is_none() {
-            self.notice = Some("Read-only mode: nothing was changed".to_owned());
+            self.notice = Some(tr("ui.chat.scheduled.read_only"));
             cx.notify();
         }
         engine
@@ -129,7 +130,7 @@ impl ConversationView {
             return;
         };
         if self.in_feed() && self.has_subject(cx) {
-            self.notice = Some("Can't schedule a post with a subject yet".to_owned());
+            self.notice = Some(tr("ui.chat.scheduled.post_subject"));
             self.composer
                 .update(cx, |composer, cx| composer.fail_schedule(cx));
             cx.notify();
@@ -195,7 +196,7 @@ impl ConversationView {
     }
 
     fn fail_scheduling(&mut self, error: &str, cx: &mut Context<Self>) {
-        self.notice = Some(format!("Couldn't schedule: {error}"));
+        self.notice = Some(tr_with("ui.chat.scheduled.failed", &[("detail", error)]));
         self.composer
             .update(cx, |composer, cx| composer.fail_schedule(cx));
         cx.notify();
@@ -246,7 +247,7 @@ impl ConversationView {
                 !draft.id.is_empty() && !self.scheduled_in_flight.contains(&draft.id)
             });
         if !changeable {
-            self.restore_unsent(SCHEDULED_EDIT_LOST_NOTICE, &outgoing, None, window, cx);
+            self.restore_unsent(&tr(SCHEDULED_EDIT_LOST_NOTICE), &outgoing, None, window, cx);
             return;
         }
         self.change_scheduled(

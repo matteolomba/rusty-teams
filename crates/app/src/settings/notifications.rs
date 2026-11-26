@@ -96,7 +96,7 @@ pub fn render(center: &Entity<NotificationCenter>, app: &Entity<AppState>, cx: &
             tr("settings.notifications.position_detail"),
             select(
                 "settings-position",
-                corner.label(),
+                crate::labels::corner_label(corner),
                 false,
                 corner_choices(center, corner),
             ),
@@ -140,19 +140,21 @@ pub fn render(center: &Entity<NotificationCenter>, app: &Entity<AppState>, cx: &
             |settings| &mut settings.sounds.urgent_sound_type,
         ))
         .children(call_sounds)
-        .child(caption("TEAMS AND CHANNELS"))
+        .child(caption(tr(
+            "ui.settings.notifications.caption_teams_channels",
+        )))
         .child(account_select(
             app,
             (
                 "settings-notification-preset",
                 tr("settings.notifications.teams_channels"),
-                preset_detail(account.preset),
+                tr(preset_detail(account.preset)),
             ),
             &PRESETS,
             account.preset,
             ChatSettingChange::Preset,
         ))
-        .child(caption("CHAT"))
+        .child(caption(tr("ui.settings.notifications.caption_chat")))
         .child(account_select(
             app,
             (
@@ -166,7 +168,11 @@ pub fn render(center: &Entity<NotificationCenter>, app: &Entity<AppState>, cx: &
         ))
         .child(account_select(
             app,
-            ("settings-personal-mentions", "Personal @mentions", ""),
+            (
+                "settings-personal-mentions",
+                tr("ui.settings.notifications.personal_mentions"),
+                "",
+            ),
             &MENTIONS,
             account.personal_mentions,
             ChatSettingChange::PersonalMentions,
@@ -175,7 +181,7 @@ pub fn render(center: &Entity<NotificationCenter>, app: &Entity<AppState>, cx: &
             app,
             (
                 "settings-everyone-mentions",
-                "Everyone in chat @mentions",
+                tr("ui.settings.notifications.everyone_mentions"),
                 "",
             ),
             &ACTIVITY_OR_OFF,
@@ -193,20 +199,22 @@ pub fn render(center: &Entity<NotificationCenter>, app: &Entity<AppState>, cx: &
             account.likes,
             ChatSettingChange::Likes,
         ))
-        .child(caption("MEETINGS AND CALLS"))
+        .child(caption(tr(
+            "ui.settings.notifications.caption_meetings_calls",
+        )))
         .child(account_select(
             app,
             (
                 "settings-meeting-chats",
                 tr("settings.notifications.meeting_chats"),
-                meeting_chats_detail(account.meeting_chats),
+                tr(meeting_chats_detail(account.meeting_chats)),
             ),
             &MEETING_CHATS,
             account.meeting_chats,
             ChatSettingChange::MeetingChats,
         ))
         .child(hide_in_calls)
-        .child(caption("PEOPLE"))
+        .child(caption(tr("ui.settings.notifications.caption_people")))
         .child(control_row(
             MANAGE_STATUS_NOTIFICATIONS,
             STATUS_NOTIFICATIONS_DESCRIPTION,
@@ -242,7 +250,7 @@ fn preview_toggle(app: &Entity<AppState>, on: bool) -> Stateful<Div> {
     toggle_row(
         "settings-preview",
         tr("settings.notifications.show_preview"),
-        "Off: only \"New message\"",
+        tr("ui.settings.notifications.preview_off_detail"),
         theme::text_muted(),
         on,
     )
@@ -279,11 +287,15 @@ fn corner_choices(center: &Entity<NotificationCenter>, current: Corner) -> Vec<C
         .into_iter()
         .map(|corner| {
             let center = center.clone();
-            Choice::new(corner.label(), corner == current, move |cx| {
-                center.update(cx, |center, cx| {
-                    center.update_settings(cx, |settings| settings.corner = corner)
-                })
-            })
+            Choice::new(
+                crate::labels::corner_label(corner),
+                corner == current,
+                move |cx| {
+                    center.update(cx, |center, cx| {
+                        center.update_settings(cx, |settings| settings.corner = corner)
+                    })
+                },
+            )
         })
         .collect()
 }
@@ -301,12 +313,16 @@ fn sound_row(
         .iter()
         .map(|sound| {
             let (center, sound) = (center.clone(), *sound);
-            Choice::new(sound.label(), sound == current, move |cx| {
-                center.update(cx, |center, cx| {
-                    center.update_settings(cx, |settings| *field(settings) = sound);
-                    center.preview_sound(sound.file_name(), cx);
-                })
-            })
+            Choice::new(
+                crate::labels::alert_sound_label(sound),
+                sound == current,
+                move |cx| {
+                    center.update(cx, |center, cx| {
+                        center.update_settings(cx, |settings| *field(settings) = sound);
+                        center.preview_sound(sound.file_name(), cx);
+                    })
+                },
+            )
         })
         .collect();
     let preview_center = center.clone();
@@ -316,13 +332,20 @@ fn sound_row(
         h_flex()
             .gap(px(8.))
             .items_center()
-            .child(select(id, current.label(), !enabled, choices))
+            .child(select(
+                id,
+                crate::labels::alert_sound_label(current),
+                !enabled,
+                choices,
+            ))
             .child(
-                text_button(preview_id, "Preview").on_click(move |_, _, cx| {
-                    preview_center.update(cx, |center, cx| {
-                        center.preview_sound(current.file_name(), cx)
-                    })
-                }),
+                text_button(preview_id, tr("ui.settings.common.preview")).on_click(
+                    move |_, _, cx| {
+                        preview_center.update(cx, |center, cx| {
+                            center.preview_sound(current.file_name(), cx)
+                        })
+                    },
+                ),
             ),
     )
 }

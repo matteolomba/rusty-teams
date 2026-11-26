@@ -7,7 +7,9 @@ use app_ui_kit::layout::ROW_PADDING;
 
 use super::message_actions::Action;
 use super::widgets::icon;
+use crate::i18n::tr;
 use crate::theme;
+use app_base::ui_locale::tr_with;
 
 const BANNER_HEIGHT: f32 = 40.;
 pub const PIN_BANNER_TAG: &str = "shell/islands/main/pin-banner";
@@ -15,7 +17,7 @@ const BANNER_GAP: f32 = 8.;
 const BANNER_PADDING: f32 = 12.;
 pub const BANNER_INSET: f32 = ROW_PADDING - BANNER_PADDING;
 const BUTTON_SIZE: f32 = 28.;
-const FALLBACK_PREVIEW: &str = "Pinned message";
+const FALLBACK_PREVIEW: &str = "ui.chat.pin.fallback_preview";
 
 pub struct PinBannerData {
     pub author: Option<String>,
@@ -57,7 +59,13 @@ pub fn cycle_pin(index: usize, length: usize, delta: isize) -> usize {
 }
 
 pub fn position_label(position: usize, total: usize) -> String {
-    format!("{} of {}", position + 1, total)
+    tr_with(
+        "ui.chat.pin.position",
+        &[
+            ("position", &(position + 1).to_string()),
+            ("total", &total.to_string()),
+        ],
+    )
 }
 
 fn icon_button(id: &'static str, glyph: IconName, action: Action) -> Stateful<Div> {
@@ -114,7 +122,7 @@ pub fn render_pin_banner(data: PinBannerData, actions: PinBannerActions) -> AnyE
                 .flex_none()
                 .text_size(theme::text_small())
                 .text_color(theme::text_muted())
-                .child("Pinned"),
+                .child(tr("ui.chat.pin.label")),
         )
         .when_some(author, |banner, author| {
             banner.child(
@@ -133,7 +141,7 @@ pub fn render_pin_banner(data: PinBannerData, actions: PinBannerActions) -> AnyE
                 .truncate()
                 .text_size(theme::text_label())
                 .text_color(theme::text_soft())
-                .child(preview.unwrap_or_else(|| FALLBACK_PREVIEW.to_owned())),
+                .child(preview.unwrap_or_else(|| tr(FALLBACK_PREVIEW))),
         )
         .when(total > 1, |banner| {
             banner
@@ -151,7 +159,9 @@ pub fn render_pin_banner(data: PinBannerData, actions: PinBannerActions) -> AnyE
             icon_button("pin-unpin", IconName::X, unpin)
                 .opacity(0.)
                 .group_hover("pin-banner", |button| button.opacity(1.))
-                .tooltip(|window, cx| Tooltip::new("Unpin for everyone").build(window, cx)),
+                .tooltip(|window, cx| {
+                    Tooltip::new(tr("ui.chat.pin.unpin_tooltip")).build(window, cx)
+                }),
         )
         .into_any_element()
 }
@@ -159,6 +169,7 @@ pub fn render_pin_banner(data: PinBannerData, actions: PinBannerActions) -> AnyE
 #[cfg(test)]
 mod tests {
     use super::{BANNER_HEIGHT, cycle_pin, pin_banner_inset, position_label};
+    use app_base::ui_locale::apply_locale;
     use gpui_kit::px;
 
     #[test]
@@ -184,6 +195,7 @@ mod tests {
 
     #[test]
     fn position_is_one_based() {
+        apply_locale("en");
         assert_eq!(position_label(0, 3), "1 of 3");
     }
 }

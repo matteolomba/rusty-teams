@@ -21,13 +21,12 @@ use crate::emoticons::{SKIN_TONE_COUNT, with_tone};
 use crate::i18n::tr;
 use crate::theme;
 
-pub const CUSTOMIZE_TOOLTIP: &str = "Customise default reactions";
-const TITLE: &str = "Customise your reactions and appearance in Teams";
-const DESCRIPTION: &str = "Click on a reaction below, then choose an emoji to replace it with.";
-const SKIN_TONE_TEXT: &str =
-    "Choose a skin tone. After selection, reactions and emoji will appear with this skin tone.";
-const CHOOSE_EMOJI: &str = "Choose an emoji";
-const REMOVE_REACTION: &str = "Remove reaction";
+pub const CUSTOMIZE_TOOLTIP: &str = "ui.misc.customise_default_reactions";
+const TITLE: &str = "ui.misc.customise_reactions_title";
+const DESCRIPTION: &str = "ui.misc.customise_reactions_description";
+const SKIN_TONE_TEXT: &str = "ui.misc.customise_reactions_skin_tone";
+const CHOOSE_EMOJI: &str = "ui.misc.choose_emoji";
+const REMOVE_REACTION: &str = "ui.misc.remove_reaction";
 const TONE_SAMPLE: &str = "\u{1F44D}";
 const DIALOG_WIDTH: f32 = 440.;
 const SLOT_SIZE: f32 = 48.;
@@ -116,9 +115,9 @@ impl CustomizeForm {
             .flatten()
             .and_then(|reaction_id| self.slot_glyph(&reaction_id));
         let label = if glyph.is_some() {
-            REMOVE_REACTION
+            tr(REMOVE_REACTION)
         } else {
-            CHOOSE_EMOJI
+            tr(CHOOSE_EMOJI)
         };
         let trigger = Button::new(("customize-reaction-slot", index))
             .size(px(SLOT_SIZE))
@@ -175,7 +174,7 @@ impl CustomizeForm {
                     .bg(theme::popup_hover())
                     .hover(|button| button.bg(theme::row_hover()))
                     .child(icon(IconName::X, 10., theme::text_soft()))
-                    .tooltip(|window, cx| Tooltip::new(REMOVE_REACTION).build(window, cx))
+                    .tooltip(|window, cx| Tooltip::new(tr(REMOVE_REACTION)).build(window, cx))
                     .on_click(cx.listener(move |form, _, window, cx| {
                         cx.stop_propagation();
                         form.remove(index, window, cx);
@@ -226,7 +225,7 @@ impl Render for CustomizeForm {
             .gap(px(SECTION_GAP))
             .text_size(px(TEXT_SIZE))
             .text_color(theme::text())
-            .child(div().text_color(theme::text_soft()).child(DESCRIPTION))
+            .child(div().text_color(theme::text_soft()).child(tr(DESCRIPTION)))
             .child(
                 h_flex()
                     .justify_center()
@@ -234,7 +233,11 @@ impl Render for CustomizeForm {
                     .py(px(4.))
                     .children(slots),
             )
-            .child(div().text_color(theme::text_soft()).child(SKIN_TONE_TEXT))
+            .child(
+                div()
+                    .text_color(theme::text_soft())
+                    .child(tr(SKIN_TONE_TEXT)),
+            )
             .child(h_flex().gap(px(6.)).children(tones))
     }
 }
@@ -266,7 +269,7 @@ pub fn open_customize_reactions(state: Entity<AppState>, window: &mut Window, cx
                     }),
             );
         dialog
-            .title(TITLE)
+            .title(tr(TITLE))
             .w(px(DIALOG_WIDTH))
             .child(form.clone())
             .footer(footer)

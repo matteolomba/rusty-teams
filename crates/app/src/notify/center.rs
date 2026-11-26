@@ -2,7 +2,7 @@ use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
 
-use chrono::{DateTime, Local, Offset, Utc};
+use chrono::{DateTime, Local, Utc};
 use gpui_kit::*;
 use store::Sidebar;
 use teams_core::{ForcedAvailability, ForcedKind};
@@ -52,6 +52,7 @@ use crate::own_status;
 use crate::runtime;
 use crate::settings_section::SettingsSection;
 use crate::single_instance;
+use app_base::ui_locale::tr_with;
 
 const TICK: Duration = Duration::from_millis(33);
 const SLIDE_DURATION: Duration = Duration::from_millis(180);
@@ -332,7 +333,10 @@ impl NotificationCenter {
         {
             self.app.update(cx, |state, cx| {
                 state.raise_notice(
-                    format!("Auto-start could not be changed: {error}"),
+                    tr_with(
+                        "ui.notify.auto_start_failed",
+                        &[("detail", &error.to_string())],
+                    ),
                     None,
                     cx,
                 )
@@ -539,7 +543,7 @@ impl NotificationCenter {
             .chat_desktop_notifications(&incoming.conversation_id);
         let bubble_text = match &incoming.preview {
             Preview::Text(text) => text.replace('\n', " "),
-            Preview::Image => "Sent a picture".to_owned(),
+            Preview::Image => crate::i18n::tr("ui.notify.sent_picture"),
         };
         self.app.update(cx, |state, cx| {
             state.note_call_chat_message(
@@ -660,7 +664,11 @@ impl NotificationCenter {
             return;
         }
         let failed = matches!(run.state, RunState::Failed { .. });
-        let verb = if failed { "failed" } else { "finished" };
+        let title_key = if failed {
+            "ui.notify.agent_failed"
+        } else {
+            "ui.notify.agent_finished"
+        };
         let body = if failed {
             run.current_step.clone()
         } else {
@@ -678,12 +686,16 @@ impl NotificationCenter {
                 run.agent_name,
                 run.elapsed_text()
             ),
-            title: format!(
-                "{} {verb}: {} for {}",
-                run.agent_name, run.action_label, run.sender_name
+            title: tr_with(
+                title_key,
+                &[
+                    ("agent", run.agent_name.as_str()),
+                    ("action", run.action_label.as_str()),
+                    ("sender", run.sender_name.as_str()),
+                ],
             ),
             body: if body.is_empty() {
-                "Done".to_owned()
+                crate::i18n::tr("ui.notify.done")
             } else {
                 body
             },
@@ -864,6 +876,8 @@ impl NotificationCenter {
     }
 
     fn finish_ring_card(&mut self, ring_id: u64, cx: &mut Context<Self>) {
+        #[cfg(not(target_os = "linux"))]
+        let _ = ring_id;
         #[cfg(target_os = "linux")]
         {
             let still_ringing = self

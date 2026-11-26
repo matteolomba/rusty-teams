@@ -15,11 +15,9 @@ use crate::call::share_overlay::{
     GALLERY_TITLE_HEIGHT, gallery_candidates,
 };
 use crate::call::{CallWindows, TileSize};
+use crate::i18n::tr;
 use crate::theme;
 
-pub const SHOW_SPEAKER_ONLY: &str = "Show only active speaker";
-pub const SHOW_MORE_PEOPLE: &str = "Show more people";
-const MAXIMIZE_MEETING_WINDOW: &str = "Maximize meeting window";
 const TITLE_BUTTON_SIZE: f32 = 24.;
 const TITLE_PADDING: f32 = (GALLERY_TITLE_HEIGHT - TITLE_BUTTON_SIZE) / 2.;
 const CONTROLS_GAP: f32 = 8.;
@@ -56,12 +54,13 @@ pub(super) fn view_switch_button(
     windows: &Entity<CallWindows>,
     id: &'static str,
     glyph: IconName,
-    tooltip: &'static str,
+    tooltip: impl Into<SharedString>,
 ) -> Stateful<Div> {
     let windows = windows.clone();
+    let tooltip: SharedString = tooltip.into();
     round_control(id, glyph, theme::surface_raised(), theme::text())
         .size(px(TITLE_BUTTON_SIZE))
-        .tooltip(move |window, cx| Tooltip::new(tooltip).build(window, cx))
+        .tooltip(move |window, cx| Tooltip::new(tooltip.clone()).build(window, cx))
         .on_click(move |_, _, cx| {
             cx.stop_propagation();
             windows.update(cx, |windows, cx| windows.toggle_speaker_only(cx));
@@ -77,7 +76,7 @@ fn maximize_button(windows: &Entity<CallWindows>) -> Stateful<Div> {
         theme::text(),
     )
     .size(px(TITLE_BUTTON_SIZE))
-    .tooltip(|window, cx| Tooltip::new(MAXIMIZE_MEETING_WINDOW).build(window, cx))
+    .tooltip(|window, cx| Tooltip::new(tr("ui.calls.share.maximize_window")).build(window, cx))
     .on_click(move |_, _, cx| {
         cx.stop_propagation();
         windows.update(cx, |windows, cx| windows.return_to_call(cx));
@@ -104,7 +103,7 @@ fn title_bar(windows: &Entity<CallWindows>) -> Div {
             windows,
             "call-gallery-speaker-only",
             IconName::User,
-            SHOW_SPEAKER_ONLY,
+            tr("ui.calls.share.show_speaker_only"),
         ))
         .child(maximize_button(windows))
 }

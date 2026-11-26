@@ -16,6 +16,7 @@ use super::rows::ROW_INSET;
 use super::{about, appearance, calendar, calls, chats, general, notifications};
 use crate::agents::AgentsSettings;
 use crate::app_state::AppState;
+use crate::i18n::tr;
 use crate::notify::NotificationCenter;
 use crate::settings_section::SettingsSection;
 use crate::theme::{self, ElevatedSurface as _};
@@ -32,7 +33,7 @@ const COMPACT_BELOW_HEIGHT: f32 = 720.;
 const NAV_WIDTH: f32 = 280.;
 const PADDING: f32 = 24.;
 const SEARCH_HEIGHT: f32 = 32.;
-const SEARCH_PLACEHOLDER: &str = "Find in Settings";
+const SEARCH_PLACEHOLDER: &str = "ui.settings.dialog.search_placeholder";
 
 pub enum SettingsDialogEvent {
     Close,
@@ -90,7 +91,7 @@ impl SettingsDialog {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let search = cx.new(|cx| InputState::new(window, cx).placeholder(SEARCH_PLACEHOLDER));
+        let search = cx.new(|cx| InputState::new(window, cx).placeholder(tr(SEARCH_PLACEHOLDER)));
         let subscriptions = [
             cx.observe(&center, |_, _, cx| cx.notify()),
             cx.observe(&app, |this, _, cx| {

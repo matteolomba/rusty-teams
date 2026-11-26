@@ -78,7 +78,7 @@
 **Calendar (fork)**
 - Outlook calendar as today, plus optional Google Calendar accounts (Settings > Calendar)
 - Merge by iCal UID / Teams join URL; New meeting writes to the home calendar and optional extra targets
-- Google OAuth Desktop (PKCE): set `TEAMS_GOOGLE_CLIENT_ID` and optionally `TEAMS_GOOGLE_CLIENT_SECRET` before Connect
+- Google OAuth Desktop (PKCE): a build can bake in a project client; otherwise set `TEAMS_GOOGLE_CLIENT_ID` and optionally `TEAMS_GOOGLE_CLIENT_SECRET` before Connect
 
 **App**
 - Dark theme, opens instantly from the cache
@@ -150,7 +150,7 @@ export TEAMS_GOOGLE_CLIENT_SECRET="…"
 
 3. Settings > Calendar > Connect Google, then choose home calendar and optional dual-write targets.
 
-Without these env vars the calendar stays Outlook-only.
+A build that compiled in `TEAMS_GOOGLE_CLIENT_ID` needs neither variable. For a build from source without one, the calendar stays Outlook-only until you set them.
 
 | Task | Command |
 |---|---|

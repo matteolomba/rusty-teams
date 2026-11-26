@@ -17,6 +17,7 @@ use store::Sidebar;
 
 use crate::app_state::{AppState, QuickView, selection_for, selection_title};
 use crate::format;
+use crate::i18n::tr;
 use crate::local_previews::LocalPreview;
 use crate::theme;
 
@@ -27,7 +28,7 @@ const AVATAR_SIZE: f32 = 32.;
 const BUTTON_SIZE: f32 = 24.;
 const PREVIEW_LINES: usize = 2;
 const LIST_MAX_WIDTH: f32 = 860.;
-const UNKNOWN_AUTHOR: &str = "Unknown";
+const UNKNOWN_AUTHOR: &str = "ui.chat.quick_view.unknown_author";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QuickRow {
@@ -70,7 +71,7 @@ pub fn mention_rows(
                 author_id: actor.and_then(|actor| actor.user_id.clone()),
                 author: actor
                     .map(|actor| actor.name.clone())
-                    .unwrap_or_else(|| UNKNOWN_AUTHOR.to_owned()),
+                    .unwrap_or_else(|| tr(UNKNOWN_AUTHOR)),
                 place: place_of(sidebar, &entry.conversation_id)
                     .or_else(|| entry.source_label.clone())
                     .unwrap_or_default(),
@@ -121,7 +122,7 @@ pub fn saved_rows(
             author: item
                 .author_name
                 .clone()
-                .unwrap_or_else(|| UNKNOWN_AUTHOR.to_owned()),
+                .unwrap_or_else(|| tr(UNKNOWN_AUTHOR)),
             place: place_of(sidebar, &item.conversation_id)
                 .or_else(|| item.topic.clone())
                 .unwrap_or_default(),
@@ -226,7 +227,9 @@ impl QuickViewPane {
                 .group_hover(group.clone(), |button| button.visible())
                 .hover(|button| button.bg(theme::popup_hover()))
                 .child(icon(IconName::BookmarkOff, 14., theme::text_muted()))
-                .tooltip(|window, cx| Tooltip::new("Unsave").build(window, cx))
+                .tooltip(|window, cx| {
+                    Tooltip::new(tr("ui.chat.quick_view.unsave")).build(window, cx)
+                })
                 .on_click(move |_, _, cx| {
                     cx.stop_propagation();
                     let entry = item.clone();

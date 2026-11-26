@@ -19,6 +19,7 @@ use crate::i18n::{tr, tr_args};
 use crate::runtime;
 use crate::theme;
 use crate::views::widgets::icon;
+use app_base::ui_locale::tr_with;
 
 const DEFAULT_DISTRO: &str = "Ubuntu";
 const PROMPT_MIN_ROWS: usize = 4;
@@ -335,7 +336,7 @@ impl AgentsSettings {
         cx.spawn(async move |this, cx| {
             let result = receiver
                 .await
-                .unwrap_or_else(|_| Err("cancelled".to_owned()));
+                .unwrap_or_else(|_| Err(tr("ui.settings.agents.cancelled")));
             this.update(cx, |this, cx| {
                 if this.models_request != ticket {
                     return;
@@ -345,9 +346,12 @@ impl AgentsSettings {
                         let count = names.len();
                         this.models = names;
                         this.probe = Probe::Found(if count == 1 {
-                            "1 model".to_owned()
+                            tr("ui.settings.agents.model_one")
                         } else {
-                            format!("{count} models")
+                            tr_with(
+                                "ui.settings.agents.model_many",
+                                &[("count", &count.to_string())],
+                            )
                         });
                     }
                     Err(error) => {
@@ -535,7 +539,7 @@ impl AgentsSettings {
             return;
         }
         if profile.command.trim().is_empty() {
-            self.probe = Probe::Missing("The command is empty".to_owned());
+            self.probe = Probe::Missing(tr("ui.settings.agents.command_empty"));
             cx.notify();
             return;
         }
@@ -546,7 +550,7 @@ impl AgentsSettings {
         cx.spawn(async move |this, cx| {
             let result = receiver
                 .await
-                .unwrap_or_else(|_| Err("cancelled".to_owned()));
+                .unwrap_or_else(|_| Err(tr("ui.settings.agents.cancelled")));
             this.update(cx, |this, cx| {
                 this.probe = match result {
                     Ok(line) => Probe::Found(line),
@@ -643,7 +647,7 @@ impl AgentsSettings {
     }
 }
 
-type Preset = (&'static str, fn() -> AgentProfile);
+type Preset = (String, fn() -> AgentProfile);
 
 fn agent_presets() -> [Preset; 9] {
     fn custom() -> AgentProfile {
@@ -657,17 +661,23 @@ fn agent_presets() -> [Preset; 9] {
     }
     [
         (
-            "Claude Code (WSL)",
+            "Claude Code (WSL)".to_owned(),
             AgentProfile::claude_wsl as fn() -> AgentProfile,
         ),
-        ("Claude Code (Windows)", AgentProfile::claude_host),
-        ("Copilot CLI (WSL)", AgentProfile::copilot_wsl),
-        ("Ollama", AgentProfile::ollama),
-        ("OpenAI", AgentProfile::openai),
-        ("OpenRouter", AgentProfile::openrouter),
-        ("Anthropic", AgentProfile::anthropic),
-        ("OpenAI-compatible", AgentProfile::openai_compatible),
-        ("Custom", custom),
+        (
+            "Claude Code (Windows)".to_owned(),
+            AgentProfile::claude_host,
+        ),
+        ("Copilot CLI (WSL)".to_owned(), AgentProfile::copilot_wsl),
+        ("Ollama".to_owned(), AgentProfile::ollama),
+        ("OpenAI".to_owned(), AgentProfile::openai),
+        ("OpenRouter".to_owned(), AgentProfile::openrouter),
+        ("Anthropic".to_owned(), AgentProfile::anthropic),
+        (
+            "OpenAI-compatible".to_owned(),
+            AgentProfile::openai_compatible,
+        ),
+        (tr("ui.settings.agents.preset_custom"), custom),
     ]
 }
 
@@ -808,7 +818,7 @@ impl AgentsSettings {
                     this.update(cx, |this, cx| this.add_agent(build(), window, cx))
                 });
                 MenuEntry {
-                    label: label.to_owned(),
+                    label,
                     selected: false,
                     choose,
                 }
@@ -818,7 +828,7 @@ impl AgentsSettings {
             let this = this.clone();
             Button::new("add-action")
                 .link()
-                .label("+ Add action")
+                .label(tr("ui.settings.agents.add_action"))
                 .on_click(move |_, window, cx| {
                     this.update(cx, |this, cx| this.add_action(window, cx))
                 })
@@ -947,7 +957,14 @@ impl AgentsSettings {
             ))
             .child(section_header(
                 agents_header.clone(),
-                Some(link_dropdown("add-agent", "+ Add agent", preset_entries).into_any_element()),
+                Some(
+                    link_dropdown(
+                        "add-agent",
+                        tr("ui.settings.agents.add_agent"),
+                        preset_entries,
+                    )
+                    .into_any_element(),
+                ),
             ))
             .child(v_flex().w_full().px(px(8.)).children(agent_rows))
             .child(section_header(

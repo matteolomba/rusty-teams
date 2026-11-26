@@ -4,7 +4,10 @@ use chatsvc::sounds::CallTone;
 use super::model::{ActiveCall, CallKind};
 
 const ORGID_PREFIX: &str = "8:orgid:";
-pub const DISMISS_LABEL: &str = "Dismiss";
+
+pub fn dismiss_label() -> String {
+    app_base::ui_locale::tr("ui.calls.end.dismiss")
+}
 
 pub fn end_tone(kind: CallKind, moving_rooms: bool) -> Option<CallTone> {
     if moving_rooms {
@@ -78,34 +81,30 @@ impl CallEndScreen {
         matches!(self.kind, CallKind::Direct | CallKind::Test)
     }
 
-    pub fn heading(&self) -> &'static str {
-        match (self.cause, self.kind) {
-            (EndCause::Removed, CallKind::Meeting) => "Removed from the meeting",
-            (EndCause::Removed, _) => "Removed from the call",
-            (EndCause::Dropped, _) => "Call dropped",
-        }
+    pub fn heading(&self) -> String {
+        app_base::ui_locale::tr(match (self.cause, self.kind) {
+            (EndCause::Removed, CallKind::Meeting) => "ui.calls.end.removed_meeting",
+            (EndCause::Removed, _) => "ui.calls.end.removed_call",
+            (EndCause::Dropped, _) => "ui.calls.end.call_dropped",
+        })
     }
 
-    pub fn description(&self) -> &'static str {
-        match self.cause {
+    pub fn description(&self) -> String {
+        app_base::ui_locale::tr(match self.cause {
             EndCause::Removed if self.kind == CallKind::Meeting => {
-                "Someone just removed you from the meeting. You can try to rejoin."
+                "ui.calls.end.removed_meeting_detail"
             }
-            EndCause::Removed => "Someone just removed you from the call. You can try to rejoin.",
-            EndCause::Dropped if self.is_two_party() => {
-                "Sorry we couldn't reconnect your call. Make sure you have an internet connection and try calling back."
-            }
-            EndCause::Dropped => {
-                "Sorry we couldn't get you back into the meeting. Make sure you have an internet connection and try to rejoin."
-            }
-        }
+            EndCause::Removed => "ui.calls.end.removed_call_detail",
+            EndCause::Dropped if self.is_two_party() => "ui.calls.end.dropped_call_detail",
+            EndCause::Dropped => "ui.calls.end.dropped_meeting_detail",
+        })
     }
 
-    pub fn retry_label(&self) -> &'static str {
-        match self.cause {
-            EndCause::Dropped if self.is_two_party() => "Call back",
-            EndCause::Removed | EndCause::Dropped => "Rejoin",
-        }
+    pub fn retry_label(&self) -> String {
+        app_base::ui_locale::tr(match self.cause {
+            EndCause::Dropped if self.is_two_party() => "ui.calls.end.call_back",
+            EndCause::Removed | EndCause::Dropped => "ui.calls.end.rejoin",
+        })
     }
 
     pub fn can_retry(&self) -> bool {

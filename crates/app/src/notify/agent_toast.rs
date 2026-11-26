@@ -6,13 +6,14 @@ use gpui_kit::*;
 use super::center::NotificationCenter;
 use super::layout::{PREVIEW_MAX_LINES, PREVIEW_SIZE};
 use super::stack::{AgentToast, AgentToastKind};
+use crate::i18n::tr;
 use crate::theme;
 use crate::views::widgets::{icon, symbol};
 
 const BUTTON_HEIGHT: f32 = 30.;
 const CLOSE_SIZE: f32 = 24.;
 
-fn button(id: &'static str, label: &'static str, primary: bool) -> Stateful<Div> {
+fn button(id: &'static str, label: impl Into<SharedString>, primary: bool) -> Stateful<Div> {
     h_flex()
         .id(id)
         .h(px(BUTTON_HEIGHT))
@@ -34,7 +35,7 @@ fn button(id: &'static str, label: &'static str, primary: bool) -> Stateful<Div>
                 .text_color(theme::text_soft())
                 .hover(|button| button.bg(theme::popup_hover()))
         })
-        .child(label)
+        .child(label.into())
 }
 
 pub(super) fn agent_toast_content(
@@ -46,13 +47,13 @@ pub(super) fn agent_toast_content(
     let (open_chat_center, follow_up_center, close_center) =
         (center.clone(), center.clone(), center.clone());
     let follow_up_label = match agent.kind {
-        AgentToastKind::Run { failed: true, .. } => Some("Retry"),
-        AgentToastKind::Run { .. } => Some("Open session"),
+        AgentToastKind::Run { failed: true, .. } => Some(tr("common.retry")),
+        AgentToastKind::Run { .. } => Some(tr("ui.settings.agents.open_session")),
         AgentToastKind::Proposal { .. } => None,
     };
     let open_label = match agent.kind {
-        AgentToastKind::Run { .. } => "Open chat",
-        AgentToastKind::Proposal { .. } => "Review",
+        AgentToastKind::Run { .. } => tr("ui.settings.agents.open_chat"),
+        AgentToastKind::Proposal { .. } => tr("ui.settings.agents.review"),
     };
     let tint = if agent.failed() {
         theme::red_soft()

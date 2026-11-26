@@ -17,12 +17,12 @@ use super::shortcuts::{
 use super::title_bar::{TITLE_BAR_HEIGHT, app_icon_image};
 use crate::app_state::{AppState, Selection};
 use crate::call::ZoomStep;
+use crate::i18n::tr;
 use crate::theme;
 
 pub const CALL_WINDOW_TAG: &str = "call-window";
 pub const CALL_WINDOW_SIZE: (f32, f32) = (1180., 760.);
 pub const CALL_WINDOW_MIN_SIZE: (f32, f32) = (560., 420.);
-const FALLBACK_TITLE: &str = "Call";
 const KEY_CONTEXT: &str = "CallWindow";
 const APP_ICON_SIZE: f32 = 18.;
 
@@ -38,7 +38,7 @@ pub fn call_window_title(state: &AppState) -> String {
                 .map(|pending| pending.join.title.clone())
         })
         .filter(|title| !title.is_empty())
-        .unwrap_or_else(|| FALLBACK_TITLE.to_owned())
+        .unwrap_or_else(|| tr("common.call"))
 }
 
 /// The meeting window: like Teams, a call or meeting runs in its own window and the main window stays free for chats.

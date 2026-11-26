@@ -7,6 +7,7 @@ use super::call_notice::{RecapActions, notice_row};
 use super::message_row::RowAction;
 use super::widgets::symbol;
 use crate::data::Directory;
+use crate::i18n::tr;
 use crate::rows::{CallCard, CallIcon, CallParticipant, MessageRow};
 use crate::theme;
 
@@ -81,7 +82,7 @@ fn join_button(index: usize, join: RowAction) -> Stateful<Div> {
         .font_weight(FontWeight::SEMIBOLD)
         .cursor_pointer()
         .hover(|button| button.opacity(0.85))
-        .child("Join")
+        .child(tr("common.join"))
         .when_some(join, |button, join| {
             button.on_click(move |_, _, cx| join(cx))
         })

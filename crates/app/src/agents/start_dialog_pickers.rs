@@ -132,7 +132,7 @@ pub fn select(
         })
 }
 
-pub fn locked_select(value: String, meta: &'static str) -> Div {
+pub fn locked_select(value: String, meta: impl Into<SharedString>) -> Div {
     h_flex()
         .w_full()
         .h(px(SELECT_HEIGHT))
@@ -141,5 +141,10 @@ pub fn locked_select(value: String, meta: &'static str) -> Div {
         .rounded(px(8.))
         .bg(theme::surface_raised())
         .text_color(theme::text_faint())
-        .child(select_body(value, Some(meta.to_owned()), false, false))
+        .child(select_body(
+            value,
+            Some(meta.into().to_string()),
+            false,
+            false,
+        ))
 }

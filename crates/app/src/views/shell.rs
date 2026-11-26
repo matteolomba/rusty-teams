@@ -44,6 +44,7 @@ use crate::agents::{AgentRunsEvent, StartDialog, StartDialogEvent, StartRequest}
 use crate::app_state::{AppEvent, AppState, QuickView, Selection, selection_for};
 use crate::call::{CallMedia, CallWindows, ZoomStep};
 use crate::chat_filter::ChatFilterPill;
+use crate::i18n::tr;
 use crate::notice::NoticeAction;
 use crate::notify::NotificationCenter;
 use crate::settings::{SettingsDialog, SettingsDialogEvent};
@@ -52,6 +53,7 @@ use crate::sidebar_model::Step;
 use crate::theme;
 use crate::updater::{self, UpdateStatus};
 use crate::user_activity::{self, UserInput};
+use app_base::ui_locale::tr_with;
 use app_ui_kit::layout::{ISLAND_GAP, SIDEBAR_WIDTH};
 use app_ui_kit::render::hooks::RenderHooks;
 use gpui_kit::prelude::FluentBuilder as _;
@@ -119,9 +121,9 @@ fn opening_link_text(url: &str) -> String {
         .next()
         .unwrap_or_default();
     if host.is_empty() {
-        "Opening link...".to_owned()
+        tr("ui.chat.shell.opening_link")
     } else {
-        format!("Opening {host}...")
+        tr_with("ui.chat.shell.opening_host", &[("host", host)])
     }
 }
 
@@ -899,12 +901,17 @@ impl AppShell {
                 this.restore_focus(window, cx);
                 if let ForwardDialogEvent::Sent { target, title } = event {
                     let target = target.clone();
-                    let open = NoticeAction::new("Open", move |state, cx| {
-                        state.select(target.clone(), cx)
-                    });
+                    let open =
+                        NoticeAction::new(tr("ui.chat.shell.open_action"), move |state, cx| {
+                            state.select(target.clone(), cx)
+                        });
                     this.state.update(cx, |state, cx| {
                         state.cancel_forward_selection(cx);
-                        state.raise_notice(format!("Forwarded to {title}"), Some(open), cx)
+                        state.raise_notice(
+                            tr_with("ui.chat.shell.forwarded_to", &[("title", &title)]),
+                            Some(open),
+                            cx,
+                        )
                     });
                 }
                 cx.notify();
@@ -1377,6 +1384,7 @@ mod opening_link_tests {
 
     #[test]
     fn the_notice_names_the_host() {
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(
             opening_link_text("https://example.com/a?b#c"),
             "Opening example.com..."

@@ -8,6 +8,7 @@ use crate::banner_image::prepare_banner_image;
 use teams_core::{AnnouncementBanner, BannerBackground};
 
 use super::{COMPOSER_BUTTON_SIZE, COMPOSER_ICON_SIZE, Composer, ComposerEvent};
+use crate::i18n::tr;
 use crate::runtime;
 use crate::theme;
 use crate::views::announcement_banner::{
@@ -15,6 +16,7 @@ use crate::views::announcement_banner::{
 };
 use crate::views::avatar::person_avatar;
 use crate::views::widgets::symbol;
+use app_base::ui_locale::tr_with;
 
 pub const POST_CARD_HEADER_TAG: &str = "composer/post/header";
 pub const POST_CARD_SUBJECT_TAG: &str = "composer/post/subject";
@@ -26,11 +28,11 @@ pub const POST_ANNOUNCEMENT_TOGGLE_TAG: &str = "composer/post/announcement-toggl
 pub const POST_AUDIENCE_TAG: &str = "composer/post/audience";
 const DEMO_AUDIENCE: usize = 24;
 const AUDIENCE_HEIGHT: f32 = 32.;
-const ANNOUNCEMENT_TOOLTIP: &str = "Announcement";
-const BANNER_IMAGE_TOOLTIP: &str = "Upload an image";
-const HEADLINE_PLACEHOLDER: &str = "Type a headline";
-pub const SUBJECT_PLACEHOLDER: &str = "Add a subject";
-const SUBHEADING_PLACEHOLDER: &str = "Add a subheading";
+const ANNOUNCEMENT_TOOLTIP: &str = "ui.chat.post_editor.announcement_tooltip";
+const BANNER_IMAGE_TOOLTIP: &str = "ui.chat.post_editor.upload_image_tooltip";
+const HEADLINE_PLACEHOLDER: &str = "ui.chat.post_editor.headline_placeholder";
+pub const SUBJECT_PLACEHOLDER: &str = "ui.chat.post_editor.subject_placeholder";
+const SUBHEADING_PLACEHOLDER: &str = "ui.chat.post_editor.subheading_placeholder";
 const HEADLINE_SIZE: f32 = 32.;
 const COMPOSER_BANNER_HEIGHT: f32 = 240.;
 const HEADLINE_LINE: f32 = 1.25;
@@ -38,8 +40,8 @@ const SWATCH_SIZE: f32 = 18.;
 const SWATCH_RING: f32 = 2.;
 const SWATCH_GAP: f32 = 6.;
 const SWATCH_INSET: f32 = 8.;
-const POST_LABEL: &str = "Post";
-const CLOSE_TOOLTIP: &str = "Close";
+const POST_LABEL: &str = "ui.chat.post_editor.post";
+const CLOSE_TOOLTIP: &str = "common.close";
 const AUTHOR_AVATAR: f32 = 24.;
 const CARD_INSET: f32 = 12.;
 const SUBJECT_SIZE: f32 = 18.;
@@ -67,8 +69,11 @@ impl AnnouncementDraft {
 
 pub fn audience_hint(count: usize) -> String {
     match count {
-        1 => "1 person will see your message.".to_owned(),
-        count => format!("{count} people will see your message."),
+        1 => tr("ui.chat.post_editor.audience_one"),
+        count => tr_with(
+            "ui.chat.post_editor.audience_many",
+            &[("count", &count.to_string())],
+        ),
     }
 }
 
@@ -172,7 +177,8 @@ impl Composer {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let headline = cx.new(|cx| InputState::new(window, cx).placeholder(HEADLINE_PLACEHOLDER));
+        let headline =
+            cx.new(|cx| InputState::new(window, cx).placeholder(tr(HEADLINE_PLACEHOLDER)));
         let changes = cx.subscribe(&headline, |this, _, event: &InputEvent, cx| {
             if matches!(event, InputEvent::Change) {
                 this.schedule_draft_save(cx);
@@ -184,7 +190,7 @@ impl Composer {
             image: None,
             _changes: changes,
         });
-        self.set_subject_placeholder(SUBHEADING_PLACEHOLDER, window, cx);
+        self.set_subject_placeholder(&tr(SUBHEADING_PLACEHOLDER), window, cx);
         self.load_audience(cx);
         self.schedule_draft_save(cx);
         cx.notify();
@@ -225,7 +231,7 @@ impl Composer {
 
     pub(super) fn close_announcement(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.announcement.take().is_some() {
-            self.set_subject_placeholder(SUBJECT_PLACEHOLDER, window, cx);
+            self.set_subject_placeholder(&tr(SUBJECT_PLACEHOLDER), window, cx);
             self.schedule_draft_save(cx);
             cx.notify();
         }
@@ -292,12 +298,12 @@ impl Composer {
         } else {
             SUBJECT_PLACEHOLDER
         };
-        self.set_subject_placeholder(placeholder, window, cx);
+        self.set_subject_placeholder(&tr(placeholder), window, cx);
     }
 
     fn set_subject_placeholder(
         &self,
-        placeholder: &'static str,
+        placeholder: &str,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
@@ -329,7 +335,7 @@ impl Composer {
                 .cursor_pointer()
                 .when(active, |button| button.bg(theme::popup_hover()))
                 .hover(|button| button.bg(theme::popup_hover()))
-                .tooltip(|window, cx| Tooltip::new(ANNOUNCEMENT_TOOLTIP).build(window, cx))
+                .tooltip(|window, cx| Tooltip::new(tr(ANNOUNCEMENT_TOOLTIP)).build(window, cx))
                 .child(symbol(
                     "campaign",
                     COMPOSER_ICON_SIZE,
@@ -396,7 +402,7 @@ impl Composer {
                     })
                     .bg(black().opacity(0.35))
                     .cursor_pointer()
-                    .tooltip(|window, cx| Tooltip::new(BANNER_IMAGE_TOOLTIP).build(window, cx))
+                    .tooltip(|window, cx| Tooltip::new(tr(BANNER_IMAGE_TOOLTIP)).build(window, cx))
                     .child(symbol("image", SWATCH_SIZE - 6., white()))
                     .on_click(cx.listener(|this, _, window, cx| this.pick_banner_image(window, cx)))
             });
@@ -459,7 +465,7 @@ impl Composer {
             .rounded(px(6.))
             .cursor_pointer()
             .hover(|button| button.bg(theme::popup_hover()))
-            .tooltip(|window, cx| Tooltip::new(CLOSE_TOOLTIP).build(window, cx))
+            .tooltip(|window, cx| Tooltip::new(tr(CLOSE_TOOLTIP)).build(window, cx))
             .child(symbol("close", 18., theme::text_muted()))
             .on_click(cx.listener(|_, _, _, cx| cx.emit(ComposerEvent::ClosePost)));
         let announcement = self.render_announcement(cx);
@@ -534,7 +540,7 @@ impl Composer {
                     .text_size(theme::text_label())
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_color(theme::on_accent())
-                    .child(POST_LABEL)
+                    .child(tr(POST_LABEL))
                     .when(!can_send, |button| button.opacity(0.4))
                     .when(can_send, |button| {
                         button.cursor_pointer().on_click(

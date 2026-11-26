@@ -20,7 +20,6 @@ use crate::theme;
 const SETTINGS_WIDTH: f32 = 460.;
 const CHIP_HEIGHT: f32 = 30.;
 const SECTION_GAP: f32 = 14.;
-const RECORD_LABEL: &str = "Record and transcribe";
 const BLOCKED_WIDTH: f32 = 236.;
 const LOCK_SIZE: f32 = 13.;
 const REASON_SIZE: f32 = 11.;
@@ -36,9 +35,13 @@ pub fn record_items(
         return popup;
     }
     match model.record_menu_block() {
-        Some((block, feature)) => {
-            blocked_items(popup, RECORD_LABEL, Some(IconName::Video), block, feature)
-        }
+        Some((block, feature)) => blocked_items(
+            popup,
+            tr("ui.calls.record.menu_label"),
+            Some(IconName::Video),
+            block,
+            feature,
+        ),
         None => record_submenu(popup, window, cx, app, model),
     }
 }
@@ -57,7 +60,7 @@ fn record_submenu(
     let app = app.clone();
     popup.submenu_with_icon(
         Some(Icon::new(IconName::Video)),
-        RECORD_LABEL,
+        tr("ui.calls.record.menu_label"),
         window,
         cx,
         move |mut menu, _, _| {
@@ -78,7 +81,7 @@ fn record_submenu(
 
 fn blocked_items(
     mut popup: PopupMenu,
-    label: &'static str,
+    label: String,
     icon_name: Option<IconName>,
     block: RecordBlock,
     feature: RecordFeature,
@@ -89,7 +92,7 @@ fn blocked_items(
             .w(px(BLOCKED_WIDTH))
             .items_center()
             .justify_between()
-            .child(label)
+            .child(label.clone())
             .when(block.locked(), |row| {
                 row.child(icon(IconName::Lock, LOCK_SIZE, theme::text_muted()))
             })
@@ -101,7 +104,7 @@ fn blocked_items(
             .pb(px(4.))
             .text_size(px(REASON_SIZE))
             .text_color(theme::text_faint())
-            .child(reason)
+            .child(reason.clone())
     })
     .disabled(true);
     popup = match icon_name {
@@ -117,12 +120,12 @@ pub fn transcript_and_settings_items(popup: PopupMenu, app: &Entity<AppState>) -
     let (transcript_app, settings_app) = (app.clone(), app.clone());
     popup
         .item(
-            PopupMenuItem::new("Show transcript")
+            PopupMenuItem::new(tr("ui.calls.record.show_transcript"))
                 .icon(IconName::LayoutList)
                 .on_click(move |_, window, cx| open_transcript(&transcript_app, window, cx)),
         )
         .item(
-            PopupMenuItem::new("Captions settings")
+            PopupMenuItem::new(tr("ui.calls.record.captions_settings"))
                 .icon(IconName::Settings)
                 .on_click(move |_, window, cx| open_captions_settings(&settings_app, window, cx)),
         )
@@ -163,7 +166,7 @@ fn choice_chip(
         .on_click(move |_, _, cx| on_click(cx))
 }
 
-fn section(title: &'static str, chips: Vec<Stateful<Div>>) -> Div {
+fn section(title: String, chips: Vec<Stateful<Div>>) -> Div {
     v_flex()
         .gap(px(8.))
         .child(
@@ -212,7 +215,7 @@ pub fn open_captions_settings(app: &Entity<AppState>, window: &mut Window, cx: &
                 let choice = *choice;
                 choice_chip(
                     format!("captions-size-{}", choice.meta()),
-                    choice.label(),
+                    &choice.label(),
                     size == choice,
                     move |cx| app.update(cx, |state, cx| state.set_call_caption_size(choice, cx)),
                 )
@@ -225,7 +228,7 @@ pub fn open_captions_settings(app: &Entity<AppState>, window: &mut Window, cx: &
                 let choice = *choice;
                 choice_chip(
                     format!("captions-position-{}", choice.meta()),
-                    choice.label(),
+                    &choice.label(),
                     position == choice,
                     move |cx| {
                         app.update(cx, |state, cx| state.set_call_caption_position(choice, cx))
@@ -234,15 +237,15 @@ pub fn open_captions_settings(app: &Entity<AppState>, window: &mut Window, cx: &
             })
             .collect();
         dialog
-            .title("Captions settings")
+            .title(tr("ui.calls.record.captions_settings"))
             .w(px(SETTINGS_WIDTH))
             .child(
                 v_flex()
                     .id("captions-settings")
                     .gap(px(SECTION_GAP))
-                    .child(section("Spoken language", languages))
-                    .child(section("Size", sizes))
-                    .child(section("Position", positions)),
+                    .child(section(tr("ui.calls.record.spoken_language"), languages))
+                    .child(section(tr("ui.calls.caption.size"), sizes))
+                    .child(section(tr("ui.calls.caption.position"), positions)),
             )
             .footer(
                 DialogFooter::new().child(

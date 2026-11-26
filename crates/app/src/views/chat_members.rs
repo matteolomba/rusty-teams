@@ -22,6 +22,7 @@ use crate::data::Directory;
 use crate::i18n::tr;
 use crate::notice::truncated;
 use crate::theme;
+use app_base::ui_locale::tr_with;
 
 const POPUP_WIDTH: f32 = 246.;
 const LIST_MAX_HEIGHT: f32 = 300.;
@@ -45,7 +46,7 @@ pub fn members_popover(app: &Entity<AppState>, chat_id: &str, trigger: Div) -> A
             Button::new("chat-members-button")
                 .ghost()
                 .compact()
-                .tooltip("View and add participants")
+                .tooltip(tr("ui.chat.members.tooltip"))
                 .child(trigger),
         )
         .content(move |_, _, cx| members_panel(&app, &chat_id, cx))
@@ -88,7 +89,10 @@ fn members_panel(
                     .text_size(theme::text_small())
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_color(theme::text_muted())
-                    .child(format!("People ({})", rows.len())),
+                    .child(tr_with(
+                        "ui.chat.members.people_count",
+                        &[("count", &rows.len().to_string())],
+                    )),
             )
             .children(rows.iter().enumerate().map(|(index, row)| {
                 member_row(app, &popover, &state.directory, chat_id, index, row)
@@ -114,32 +118,33 @@ fn members_panel(
                         .child({
                             let (app, popover, chat_id) =
                                 (app.clone(), popover.clone(), chat_id.to_owned());
-                            action_row("chat-members-add", IconName::UserPlus, "Add people")
-                                .cursor_pointer()
-                                .hover(|row| row.bg(theme::popup_hover()))
-                                .on_click(move |_, window, cx| {
-                                    popover.update(cx, |state, cx| state.dismiss(window, cx));
-                                    open_add_people(&app, &chat_id, false, window, cx);
-                                })
+                            action_row(
+                                "chat-members-add",
+                                IconName::UserPlus,
+                                "ui.chat.members.add_people",
+                            )
+                            .cursor_pointer()
+                            .hover(|row| row.bg(theme::popup_hover()))
+                            .on_click(move |_, window, cx| {
+                                popover.update(cx, |state, cx| state.dismiss(window, cx));
+                                open_add_people(&app, &chat_id, false, window, cx);
+                            })
                         })
                         .when(leave_allowed, |actions| {
                             let (app, popover, chat_id) =
                                 (app.clone(), popover.clone(), chat_id.to_owned());
                             actions.child(
-                                action_row("chat-members-leave", IconName::LogOut, "Leave")
-                                    .cursor_pointer()
-                                    .hover(|row| row.bg(theme::popup_hover()))
-                                    .on_click(move |_, window, cx| {
-                                        popover.update(cx, |state, cx| state.dismiss(window, cx));
-                                        confirm_leave(
-                                            &app,
-                                            &chat_id,
-                                            &title,
-                                            member_count,
-                                            window,
-                                            cx,
-                                        );
-                                    }),
+                                action_row(
+                                    "chat-members-leave",
+                                    IconName::LogOut,
+                                    "ui.chat.members.leave",
+                                )
+                                .cursor_pointer()
+                                .hover(|row| row.bg(theme::popup_hover()))
+                                .on_click(move |_, window, cx| {
+                                    popover.update(cx, |state, cx| state.dismiss(window, cx));
+                                    confirm_leave(&app, &chat_id, &title, member_count, window, cx);
+                                }),
                             )
                         }),
                 )
@@ -204,7 +209,7 @@ fn member_row(
                         div()
                             .text_size(theme::text_small())
                             .text_color(theme::text_muted())
-                            .child("You"),
+                            .child(tr("ui.chat.members.you")),
                     )
                 }),
         )
@@ -244,7 +249,7 @@ fn remove_button(
                 .ghost()
                 .xsmall()
                 .size(px(REMOVE_BUTTON))
-                .tooltip("Remove from chat")
+                .tooltip(tr("ui.chat.members.remove_tooltip"))
                 .on_click(move |_, window, cx| {
                     cx.stop_propagation();
                     popover.update(cx, |state, cx| state.dismiss(window, cx));
@@ -276,7 +281,7 @@ fn action_row(id: &'static str, icon_name: IconName, label: &'static str) -> Sta
                     theme::text_soft(),
                 )),
         )
-        .child(label)
+        .child(tr(label))
 }
 
 fn confirm_remove(
@@ -288,9 +293,9 @@ fn confirm_remove(
     cx: &mut App,
 ) {
     let (app, chat_id, user_id) = (app.clone(), chat_id.to_owned(), user_id.to_owned());
-    let heading = format!(
-        "Remove {} from the conversation?",
-        truncated(name, TITLE_LIMIT)
+    let heading = tr_with(
+        "ui.chat.members.remove_title",
+        &[("name", &truncated(name, TITLE_LIMIT))],
     );
     window.open_alert_dialog(cx, move |alert, _, _| {
         let (app, chat_id, user_id) = (app.clone(), chat_id.clone(), user_id.clone());
@@ -308,7 +313,7 @@ fn confirm_remove(
             });
         alert
             .title(heading.clone())
-            .description("They'll still have access to the chat history.")
+            .description(tr("ui.chat.members.remove_description"))
             .footer(DialogFooter::new().child(cancel).child(remove))
             .on_ok(|_, _, _| false)
     });

@@ -6,6 +6,7 @@ use gpui_kit::*;
 
 use super::runs::{AgentRun, AgentRuns, RunState};
 use super::spinner::spinner;
+use crate::i18n::tr;
 use crate::theme;
 use crate::views::scroll_edge::with_top_edge;
 use crate::views::widgets::icon;
@@ -13,7 +14,7 @@ use crate::views::widgets::icon;
 const AGENTS_SCROLL_DIVIDER: &str = "shell/islands/sidebar/agents/divider-scroll";
 const DONE_LIMIT: usize = 50;
 const HISTORY_WINDOW: usize = 60;
-const EMPTY_TEXT: &str = "No agent runs yet. Hover a message and click the robot button.";
+const EMPTY_TEXT: &str = "ui.settings.agents.empty";
 const STATUS_ICON: f32 = 12.;
 
 pub enum AgentsPanelEvent {
@@ -78,7 +79,7 @@ impl AgentsPanel {
                 .text_size(theme::text_small())
                 .font_weight(FontWeight::SEMIBOLD)
                 .text_color(theme::accent_text())
-                .child("Show")
+                .child(tr("ui.settings.agents.show"))
         };
         h_flex()
             .id(("agent-run-row", run.id as usize))
@@ -116,7 +117,7 @@ impl AgentsPanel {
     }
 }
 
-fn section_header(title: &'static str) -> Div {
+fn section_header(title: impl Into<SharedString>) -> Div {
     div()
         .px(px(16.))
         .pt(px(8.))
@@ -124,7 +125,7 @@ fn section_header(title: &'static str) -> Div {
         .text_size(theme::text_caption())
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme::text_faint())
-        .child(title)
+        .child(title.into())
 }
 
 pub fn split_runs(runs: Vec<&AgentRun>) -> (Vec<&AgentRun>, Vec<&AgentRun>) {
@@ -151,11 +152,11 @@ impl Render for AgentsPanel {
             .overflow_y_scrollbar()
             .track_scroll(&self.scroll)
             .when(!running.is_empty(), |list| {
-                list.child(section_header("Running"))
+                list.child(section_header(tr("ui.settings.agents.running")))
                     .children(running.iter().map(|run| self.row(run, cx)))
             })
             .when(!finished.is_empty(), |list| {
-                list.child(section_header("Done"))
+                list.child(section_header(tr("common.done")))
                     .children(finished.iter().map(|run| self.row(run, cx)))
             })
             .when(empty, |list| {
@@ -168,7 +169,7 @@ impl Render for AgentsPanel {
                         .text_center()
                         .text_size(theme::text_label())
                         .text_color(theme::text_muted())
-                        .child(EMPTY_TEXT),
+                        .child(tr(EMPTY_TEXT)),
                 )
             });
         with_top_edge(list, &self.scroll, AGENTS_SCROLL_DIVIDER)

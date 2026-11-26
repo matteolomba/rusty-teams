@@ -1,17 +1,19 @@
 use gpui_kit::*;
 
 use super::ConversationView;
+use crate::i18n::tr;
 use crate::read_state::{JumpTarget, jump_target};
 use crate::rows::Row;
 use crate::views::shortcuts::keys_for_label;
 
-pub(super) const JUMP_TO_NEWEST_LABEL: &str = "Jump to newest";
+pub(super) const JUMP_TO_NEWEST_LABEL: &str = "ui.chat.jump.to_newest";
 const JUMP_SHORTCUT_LABEL: &str = "Jump to last read or newest message";
 
 pub(super) fn jump_to_newest_tooltip() -> SharedString {
+    let label = tr(JUMP_TO_NEWEST_LABEL);
     match keys_for_label(JUMP_SHORTCUT_LABEL) {
-        Some(keys) => format!("{JUMP_TO_NEWEST_LABEL} ({keys})").into(),
-        None => JUMP_TO_NEWEST_LABEL.into(),
+        Some(keys) => format!("{label} ({keys})").into(),
+        None => label.into(),
     }
 }
 

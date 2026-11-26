@@ -9,6 +9,7 @@ use super::layout::{AVATAR_GAP, TOAST_PADDING};
 use super::platform;
 use crate::app_state::AppState;
 use crate::call::RingEntry;
+use crate::i18n::tr;
 use crate::theme;
 use crate::views::avatar::person_avatar;
 use crate::views::call_view::pulsing;
@@ -19,7 +20,6 @@ const RING_WIDTH: f32 = 3.;
 const RING_GAP: f32 = 3.;
 const TOAST_RADIUS: f32 = 10.;
 const BUTTON_HEIGHT: f32 = 32.;
-pub const ENDS_CURRENT_CALL: &str = "Accept ends current call";
 
 pub(super) fn toast_radius(window: &Window) -> Pixels {
     px(card_radius(platform::window_transparency_available(window)))
@@ -105,7 +105,7 @@ impl Render for RingView {
         let accept_center = self.center.clone();
         let decline = answer_button(
             "ring-decline",
-            "Decline",
+            &tr("notify.decline"),
             IconName::PhoneOff,
             theme::red(),
             theme::white(),
@@ -116,7 +116,7 @@ impl Render for RingView {
         });
         let accept = answer_button(
             "ring-accept",
-            entry.accept_label(),
+            &entry.accept_label(),
             IconName::Phone,
             theme::green(),
             theme::white(),
@@ -131,7 +131,7 @@ impl Render for RingView {
         let accept_video = entry.ring.video.then(|| {
             answer_button(
                 "ring-accept-video",
-                "Video",
+                &tr("notify.video"),
                 IconName::Video,
                 theme::green(),
                 theme::white(),
@@ -180,7 +180,7 @@ impl Render for RingView {
                                         div()
                                             .text_size(theme::text_small())
                                             .text_color(theme::amber())
-                                            .child(ENDS_CURRENT_CALL),
+                                            .child(tr("ui.calls.ring.ends_current_call")),
                                     )
                                 })
                                 .child(

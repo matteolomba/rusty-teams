@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use app_base::ui_locale::localize_notice;
+use app_base::ui_locale::{localize_notice, tr, tr_with};
 use calling::meeting::LiveMeeting;
 use calling::{
     AcceptMode, CallCommand, CallHandle, CallSpec, CallState, CallUpdate, Callee, CameraEffects,
@@ -34,12 +34,12 @@ use crate::notice::NoticeAction;
 const LOBBY_TONE_THROTTLE: Duration = Duration::from_secs(30);
 const TIMER_REFRESH: Duration = Duration::from_millis(500);
 const SHARE_SOURCES_EVERY_TICKS: u32 = 10;
-pub(super) const NOT_CONNECTED_NOTICE: &str = "Not connected to Teams yet";
-const READ_ONLY_NOTICE: &str = "Calls are off in read-only mode";
-const NOT_CALLABLE_NOTICE: &str = "This chat cannot be called";
-pub(super) const MEETING_UNAVAILABLE_NOTICE: &str = "This meeting cannot be joined";
-const ANSWER_FAILED_NOTICE: &str = "Could not answer the call";
-const CONSULT_ENDED_NOTICE: &str = "The consultation ended";
+pub(super) const NOT_CONNECTED_NOTICE: &str = "calls.notice.not_connected";
+const READ_ONLY_NOTICE: &str = "calls.notice.read_only";
+const NOT_CALLABLE_NOTICE: &str = "calls.notice.not_callable";
+pub(super) const MEETING_UNAVAILABLE_NOTICE: &str = "calls.notice.meeting_unavailable";
+const ANSWER_FAILED_NOTICE: &str = "calls.notice.answer_failed";
+const CONSULT_ENDED_NOTICE: &str = "calls.notice.consult_ended";
 const DEMO_CONSULT_TARGET: (&str, &str) = ("8:orgid:demo-guest-1", "Jonas Ortega");
 const MEETING_KIND: &str = "meeting";
 const DEMO_LOBBY_MEETING: &str = "demo-chat-meeting-retro";
@@ -62,7 +62,7 @@ pub fn apply_sound_output(choice: &DeviceChoice) {
 const OUTPUT_META_KEY: &str = "call_output";
 const EFFECTS_META_KEY: &str = "call_camera_effects";
 const DEFAULT_DEVICE_META: &str = "default";
-const REPORT_SAVED_NOTICE: &str = "Test report saved";
+const REPORT_SAVED_NOTICE: &str = "ui.calls.report.saved";
 
 pub fn load_share_sound(store: &store::Store) -> bool {
     store.meta(SHARE_SOUND_META_KEY).ok().flatten().as_deref() == Some("1")
@@ -235,7 +235,7 @@ impl AppState {
         };
         let title = selection_for(&self.sidebar, conversation_id)
             .map(|selection| crate::app_state::selection_title(&self.sidebar, &selection))
-            .unwrap_or_else(|| "Meeting".to_owned());
+            .unwrap_or_else(|| tr("ui.calls.meeting_title"));
         let join = MeetingJoin {
             organizer: is_organizer(&meeting, self.directory.me.as_ref()),
             conversation_id: Some(conversation_id.to_owned()),
@@ -383,7 +383,7 @@ impl AppState {
     }
 
     fn report_saved(&mut self, path: std::path::PathBuf, cx: &mut Context<Self>) {
-        let action = NoticeAction::new("Open folder", move |_, _| {
+        let action = NoticeAction::new("ui.notify.open_folder", move |_, _| {
             crate::downloads::reveal_in_file_manager(&path)
         });
         let text = match self
@@ -392,10 +392,11 @@ impl AppState {
             .filter(|notice| notice.action.is_none())
         {
             Some(ended) => format!(
-                "{}. {REPORT_SAVED_NOTICE}",
-                ended.text.trim_end_matches('.')
+                "{}. {}",
+                ended.text.trim_end_matches('.'),
+                localize_notice(REPORT_SAVED_NOTICE)
             ),
-            None => REPORT_SAVED_NOTICE.to_owned(),
+            None => localize_notice(REPORT_SAVED_NOTICE),
         };
         self.raise_notice(text, Some(action), cx);
     }
@@ -430,7 +431,7 @@ impl AppState {
             let Some(report) = report else {
                 return;
             };
-            let reason = EndReason::Failed("The call stopped unexpectedly".to_owned());
+            let reason = EndReason::Failed(tr("ui.calls.end.unexpected"));
             report
                 .borrow_mut()
                 .observe(&CallUpdate::State(CallState::Ended { reason }));
@@ -478,7 +479,7 @@ impl AppState {
             .chain(&self.held_call)
             .any(|call| call.id == call_id && call.model.is_active());
         if still_open {
-            let reason = EndReason::Failed("The call stopped unexpectedly".to_owned());
+            let reason = EndReason::Failed(tr("ui.calls.end.unexpected"));
             self.apply_call_update(call_id, CallUpdate::State(CallState::Ended { reason }), cx);
         }
     }
@@ -580,10 +581,11 @@ impl AppState {
             _ => {}
         }
         if let (CallUpdate::Caption(entry), Some(thread)) = (&update, call.chat_thread()) {
+            let fallback = tr("ui.calls.someone");
             let speaker = if entry.display_name.is_empty() {
-                "Someone"
+                fallback.as_str()
             } else {
-                &entry.display_name
+                entry.display_name.as_str()
             };
             crate::agent_api::note_caption(thread, &entry.id, speaker, &entry.text, cx);
         }
@@ -639,9 +641,10 @@ impl AppState {
         ));
         let consult = call.consult.take();
         let notice = match &consult {
-            Some(consult) if consult.transfer == ConsultTransfer::Done => {
-                format!("Call transferred to {}", consult.target.1)
-            }
+            Some(consult) if consult.transfer == ConsultTransfer::Done => tr_with(
+                "ui.calls.notice.call_transferred",
+                &[("name", consult.target.1.as_str())],
+            ),
             Some(_) if self.held_call.is_some() => CONSULT_ENDED_NOTICE.to_owned(),
             _ => ended_notice(&reason, elapsed, &call.model.peer_name),
         };
@@ -881,7 +884,7 @@ impl AppState {
         call.model.own_hand = raised.then_some(u64::MAX);
         self.send_call_command(CallCommand::SetHand(raised));
         if raised {
-            self.raise_notice("Your hand is raised".to_owned(), None, cx);
+            self.raise_notice("ui.calls.notice.hand_raised".to_owned(), None, cx);
         }
         cx.emit(AppEvent::Call);
         cx.notify();
@@ -1093,11 +1096,9 @@ impl AppState {
                     ));
                 }
                 Some(_) => {}
-                None => state.raise_notice(
-                    "That background could not be downloaded".to_owned(),
-                    None,
-                    cx,
-                ),
+                None => {
+                    state.raise_notice("ui.calls.notice.background_failed".to_owned(), None, cx)
+                }
             })
             .ok();
         })
@@ -1151,7 +1152,7 @@ impl AppState {
             };
             this.update(cx, |state, cx| {
                 if !is_image_file(&path) {
-                    state.raise_notice("Pick a JPG or PNG picture".to_owned(), None, cx);
+                    state.raise_notice("ui.calls.notice.image_required".to_owned(), None, cx);
                     return;
                 }
                 state.call_backgrounds.add_custom(path.clone());

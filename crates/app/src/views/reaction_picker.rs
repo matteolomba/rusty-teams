@@ -19,6 +19,7 @@ use super::widgets::icon;
 use crate::app_state::AppState;
 use crate::emoji;
 use crate::emoticons;
+use crate::i18n::tr;
 use crate::rows::reaction_glyph;
 use crate::theme;
 
@@ -83,7 +84,8 @@ impl ReactionPicker {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let input = cx.new(|cx| InputState::new(window, cx).placeholder("Search emoji"));
+        let input =
+            cx.new(|cx| InputState::new(window, cx).placeholder(tr("ui.misc.search_emoji")));
         let subscription = cx.subscribe_in(&input, window, Self::on_input_event);
         ReactionPicker {
             app,
@@ -238,7 +240,7 @@ impl ReactionPicker {
                 .cursor_pointer()
                 .hover(|button| button.bg(theme::popup_hover()))
                 .child(icon(IconName::Settings, 16., theme::text_soft()))
-                .tooltip(|window, cx| Tooltip::new(CUSTOMIZE_TOOLTIP).build(window, cx))
+                .tooltip(|window, cx| Tooltip::new(tr(CUSTOMIZE_TOOLTIP)).build(window, cx))
                 .on_click(cx.listener(|this, _, window, cx| this.open_customize(window, cx)))
                 .into_any_element()
         })
@@ -321,11 +323,11 @@ impl Render for ReactionPicker {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let results = self.results(cx);
         let label = if self.query.is_empty() {
-            "Recently used"
+            tr("ui.misc.recently_used")
         } else if results.is_empty() {
-            "No emoji found"
+            tr("ui.misc.no_emoji_found")
         } else {
-            "Results"
+            tr("ui.misc.results")
         };
         let quick = PICKER_QUICK
             .iter()

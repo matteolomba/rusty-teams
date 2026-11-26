@@ -1,4 +1,4 @@
-pub use app_base::ui_locale::{tr, tr_args};
+pub use app_base::ui_locale::{tr, tr_args, tr_with};
 
 /// Serialises tests that set the global UI language (`rust_i18n` keeps one locale per process).
 #[cfg(test)]
@@ -111,6 +111,19 @@ mod tests {
         assert_eq!(tr("settings.help.copy_path_tooltip"), "Pfad kopieren");
         assert_eq!(tr("settings.help.debug_logging"), "Debug-Protokollierung");
         assert!(tr("settings.help.detail").contains("Support-Paket"));
+        assert_eq!(tr("settings.help.yes"), "Ja");
+        assert_eq!(tr("settings.help.no"), "Nein");
+        assert_eq!(
+            tr("calls.screen_gone"),
+            "Der geteilte Bildschirm ist nicht mehr verfügbar. Die Freigabe wurde beendet."
+        );
+        apply_locale("it");
+        assert_eq!(tr("settings.help.yes"), "Sì");
+        assert_eq!(tr("settings.help.no"), "No");
+        assert_eq!(
+            tr("calls.screen_gone"),
+            "Lo schermo condiviso non è più disponibile. Condivisione terminata."
+        );
     }
 
     #[test]

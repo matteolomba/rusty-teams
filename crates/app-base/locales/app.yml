@@ -1053,10 +1053,6 @@ settings:
       en: Ringtones
       de: Klingeltöne
       it: Suonerie
-    screen_gone:
-      en: The shared screen is no longer available. Sharing stopped.
-      de: Der geteilte Bildschirm ist nicht mehr verfügbar. Die Freigabe wurde beendet.
-      it: Lo schermo condiviso non è più disponibile. Condivisione terminata.
 rail:
   activity:
     en: Activity
@@ -1338,6 +1334,10 @@ install:
     de: "Update-Prüfung fehlgeschlagen: %{detail}"
     it: "Controllo aggiornamenti non riuscito: %{detail}"
 calls:
+  screen_gone:
+    en: The shared screen is no longer available. Sharing stopped.
+    de: Der geteilte Bildschirm ist nicht mehr verfügbar. Die Freigabe wurde beendet.
+    it: Lo schermo condiviso non è più disponibile. Condivisione terminata.
   notice:
     not_connected:
       en: Not connected to Teams yet
@@ -2970,3 +2970,5267 @@ regional:
       en: United States
       de: Vereinigte Staaten
       it: Stati Uniti
+ui:
+  calls:
+    agenda:
+      respond:
+        en: "Respond"
+        de: "Antworten"
+        it: "Rispondi"
+    caption:
+      large:
+        en: "Large"
+        de: "Groß"
+        it: "Grande"
+      medium:
+        en: "Medium"
+        de: "Mittel"
+        it: "Medio"
+      position:
+        en: "Position"
+        de: "Position"
+        it: "Posizione"
+      position_bottom:
+        en: "Bottom"
+        de: "Unten"
+        it: "In basso"
+      position_top:
+        en: "Top"
+        de: "Oben"
+        it: "In alto"
+      size:
+        en: "Size"
+        de: "Größe"
+        it: "Dimensione"
+      small:
+        en: "Small"
+        de: "Klein"
+        it: "Piccolo"
+    captions:
+      failed:
+        en: "Live captions could not start"
+        de: "Live-Untertitel konnten nicht starten"
+        it: "Impossibile avviare i sottotitoli in tempo reale"
+      starting:
+        en: "Starting live captions..."
+        de: "Live-Untertitel werden gestartet..."
+        it: "Avvio dei sottotitoli in tempo reale..."
+    chrome:
+      full_screen:
+        en: "Full screen"
+        de: "Vollbild"
+        it: "Schermo intero"
+      mic:
+        en: "Mic"
+        de: "Mikrofon"
+        it: "Microfono"
+      open_chat_unread:
+        en: "Open the chat (%{count})"
+        de: "Chat öffnen (%{count})"
+        it: "Apri la chat (%{count})"
+      react:
+        en: "React"
+        de: "Reagieren"
+        it: "Reagisci"
+      reactions:
+        en: "Reactions"
+        de: "Reaktionen"
+        it: "Reazioni"
+      view:
+        en: "View"
+        de: "Ansicht"
+        it: "Visualizzazione"
+    consult:
+      held:
+        en: "%{name} is on hold"
+        de: "%{name} ist in der Warteschleife"
+        it: "%{name} è in attesa"
+      transferring:
+        en: "Transferring %{name} to %{target}..."
+        de: "%{name} wird an %{target} weitergeleitet..."
+        it: "Trasferimento di %{name} a %{target}..."
+    end:
+      call_back:
+        en: "Call back"
+        de: "Zurückrufen"
+        it: "Richiama"
+      call_dropped:
+        en: "Call dropped"
+        de: "Anruf abgebrochen"
+        it: "Chiamata interrotta"
+      dismiss:
+        en: "Dismiss"
+        de: "Schließen"
+        it: "Chiudi"
+      dropped_call_detail:
+        en: "Sorry we couldn't reconnect your call. Make sure you have an internet connection and try calling back."
+        de: "Leider konnten wir Ihren Anruf nicht wiederherstellen. Prüfen Sie Ihre Internetverbindung und rufen Sie erneut an."
+        it: "Non è stato possibile riconnettere la chiamata. Verifichi la connessione internet e riprovi a chiamare."
+      dropped_meeting_detail:
+        en: "Sorry we couldn't get you back into the meeting. Make sure you have an internet connection and try to rejoin."
+        de: "Leider konnten wir Sie nicht wieder in die Besprechung bringen. Prüfen Sie Ihre Internetverbindung und treten Sie erneut bei."
+        it: "Non è stato possibile riportarLa nella riunione. Verifichi la connessione internet e provi a rientrare."
+      rejoin:
+        en: "Rejoin"
+        de: "Erneut beitreten"
+        it: "Rientra"
+      removed_call:
+        en: "Removed from the call"
+        de: "Aus dem Anruf entfernt"
+        it: "Rimosso dalla chiamata"
+      removed_call_detail:
+        en: "Someone just removed you from the call. You can try to rejoin."
+        de: "Jemand hat Sie gerade aus dem Anruf entfernt. Sie können erneut beitreten."
+        it: "Qualcuno La ha appena rimossa dalla chiamata. Può provare a rientrare."
+      removed_meeting:
+        en: "Removed from the meeting"
+        de: "Aus der Besprechung entfernt"
+        it: "Rimosso dalla riunione"
+      removed_meeting_detail:
+        en: "Someone just removed you from the meeting. You can try to rejoin."
+        de: "Jemand hat Sie gerade aus der Besprechung entfernt. Sie können erneut beitreten."
+        it: "Qualcuno La ha appena rimossa dalla riunione. Può provare a rientrare."
+      unexpected:
+        en: "The call stopped unexpectedly"
+        de: "Der Anruf wurde unerwartet beendet"
+        it: "La chiamata è terminata inaspettatamente"
+    health:
+      bad:
+        en: "Bad"
+        de: "Schlecht"
+        it: "Pessimo"
+      cpu_hint:
+        en: "Your computer is overloaded. Turning off video effects may help."
+        de: "Ihr Computer ist überlastet. Das Ausschalten von Videoeffekten kann helfen."
+        it: "Il computer è sovraccarico. Disattivare gli effetti video può aiutare."
+      encryption:
+        en: "Encryption"
+        de: "Verschlüsselung"
+        it: "Crittografia"
+      good:
+        en: "Good"
+        de: "Gut"
+        it: "Buono"
+      jitter:
+        en: "Jitter"
+        de: "Jitter"
+        it: "Jitter"
+      measuring:
+        en: "Measuring..."
+        de: "Wird gemessen..."
+        it: "Misurazione in corso..."
+      media_direct:
+        en: "Media: direct to %{name}"
+        de: "Medien: direkt zu %{name}"
+        it: "Media: diretto a %{name}"
+      media_mixer:
+        en: "Media: via Microsoft media server"
+        de: "Medien: über Microsoft-Medienserver"
+        it: "Media: tramite server multimediale Microsoft"
+      network:
+        en: "Network"
+        de: "Netzwerk"
+        it: "Rete"
+      network_hint:
+        en: "Your network is unstable. Turning off incoming video may help."
+        de: "Ihr Netzwerk ist instabil. Das Ausschalten eingehender Videos kann helfen."
+        it: "La rete è instabile. Disattivare i video in ingresso può aiutare."
+      packet_loss:
+        en: "Packet loss"
+        de: "Paketverlust"
+        it: "Perdita di pacchetti"
+      poor:
+        en: "Poor"
+        de: "Mittel"
+        it: "Scarso"
+      quality:
+        en: "Quality"
+        de: "Qualität"
+        it: "Qualità"
+      received:
+        en: "Received"
+        de: "Empfangen"
+        it: "Ricevuti"
+      round_trip:
+        en: "Round trip"
+        de: "Umlaufzeit"
+        it: "Andata e ritorno"
+      secured:
+        en: "Secured by Teams encryption"
+        de: "Gesichert durch Teams-Verschlüsselung"
+        it: "Protetto dalla crittografia di Teams"
+      sent:
+        en: "Sent"
+        de: "Gesendet"
+        it: "Inviati"
+      title:
+        en: "Call health"
+        de: "Anrufqualität"
+        it: "Qualità della chiamata"
+      transport:
+        en: "Transport: DTLS-SRTP"
+        de: "Transport: DTLS-SRTP"
+        it: "Trasporto: DTLS-SRTP"
+      transport_cipher:
+        en: "Transport: DTLS-SRTP (%{cipher})"
+        de: "Transport: DTLS-SRTP (%{cipher})"
+        it: "Trasporto: DTLS-SRTP (%{cipher})"
+      turn_off_effects:
+        en: "Turn off effects"
+        de: "Effekte ausschalten"
+        it: "Disattiva effetti"
+      turn_off_incoming_video:
+        en: "Turn off incoming video"
+        de: "Eingehende Videos ausschalten"
+        it: "Disattiva video in ingresso"
+    hold:
+      local_detail:
+        en: "%{name} cannot hear you and you cannot hear them."
+        de: "%{name} kann Sie nicht hören und Sie können die Person nicht hören."
+        it: "%{name} non può sentirLa e Lei non può sentire la persona."
+      remote_detail:
+        en: "%{name} put the call on hold."
+        de: "%{name} hat den Anruf in die Warteschleife gelegt."
+        it: "%{name} ha messo la chiamata in attesa."
+    layout:
+      content:
+        en: "Focus on content"
+        de: "Inhalt fokussieren"
+        it: "Concentrati sul contenuto"
+      gallery:
+        en: "Gallery"
+        de: "Galerie"
+        it: "Galleria"
+      next_page:
+        en: "Next page"
+        de: "Nächste Seite"
+        it: "Pagina successiva"
+      previous_page:
+        en: "Previous page"
+        de: "Vorherige Seite"
+        it: "Pagina precedente"
+      show_me:
+        en: "Show me"
+        de: "Mich anzeigen"
+        it: "Mostrami"
+      show_without_video:
+        en: "Show people without video"
+        de: "Personen ohne Video anzeigen"
+        it: "Mostra persone senza video"
+      speaker:
+        en: "Speaker"
+        de: "Sprecher"
+        it: "Relatore"
+      without_video_count:
+        en: "%{count} without video"
+        de: "%{count} ohne Video"
+        it: "%{count} senza video"
+    lobby:
+      many_waiting:
+        en: "%{count} people are waiting in the lobby"
+        de: "%{count} Personen warten im Wartebereich"
+        it: "%{count} persone sono in attesa nella lobby"
+      one_waiting:
+        en: "1 person is waiting in the lobby"
+        de: "1 Person wartet im Wartebereich"
+        it: "1 persona è in attesa nella lobby"
+    mini:
+      back_to_call:
+        en: "Back to call"
+        de: "Zurück zum Anruf"
+        it: "Torna alla chiamata"
+    notice:
+      call_cancelled:
+        en: "Call cancelled"
+        de: "Anruf abgebrochen"
+        it: "Chiamata annullata"
+      call_ended:
+        en: "Call ended"
+        de: "Anruf beendet"
+        it: "Chiamata terminata"
+      call_ended_after:
+        en: "Call ended %{time}"
+        de: "Anruf beendet (%{time})"
+        it: "Chiamata terminata (%{time})"
+      call_failed:
+        en: "Call failed: %{detail}"
+        de: "Anruf fehlgeschlagen: %{detail}"
+        it: "Chiamata non riuscita: %{detail}"
+      content:
+        en: "Content"
+        de: "Inhalt"
+        it: "Contenuto"
+      expires_many:
+        en: "Expires in %{days} days"
+        de: "Läuft in %{days} Tagen ab"
+        it: "Scade tra %{days} giorni"
+      expires_one:
+        en: "Expires in 1 day"
+        de: "Läuft in 1 Tag ab"
+        it: "Scade tra 1 giorno"
+      no_answer:
+        en: "No answer"
+        de: "Keine Antwort"
+        it: "Nessuna risposta"
+      peer_declined:
+        en: "%{name} declined"
+        de: "%{name} hat abgelehnt"
+        it: "%{name} ha rifiutato"
+      peer_unavailable:
+        en: "%{name} is not available"
+        de: "%{name} ist nicht verfügbar"
+        it: "%{name} non è disponibile"
+      view_recap:
+        en: "View recap"
+        de: "Zusammenfassung anzeigen"
+        it: "Visualizza riepilogo"
+      schedule_read_only:
+        en: "Meetings cannot be scheduled in read-only mode."
+        de: "Besprechungen können im Nur-Lesen-Modus nicht geplant werden."
+        it: "Non è possibile pianificare riunioni in modalità sola lettura."
+      person_calendar_read_only:
+        en: "Other people's calendars are read-only"
+        de: "Die Kalender anderer Personen sind schreibgeschützt"
+        it: "I calendari di altre persone sono in sola lettura"
+      response_failed:
+        en: "Could not send your response"
+        de: "Ihre Antwort konnte nicht gesendet werden"
+        it: "Impossibile inviare la risposta"
+      delete_failed:
+        en: "Could not delete the meeting"
+        de: "Besprechung konnte nicht gelöscht werden"
+        it: "Impossibile eliminare la riunione"
+      delete_read_only:
+        en: "Meetings cannot be deleted in read-only mode."
+        de: "Besprechungen können im Nur-Lesen-Modus nicht gelöscht werden."
+        it: "Non è possibile eliminare riunioni in modalità sola lettura."
+      call_transferred:
+        en: "Call transferred to %{name}"
+        de: "Anruf an %{name} weitergeleitet"
+        it: "Chiamata trasferita a %{name}"
+      hand_raised:
+        en: "Your hand is raised"
+        de: "Ihre Hand ist gehoben"
+        it: "La tua mano è alzata"
+      background_failed:
+        en: "That background could not be downloaded"
+        de: "Dieser Hintergrund konnte nicht heruntergeladen werden"
+        it: "Impossibile scaricare lo sfondo"
+      image_required:
+        en: "Pick a JPG or PNG picture"
+        de: "Wählen Sie ein JPG- oder PNG-Bild"
+        it: "Scegli un'immagine JPG o PNG"
+      request_cancelled:
+        en: "The request was cancelled."
+        de: "Die Anfrage wurde abgebrochen."
+        it: "La richiesta è stata annullata."
+      ics_delete_read_only:
+        en: "Read-only ICS subscriptions cannot delete events"
+        de: "Schreibgeschützte ICS-Abonnements können keine Termine löschen"
+        it: "Le sottoscrizioni ICS in sola lettura non possono eliminare eventi"
+      ics_rsvp_read_only:
+        en: "Read-only ICS subscriptions cannot RSVP"
+        de: "Schreibgeschützte ICS-Abonnements können nicht antworten"
+        it: "Le sottoscrizioni ICS in sola lettura non possono rispondere"
+    options:
+      allow_camera:
+        en: "Allow camera for attendees"
+        de: "Kamera für Teilnehmer zulassen"
+        it: "Consenti fotocamera ai partecipanti"
+      allow_mic:
+        en: "Allow mic for attendees"
+        de: "Mikrofon für Teilnehmer zulassen"
+        it: "Consenti microfono ai partecipanti"
+      bypass_lobby:
+        en: "Who can bypass the lobby"
+        de: "Wer kann den Wartebereich umgehen"
+        it: "Chi può ignorare la lobby"
+      chat:
+        en: "Meeting chat"
+        de: "Besprechungschat"
+        it: "Chat della riunione"
+      everyone:
+        en: "Everyone"
+        de: "Alle"
+        it: "Tutti"
+      in_meeting_only:
+        en: "In-meeting only"
+        de: "Nur während der Besprechung"
+        it: "Solo durante la riunione"
+      invited:
+        en: "People I invite"
+        de: "Personen, die ich einlade"
+        it: "Persone che invito"
+      loading:
+        en: "Loading the meeting options..."
+        de: "Besprechungsoptionen werden geladen..."
+        it: "Caricamento delle opzioni della riunione..."
+      off:
+        en: "Off"
+        de: "Aus"
+        it: "Disattivata"
+      on:
+        en: "On"
+        de: "Ein"
+        it: "Attiva"
+      only_me:
+        en: "Only me"
+        de: "Nur ich"
+        it: "Solo io"
+      org:
+        en: "People in my org"
+        de: "Personen aus meiner Organisation"
+        it: "Persone della mia organizzazione"
+      org_and_trusted:
+        en: "People in my org and trusted orgs"
+        de: "Personen aus meiner Organisation und vertrauenswürdigen Organisationen"
+        it: "Persone della mia organizzazione e delle organizzazioni attendibili"
+      org_no_guests:
+        en: "People in my org, no guests"
+        de: "Personen aus meiner Organisation, keine Gäste"
+        it: "Persone della mia organizzazione, senza ospiti"
+      present:
+        en: "Who can present"
+        de: "Wer darf präsentieren"
+        it: "Chi può presentare"
+      reactions:
+        en: "Allow reactions"
+        de: "Reaktionen zulassen"
+        it: "Consenti reazioni"
+      record_automatically:
+        en: "Record automatically"
+        de: "Automatisch aufzeichnen"
+        it: "Registra automaticamente"
+      saving:
+        en: "Saving..."
+        de: "Wird gespeichert..."
+        it: "Salvataggio in corso..."
+    people:
+      admit_all:
+        en: "Admit all"
+        de: "Alle zulassen"
+        it: "Ammetli tutti"
+      allow_camera:
+        en: "Allow camera"
+        de: "Kamera zulassen"
+        it: "Consenti fotocamera"
+      allow_mic:
+        en: "Allow mic"
+        de: "Mikrofon zulassen"
+        it: "Consenti microfono"
+      close_list:
+        en: "Close the people list"
+        de: "Teilnehmerliste schließen"
+        it: "Chiudi l'elenco dei partecipanti"
+      disable_camera:
+        en: "Disable camera"
+        de: "Kamera deaktivieren"
+        it: "Disattiva fotocamera"
+      disable_mic:
+        en: "Disable mic"
+        de: "Mikrofon deaktivieren"
+        it: "Disattiva microfono"
+      in_this_call:
+        en: "In this call"
+        de: "In diesem Anruf"
+        it: "In questa chiamata"
+      lock_meeting:
+        en: "Lock meeting"
+        de: "Besprechung sperren"
+        it: "Blocca riunione"
+      locked:
+        en: "Locked"
+        de: "Gesperrt"
+        it: "Bloccata"
+      locked_banner:
+        en: "The meeting is locked. Nobody new can join."
+        de: "Die Besprechung ist gesperrt. Niemand Neues kann beitreten."
+        it: "La riunione è bloccata. Nessuno può più entrare."
+      lower_all:
+        en: "Lower all"
+        de: "Alle Hände senken"
+        it: "Abbassa tutte le mani"
+      meeting_options:
+        en: "Meeting options"
+        de: "Besprechungsoptionen"
+        it: "Opzioni riunione"
+      meeting_options_ellipsis:
+        en: "Meeting options..."
+        de: "Besprechungsoptionen..."
+        it: "Opzioni riunione..."
+      more:
+        en: "More"
+        de: "Mehr"
+        it: "Altro"
+      mute_all:
+        en: "Mute all"
+        de: "Alle stummschalten"
+        it: "Disattiva audio a tutti"
+      panel_title:
+        en: "People (%{count})"
+        de: "Personen (%{count})"
+        it: "Persone (%{count})"
+      raised_hands:
+        en: "Raised hands (%{count})"
+        de: "Erhobene Hände (%{count})"
+        it: "Mani alzate (%{count})"
+      remove_detail:
+        en: "They leave the call and can only come back if they join again."
+        de: "Die Person verlässt den Anruf und kann nur durch erneutes Beitreten zurückkehren."
+        it: "La persona lascia la chiamata e può rientrare solo partecipando di nuovo."
+      remove_heading:
+        en: "Remove %{name} from the meeting?"
+        de: "%{name} aus der Besprechung entfernen?"
+        it: "Rimuovere %{name} dalla riunione?"
+      show:
+        en: "Show people"
+        de: "Personen anzeigen"
+        it: "Mostra persone"
+      unlock:
+        en: "Unlock"
+        de: "Entsperren"
+        it: "Sblocca"
+      unlock_meeting:
+        en: "Unlock meeting"
+        de: "Besprechung entsperren"
+        it: "Sblocca riunione"
+      waiting_lobby:
+        en: "Waiting in lobby (%{count})"
+        de: "Warten im Wartebereich (%{count})"
+        it: "In attesa nella lobby (%{count})"
+    proposal:
+      discard:
+        en: "Discard"
+        de: "Verwerfen"
+        it: "Scarta"
+      invites:
+        en: "Invites %{names}"
+        de: "Lädt ein: %{names}"
+        it: "Invita %{names}"
+      proposes:
+        en: "%{agent} proposes a meeting - %{age}"
+        de: "%{agent} schlägt eine Besprechung vor - %{age}"
+        it: "%{agent} propone una riunione - %{age}"
+    record:
+      captions_settings:
+        en: "Captions settings"
+        de: "Untertiteleinstellungen"
+        it: "Impostazioni sottotitoli"
+      chip_recording:
+        en: "Recording"
+        de: "Aufzeichnung"
+        it: "Registrazione"
+      chip_recording_audio:
+        en: "Recording audio"
+        de: "Audioaufzeichnung"
+        it: "Registrazione audio"
+      chip_transcribing:
+        en: "Transcribing"
+        de: "Transkription"
+        it: "Trascrizione"
+      confirm_both:
+        en: "Stop recording and transcription?"
+        de: "Aufzeichnung und Transkription beenden?"
+        it: "Interrompere registrazione e trascrizione?"
+      confirm_recording:
+        en: "Stop recording?"
+        de: "Aufzeichnung beenden?"
+        it: "Interrompere la registrazione?"
+      confirm_transcription:
+        en: "Stop transcription?"
+        de: "Transkription beenden?"
+        it: "Interrompere la trascrizione?"
+      menu_label:
+        en: "Record and transcribe"
+        de: "Aufzeichnen und transkribieren"
+        it: "Registra e trascrivi"
+      reason_call_policy:
+        en: "Unavailable for this call due to organisation policy. Reach out to your IT admin to get access."
+        de: "Für diesen Anruf aufgrund der Organisationsrichtlinie nicht verfügbar. Wenden Sie sich an Ihre IT-Administration."
+        it: "Non disponibile per questa chiamata a causa dei criteri dell'organizzazione. Contatti l'amministratore IT."
+      reason_capability:
+        en: "Unavailable in this meeting"
+        de: "In dieser Besprechung nicht verfügbar"
+        it: "Non disponibile in questa riunione"
+      reason_external:
+        en: "Unavailable to people in a different org from the organiser"
+        de: "Nicht verfügbar für Personen aus einer anderen Organisation als der Organisator"
+        it: "Non disponibile per persone di un'organizzazione diversa da quella dell'organizzatore"
+      reason_meeting_policy:
+        en: "Unavailable for this meeting due to organisation policy. Reach out to your IT admin to get access."
+        de: "Für diese Besprechung aufgrund der Organisationsrichtlinie nicht verfügbar. Wenden Sie sich an Ihre IT-Administration."
+        it: "Non disponibile per questa riunione a causa dei criteri dell'organizzazione. Contatti l'amministratore IT."
+      reason_org_policy:
+        en: "Unavailable due to org policy. Reach out to your IT admin to get access."
+        de: "Aufgrund der Organisationsrichtlinie nicht verfügbar. Wenden Sie sich an Ihre IT-Administration."
+        it: "Non disponibile a causa dei criteri dell'organizzazione. Contatti l'amministratore IT."
+      reason_organizer_off:
+        en: "Unavailable because the meeting organiser has disabled recording for this meeting"
+        de: "Nicht verfügbar, da der Besprechungsorganisator die Aufzeichnung für diese Besprechung deaktiviert hat"
+        it: "Non disponibile perché l'organizzatore ha disattivato la registrazione per questa riunione"
+      reason_organizer_only:
+        en: "Only meeting organiser and co-organiser can control recording for this meeting"
+        de: "Nur der Besprechungsorganisator und der Co-Organisator können die Aufzeichnung für diese Besprechung steuern"
+        it: "Solo l'organizzatore e il co-organizzatore possono controllare la registrazione per questa riunione"
+      reason_role_recording:
+        en: "Only meeting organisers and presenters can control recording"
+        de: "Nur Besprechungsorganisatoren und Referenten können die Aufzeichnung steuern"
+        it: "Solo gli organizzatori e i relatori della riunione possono controllare la registrazione"
+      reason_role_transcription:
+        en: "Only meeting organisers and presenters can control transcription"
+        de: "Nur Besprechungsorganisatoren und Referenten können die Transkription steuern"
+        it: "Solo gli organizzatori e i relatori della riunione possono controllare la trascrizione"
+      record_audio_only:
+        en: "Record audio only"
+        de: "Nur Audio aufzeichnen"
+        it: "Registra solo audio"
+      saved_detail:
+        en: "The file is saved to the organizer's OneDrive and the link arrives in the meeting chat."
+        de: "Die Datei wird im OneDrive des Organisators gespeichert und der Link erscheint im Besprechungschat."
+        it: "Il file viene salvato in OneDrive dell'organizzatore e il link arriva nella chat della riunione."
+      show_transcript:
+        en: "Show transcript"
+        de: "Transkript anzeigen"
+        it: "Mostra trascrizione"
+      spoken_language:
+        en: "Spoken language"
+        de: "Gesprochene Sprache"
+        it: "Lingua parlata"
+      start_recording:
+        en: "Start recording"
+        de: "Aufzeichnung starten"
+        it: "Avvia registrazione"
+      start_transcription:
+        en: "Start transcription only"
+        de: "Nur Transkription starten"
+        it: "Avvia solo trascrizione"
+      starting:
+        en: "Starting..."
+        de: "Wird gestartet..."
+        it: "Avvio in corso..."
+      stop_both:
+        en: "Stop both"
+        de: "Beides beenden"
+        it: "Interrompi entrambi"
+      stop_recording:
+        en: "Stop recording"
+        de: "Aufzeichnung beenden"
+        it: "Interrompi registrazione"
+      stop_transcription:
+        en: "Stop transcription"
+        de: "Transkription beenden"
+        it: "Interrompi trascrizione"
+    ring:
+      ends_current_call:
+        en: "Accept ends current call"
+        de: "Annehmen beendet den aktuellen Anruf"
+        it: "Accettare termina la chiamata in corso"
+      subtitle_audio:
+        en: "Incoming audio call"
+        de: "Eingehender Audioanruf"
+        it: "Chiamata audio in arrivo"
+      subtitle_group_audio:
+        en: "Incoming group audio call"
+        de: "Eingehender Gruppen-Audioanruf"
+        it: "Chiamata audio di gruppo in arrivo"
+      subtitle_video:
+        en: "Incoming video call"
+        de: "Eingehender Videoanruf"
+        it: "Videochiamata in arrivo"
+    role:
+      attendee:
+        en: "Attendee"
+        de: "Teilnehmer"
+        it: "Partecipante"
+      attendees:
+        en: "Attendees"
+        de: "Teilnehmer"
+        it: "Partecipanti"
+      make_attendee:
+        en: "Make attendee"
+        de: "Zum Teilnehmer machen"
+        it: "Rendi partecipante"
+      make_presenter:
+        en: "Make presenter"
+        de: "Zum Referenten machen"
+        it: "Rendi relatore"
+      organizers:
+        en: "Organizers"
+        de: "Organisatoren"
+        it: "Organizzatori"
+      presenter:
+        en: "Presenter"
+        de: "Referent"
+        it: "Relatore"
+      presenters:
+        en: "Presenters"
+        de: "Referenten"
+        it: "Relatori"
+    share:
+      entire_screen:
+        en: "Entire screen"
+        de: "Gesamter Bildschirm"
+        it: "Schermo intero"
+      keep_visible:
+        en: "Keep the bar visible"
+        de: "Leiste sichtbar halten"
+        it: "Mantieni visibile la barra"
+      maximize_window:
+        en: "Maximize meeting window"
+        de: "Besprechungsfenster maximieren"
+        it: "Ingrandisci la finestra della riunione"
+      pop_out_title:
+        en: "Shared content"
+        de: "Geteilte Inhalte"
+        it: "Contenuto condiviso"
+      screen_n:
+        en: "Screen %{n}"
+        de: "Bildschirm %{n}"
+        it: "Schermo %{n}"
+      share:
+        en: "Share"
+        de: "Freigeben"
+        it: "Condividi"
+      sharing_screen:
+        en: "Sharing screen %{time}"
+        de: "Bildschirm wird geteilt (%{time})"
+        it: "Condivisione schermo %{time}"
+      sharing_window:
+        en: "Sharing window %{time}"
+        de: "Fenster wird geteilt (%{time})"
+        it: "Condivisione finestra %{time}"
+      show_more_people:
+        en: "Show more people"
+        de: "Mehr Personen anzeigen"
+        it: "Mostra più persone"
+      show_speaker_only:
+        en: "Show only active speaker"
+        de: "Nur aktiven Sprecher anzeigen"
+        it: "Mostra solo il relatore attivo"
+      sound_failed:
+        en: "Computer sound OFF (requested, could not start)"
+        de: "Computerton AUS (angefordert, konnte nicht starten)"
+        it: "Audio del computer OFF (richiesto, avvio non riuscito)"
+      sound_hint_off:
+        en: "Others cannot hear your computer sound. Click to include it."
+        de: "Andere hören Ihren Computerton nicht. Klicken Sie, um ihn einzubeziehen."
+        it: "Gli altri non sentono l'audio del Suo computer. Fai clic per includerlo."
+      sound_hint_on:
+        en: "Others can hear your computer sound. Click to turn it off."
+        de: "Andere hören Ihren Computerton. Klicken Sie, um ihn auszuschalten."
+        it: "Gli altri sentono l'audio del Suo computer. Fai clic per disattivarlo."
+      sound_off:
+        en: "Sound off"
+        de: "Ton aus"
+        it: "Audio disattivato"
+      sound_on:
+        en: "Sound on"
+        de: "Ton an"
+        it: "Audio attivo"
+      sound_tip_active:
+        en: "Computer sound is being shared. Click to turn it off."
+        de: "Der Computerton wird geteilt. Klicken Sie, um ihn auszuschalten."
+        it: "L'audio del computer è condiviso. Fai clic per disattivarlo."
+      sound_tip_failed:
+        en: "Computer sound is not being shared. The call could not start it. Click to try again."
+        de: "Der Computerton wird nicht geteilt. Der Anruf konnte ihn nicht starten. Klicken Sie, um es erneut zu versuchen."
+        it: "L'audio del computer non è condiviso. La chiamata non è riuscita ad avviarlo. Fai clic per riprovare."
+      sound_tip_off:
+        en: "Computer sound is not being shared. Click to include it."
+        de: "Der Computerton wird nicht geteilt. Klicken Sie, um ihn einzubeziehen."
+        it: "L'audio del computer non è condiviso. Fai clic per includerlo."
+      stop:
+        en: "Stop"
+        de: "Stopp"
+        it: "Interrompi"
+      unpin_bar:
+        en: "Unpin the bar"
+        de: "Leiste lösen"
+        it: "Sblocca la barra"
+    sharing_label:
+      en: "%{name} is sharing"
+      de: "%{name} teilt"
+      it: "%{name} sta condividendo"
+    someone:
+      en: "Someone"
+      de: "Jemand"
+      it: "Qualcuno"
+    stage:
+      bring_back:
+        en: "Bring back"
+        de: "Zurückholen"
+        it: "Riporta qui"
+      exit_fullscreen_hint:
+        en: "Press Esc to exit full screen"
+        de: "Esc drücken, um den Vollbildmodus zu beenden"
+        it: "Premi Esc per uscire dallo schermo intero"
+      full_window_hint:
+        en: "Double-click or press Esc to leave full window"
+        de: "Doppelklicken oder Esc drücken, um das Vollfenster zu verlassen"
+        it: "Fai doppio clic o premi Esc per uscire dalla finestra intera"
+      pop_out:
+        en: "Pop out"
+        de: "Auskoppeln"
+        it: "Estrai"
+      popped_text:
+        en: "Shared content is open in its own window"
+        de: "Geteilte Inhalte sind in einem eigenen Fenster geöffnet"
+        it: "Il contenuto condiviso è aperto in una finestra separata"
+      reset_zoom:
+        en: "Reset zoom"
+        de: "Zoom zurücksetzen"
+        it: "Reimposta zoom"
+      waiting:
+        en: "Loading the shared screen..."
+        de: "Geteilter Bildschirm wird geladen..."
+        it: "Caricamento dello schermo condiviso..."
+    test_call_title:
+      en: "Test call"
+      de: "Testanruf"
+      it: "Chiamata di prova"
+    tile:
+      calling:
+        en: "Calling..."
+        de: "Wird angerufen..."
+        it: "Chiamata in corso..."
+      captions_off:
+        en: "Turn off live captions"
+        de: "Live-Untertitel ausschalten"
+        it: "Disattiva sottotitoli in tempo reale"
+      captions_on:
+        en: "Turn on live captions"
+        de: "Live-Untertitel einschalten"
+        it: "Attiva sottotitoli in tempo reale"
+      fill_frame:
+        en: "Fill frame"
+        de: "Bild ausfüllen"
+        it: "Riempi riquadro"
+      fit_frame:
+        en: "Fit to frame"
+        de: "An Bild anpassen"
+        it: "Adatta al riquadro"
+      hide_for_me:
+        en: "Hide for me"
+        de: "Für mich ausblenden"
+        it: "Nascondi per me"
+      hold:
+        en: "Hold"
+        de: "Warteschleife"
+        it: "Attesa"
+      joining:
+        en: "Joining..."
+        de: "Wird beigetreten..."
+        it: "Partecipazione in corso..."
+      left:
+        en: "Left"
+        de: "Verlassen"
+        it: "Uscito"
+      mute:
+        en: "Mute"
+        de: "Stummschalten"
+        it: "Disattiva audio"
+      pin_for_me:
+        en: "Pin for me"
+        de: "Für mich anheften"
+        it: "Fissa per me"
+      pinned_chip:
+        en: "Pinned"
+        de: "Angeheftet"
+        it: "Fissato"
+      remove_ellipsis:
+        en: "Remove from meeting..."
+        de: "Aus Besprechung entfernen..."
+        it: "Rimuovi dalla riunione..."
+      ringing:
+        en: "Ringing"
+        de: "Klingelt"
+        it: "Squilla"
+      spotlight:
+        en: "Spotlight for everyone"
+        de: "Für alle hervorheben"
+        it: "In evidenza per tutti"
+      spotlight_chip:
+        en: "Spotlight"
+        de: "Hervorgehoben"
+        it: "In evidenza"
+      stop_spotlight:
+        en: "Stop spotlight"
+        de: "Hervorhebung beenden"
+        it: "Interrompi evidenza"
+      transfer_ellipsis:
+        en: "Transfer..."
+        de: "Weiterleiten..."
+        it: "Trasferisci..."
+      turn_on_incoming_video:
+        en: "Turn on incoming video"
+        de: "Eingehende Videos einschalten"
+        it: "Attiva video in ingresso"
+      unpin:
+        en: "Unpin"
+        de: "Anheften aufheben"
+        it: "Rimuovi fissaggio"
+      whiteboard:
+        en: "Whiteboard"
+        de: "Whiteboard"
+        it: "Lavagna"
+    transcript:
+      close:
+        en: "Close the transcript"
+        de: "Transkript schließen"
+        it: "Chiudi la trascrizione"
+      empty:
+        en: "Nothing said yet. Spoken words appear here."
+        de: "Noch nichts gesagt. Gesprochenes erscheint hier."
+        it: "Ancora nulla detto. Le parole pronunciate appaiono qui."
+      jump_latest:
+        en: "Jump to latest"
+        de: "Zum Neuesten springen"
+        it: "Vai ai più recenti"
+      no_match:
+        en: "No entry matches the search."
+        de: "Kein Eintrag entspricht der Suche."
+        it: "Nessuna voce corrisponde alla ricerca."
+      search_placeholder:
+        en: "Search transcript"
+        de: "Transkript durchsuchen"
+        it: "Cerca nella trascrizione"
+      title:
+        en: "Transcript"
+        de: "Transkript"
+        it: "Trascrizione"
+    transfer:
+      consult_first:
+        en: "Consult first"
+        de: "Zuerst Rücksprache"
+        it: "Prima consulta"
+      invite_title:
+        en: "Invite people"
+        de: "Personen einladen"
+        it: "Invita persone"
+      search:
+        en: "Search people"
+        de: "Personen suchen"
+        it: "Cerca persone"
+      title:
+        en: "Transfer call"
+        de: "Anruf weiterleiten"
+        it: "Trasferisci chiamata"
+      transfer_now:
+        en: "Transfer now"
+        de: "Jetzt weiterleiten"
+        it: "Trasferisci ora"
+    view:
+      chat_bubbles:
+        en: "Chat bubbles"
+        de: "Chatblasen"
+        it: "Fumetti chat"
+      content_hint:
+        en: "Only while someone shares"
+        de: "Nur während jemand teilt"
+        it: "Solo mentre qualcuno condivide"
+      hide_me:
+        en: "Hide me"
+        de: "Mich ausblenden"
+        it: "Nascondimi"
+      hide_timer:
+        en: "Hide meeting timer"
+        de: "Besprechungs-Timer ausblenden"
+        it: "Nascondi il timer della riunione"
+      hide_without_video:
+        en: "Hide people without video"
+        de: "Personen ohne Video ausblenden"
+        it: "Nascondi persone senza video"
+      layout:
+        en: "Layout"
+        de: "Layout"
+        it: "Layout"
+    whiteboard_label:
+      en: "%{name} is sharing a whiteboard"
+      de: "%{name} teilt ein Whiteboard"
+      it: "%{name} sta condividendo una lavagna"
+    meeting:
+      title_required:
+        en: "Add a title."
+        de: "Bitte einen Titel eingeben."
+        it: "Aggiungi un titolo."
+      pick_date:
+        en: "Pick a date."
+        de: "Bitte ein Datum wählen."
+        it: "Scegli una data."
+      invalid_start_time:
+        en: "That start time does not exist."
+        de: "Diese Startzeit gibt es nicht."
+        it: "L'orario di inizio non esiste."
+      invalid_end_time:
+        en: "That end time does not exist."
+        de: "Diese Endzeit gibt es nicht."
+        it: "L'orario di fine non esiste."
+      end_after_start:
+        en: "The end must be after the start."
+        de: "Das Ende muss nach dem Start liegen."
+        it: "La fine deve essere successiva all'inizio."
+    report:
+      saved:
+        en: "Test report saved"
+        de: "Testbericht gespeichert"
+        it: "Rapporto di test salvato"
+    meeting_title:
+      en: "Meeting"
+      de: "Besprechung"
+      it: "Riunione"
+  chat:
+    section:
+      new_title:
+        en: "New section"
+        de: "Neuer Abschnitt"
+        it: "Nuova sezione"
+      rename_title:
+        en: "Rename section"
+        de: "Abschnitt umbenennen"
+        it: "Rinomina sezione"
+      create:
+        en: "Create"
+        de: "Erstellen"
+        it: "Crea"
+      rename:
+        en: "Rename"
+        de: "Umbenennen"
+        it: "Rinomina"
+      name_placeholder:
+        en: "Section name"
+        de: "Abschnittsname"
+        it: "Nome sezione"
+    group:
+      name_tooltip:
+        en: "Name group chat"
+        de: "Gruppenchat benennen"
+        it: "Assegna un nome alla chat di gruppo"
+      field_label:
+        en: "Group name"
+        de: "Gruppenname"
+        it: "Nome del gruppo"
+      placeholder:
+        en: "Type a group name"
+        de: "Gruppennamen eingeben"
+        it: "Digita un nome del gruppo"
+      too_long:
+        en: "Your group name can't be longer than %{max} characters."
+        de: "Dein Gruppenname darf höchstens %{max} Zeichen lang sein."
+        it: "Il nome del gruppo non può superare %{max} caratteri."
+      invalid_character:
+        en: "'%{character}' is not a valid character in group names."
+        de: "'%{character}' ist kein gültiges Zeichen in Gruppennamen."
+        it: "'%{character}' non è un carattere valido nei nomi dei gruppi."
+    channel:
+      name_placeholder:
+        en: "Letters, numbers, and spaces are allowed"
+        de: "Buchstaben, Zahlen und Leerzeichen sind zulässig"
+        it: "Sono consentiti lettere, numeri e spazi"
+      description_placeholder:
+        en: "Help others find the right channel by providing a description"
+        de: "Hilf anderen, den richtigen Kanal zu finden, indem du eine Beschreibung angibst"
+        it: "Aiuta gli altri a trovare il canale giusto aggiungendo una descrizione"
+      privacy_standard:
+        en: "Standard: Everyone on the team has access"
+        de: "Standard: Alle im Team haben Zugriff"
+        it: "Standard: tutti nel team hanno accesso"
+      privacy_private:
+        en: "Private: Specific teammates have access"
+        de: "Privat: Nur ausgewählte Teammitglieder haben Zugriff"
+        it: "Privato: solo alcuni membri del team hanno accesso"
+      name_label:
+        en: "Channel name"
+        de: "Kanalname"
+        it: "Nome del canale"
+      description_optional:
+        en: "Description (optional)"
+        de: "Beschreibung (optional)"
+        it: "Descrizione (facoltativa)"
+      choose_type:
+        en: "Choose a channel type"
+        de: "Kanaltyp auswählen"
+        it: "Scegli un tipo di canale"
+      create_title:
+        en: "Create a channel for \"%{team}\" team"
+        de: "Kanal für das Team \"%{team}\" erstellen"
+        it: "Crea un canale per il team \"%{team}\""
+      description_label:
+        en: "Description"
+        de: "Beschreibung"
+        it: "Descrizione"
+      edit_title:
+        en: "Edit \"%{channel}\" channel in \"%{team}\" team"
+        de: "Kanal \"%{channel}\" im Team \"%{team}\" bearbeiten"
+        it: "Modifica il canale \"%{channel}\" nel team \"%{team}\""
+      delete_with_files:
+        en: "Are you sure you want to delete the %{channel} channel? All files and conversations will be deleted."
+        de: "Möchtest du den Kanal %{channel} wirklich löschen? Alle Dateien und Unterhaltungen werden gelöscht."
+        it: "Eliminare davvero il canale %{channel}? Tutti i file e le conversazioni verranno eliminati."
+      delete_conversations:
+        en: "Are you sure you want to delete the %{channel} channel? All conversations will be deleted."
+        de: "Möchtest du den Kanal %{channel} wirklich löschen? Alle Unterhaltungen werden gelöscht."
+        it: "Eliminare davvero il canale %{channel}? Tutte le conversazioni verranno eliminate."
+      delete_title:
+        en: "Delete channel"
+        de: "Kanal löschen"
+        it: "Elimina canale"
+    members:
+      tooltip:
+        en: "View and add participants"
+        de: "Teilnehmer anzeigen und hinzufügen"
+        it: "Visualizza e aggiungi partecipanti"
+      people_count:
+        en: "People (%{count})"
+        de: "Personen (%{count})"
+        it: "Persone (%{count})"
+      add_people:
+        en: "Add people"
+        de: "Personen hinzufügen"
+        it: "Aggiungi persone"
+      leave:
+        en: "Leave"
+        de: "Verlassen"
+        it: "Abbandona"
+      you:
+        en: "You"
+        de: "Du"
+        it: "Tu"
+      remove_tooltip:
+        en: "Remove from chat"
+        de: "Aus Chat entfernen"
+        it: "Rimuovi dalla chat"
+      remove_title:
+        en: "Remove %{name} from the conversation?"
+        de: "%{name} aus der Unterhaltung entfernen?"
+        it: "Rimuovere %{name} dalla conversazione?"
+      remove_description:
+        en: "They'll still have access to the chat history."
+        de: "Die Person behält weiterhin Zugriff auf den Chatverlauf."
+        it: "La persona manterrà comunque l'accesso alla cronologia della chat."
+    team:
+      search_placeholder:
+        en: "Search for members"
+        de: "Mitglieder suchen"
+        it: "Cerca membri"
+      members_tab:
+        en: "Members"
+        de: "Mitglieder"
+        it: "Membri"
+      open_in_browser:
+        en: "Open in browser"
+        de: "Im Browser öffnen"
+        it: "Apri nel browser"
+      role_owner:
+        en: "Owner"
+        de: "Besitzer"
+        it: "Proprietario"
+      role_member:
+        en: "Member"
+        de: "Mitglied"
+        it: "Membro"
+      loading_members:
+        en: "Loading members..."
+        de: "Mitglieder werden geladen..."
+        it: "Caricamento membri..."
+      no_members_match:
+        en: "No members match \"%{query}\""
+        de: "Keine Mitglieder passen zu \"%{query}\""
+        it: "Nessun membro corrisponde a \"%{query}\""
+      owners:
+        en: "Owners"
+        de: "Besitzer"
+        it: "Proprietari"
+      members_and_guests:
+        en: "Members and guests"
+        de: "Mitglieder und Gäste"
+        it: "Membri e ospiti"
+    menu:
+      mark_read:
+        en: "Mark as read"
+        de: "Als gelesen markieren"
+        it: "Segna come letto"
+      mark_unread:
+        en: "Mark as unread"
+        de: "Als ungelesen markieren"
+        it: "Segna come non letto"
+      move_to_section:
+        en: "Move to section"
+        de: "In Abschnitt verschieben"
+        it: "Sposta nella sezione"
+      remove_from_section:
+        en: "Remove from section"
+        de: "Aus Abschnitt entfernen"
+        it: "Rimuovi dalla sezione"
+      hide:
+        en: "Hide"
+        de: "Ausblenden"
+        it: "Nascondi"
+      unmute:
+        en: "Unmute"
+        de: "Stummschaltung aufheben"
+        it: "Riattiva notifiche"
+      mute:
+        en: "Mute"
+        de: "Stummschalten"
+        it: "Disattiva notifiche"
+      copy_link:
+        en: "Copy link"
+        de: "Link kopieren"
+        it: "Copia link"
+      link_copied:
+        en: "Link copied"
+        de: "Link kopiert"
+        it: "Link copiato"
+      leave_chat:
+        en: "Leave chat..."
+        de: "Chat verlassen..."
+        it: "Abbandona chat..."
+      notify_all:
+        en: "All new messages"
+        de: "Alle neuen Nachrichten"
+        it: "Tutti i nuovi messaggi"
+      desktop_match_all:
+        en: "Match settings used for all chats"
+        de: "Einstellungen aller Chats übernehmen"
+        it: "Usa le impostazioni di tutte le chat"
+      desktop_off:
+        en: "Don't get desktop notifications"
+        de: "Keine Desktop-Benachrichtigungen erhalten"
+        it: "Non ricevere notifiche desktop"
+      manage_notifications:
+        en: "Manage notifications"
+        de: "Benachrichtigungen verwalten"
+        it: "Gestisci notifiche"
+      notification_mode:
+        en: "Chat notification mode"
+        de: "Benachrichtigungsmodus für Chats"
+        it: "Modalità di notifica della chat"
+      desktop_preference:
+        en: "Set a desktop notification preference"
+        de: "Desktop-Benachrichtigung festlegen"
+        it: "Imposta una preferenza per le notifiche desktop"
+    leave:
+      other_members:
+        en: "The other members see that you left. You can only come back if someone adds you."
+        de: "Die anderen Mitglieder sehen, dass du gegangen bist. Du kannst nur zurückkehren, wenn dich jemand hinzufügt."
+        it: "Gli altri membri vedono che hai lasciato la chat. Puoi tornare solo se qualcuno ti aggiunge."
+      other_member:
+        en: "The other member sees that you left. You can only come back if someone adds you."
+        de: "Das andere Mitglied sieht, dass du gegangen bist. Du kannst nur zurückkehren, wenn dich jemand hinzufügt."
+        it: "L'altro membro vede che hai lasciato la chat. Puoi tornare solo se qualcuno ti aggiunge."
+      other_members_count:
+        en: "The %{count} other members see that you left. You can only come back if someone adds you."
+        de: "Die %{count} anderen Mitglieder sehen, dass du gegangen bist. Du kannst nur zurückkehren, wenn dich jemand hinzufügt."
+        it: "Gli altri %{count} membri vedono che hai lasciato la chat. Puoi tornare solo se qualcuno ti aggiunge."
+      heading:
+        en: "Leave \"%{title}\"?"
+        de: "\"%{title}\" verlassen?"
+        it: "Abbandonare \"%{title}\"?"
+    remove_history:
+      label:
+        en: "Remove chat history"
+        de: "Chatverlauf entfernen"
+        it: "Rimuovi cronologia chat"
+      title:
+        en: "Remove chat history?"
+        de: "Chatverlauf entfernen?"
+        it: "Rimuovere la cronologia della chat?"
+      description:
+        en: "This will remove the chat from your list and search. It affects you only."
+        de: "Dadurch wird der Chat aus deiner Liste und Suche entfernt. Das betrifft nur dich."
+        it: "La chat verrà rimossa dal tuo elenco e dalla ricerca. Riguarda solo te."
+    message:
+      translation:
+        en: "Translation"
+        de: "Übersetzung"
+        it: "Traduzione"
+      agents:
+        en: "Agents"
+        de: "Agenten"
+        it: "Agenti"
+      reply:
+        en: "Reply"
+        de: "Antworten"
+        it: "Rispondi"
+      copy_link:
+        en: "Copy link"
+        de: "Link kopieren"
+        it: "Copia link"
+      copy_text:
+        en: "Copy text"
+        de: "Text kopieren"
+        it: "Copia testo"
+      unsave:
+        en: "Unsave this message"
+        de: "Gespeicherte Nachricht entfernen"
+        it: "Rimuovi dai salvati"
+      save:
+        en: "Save this message"
+        de: "Nachricht speichern"
+        it: "Salva messaggio"
+      unpin:
+        en: "Unpin"
+        de: "Anheftung aufheben"
+        it: "Rimuovi il pin"
+      pin_everyone:
+        en: "Pin for everyone"
+        de: "Für alle anheften"
+        it: "Aggiungi pin per tutti"
+      edit:
+        en: "Edit"
+        de: "Bearbeiten"
+        it: "Modifica"
+      refresh_card:
+        en: "Refresh card"
+        de: "Karte aktualisieren"
+        it: "Aggiorna scheda"
+      mark_unread:
+        en: "Mark as unread"
+        de: "Als ungelesen markieren"
+        it: "Segna come non letto"
+      delete:
+        en: "Delete"
+        de: "Löschen"
+        it: "Elimina"
+      manage_actions:
+        en: "Manage actions..."
+        de: "Aktionen verwalten..."
+        it: "Gestisci azioni..."
+      edited:
+        en: "Edited"
+        de: "Bearbeitet"
+        it: "Modificato"
+      forwarded:
+        en: "Forwarded"
+        de: "Weitergeleitet"
+        it: "Inoltrato"
+      failed_to_send:
+        en: "Failed to send."
+        de: "Senden fehlgeschlagen."
+        it: "Invio non riuscito."
+      scheduled_failed:
+        en: "Couldn't send at the scheduled time."
+        de: "Konnte zum geplanten Zeitpunkt nicht gesendet werden."
+        it: "Impossibile inviare all'ora pianificata."
+      scheduled_change_failed:
+        en: "Couldn't change the scheduled message."
+        de: "Geplante Nachricht konnte nicht geändert werden."
+        it: "Impossibile modificare il messaggio pianificato."
+      retry:
+        en: "Retry"
+        de: "Wiederholen"
+        it: "Riprova"
+      send_now:
+        en: "Send now"
+        de: "Jetzt senden"
+        it: "Invia ora"
+      deleted_preview:
+        en: "Message deleted"
+        de: "Nachricht gelöscht"
+        it: "Messaggio eliminato"
+    pin:
+      fallback_preview:
+        en: "Pinned message"
+        de: "Angeheftete Nachricht"
+        it: "Messaggio con pin"
+      position:
+        en: "%{position} of %{total}"
+        de: "%{position} von %{total}"
+        it: "%{position} di %{total}"
+      label:
+        en: "Pinned"
+        de: "Angeheftet"
+        it: "In evidenza"
+      unpin_tooltip:
+        en: "Unpin for everyone"
+        de: "Anheftung für alle aufheben"
+        it: "Rimuovi il pin per tutti"
+    post:
+      reply_in_thread:
+        en: "Reply in thread"
+        de: "Im Thread antworten"
+        it: "Rispondi nel thread"
+      new:
+        en: "New"
+        de: "Neu"
+        it: "Nuovo"
+      post_in_channel:
+        en: "Post in channel"
+        de: "Im Kanal posten"
+        it: "Pubblica nel canale"
+      post:
+        en: "Post"
+        de: "Posten"
+        it: "Pubblica"
+      announcement:
+        en: "Announcement"
+        de: "Ankündigung"
+        it: "Annuncio"
+    activity:
+      title:
+        en: "Activity"
+        de: "Aktivität"
+        it: "Attività"
+      mark_all_read:
+        en: "Mark all as read"
+        de: "Alle als gelesen markieren"
+        it: "Segna tutto come letto"
+      mark_read_tooltip:
+        en: "Mark as read"
+        de: "Als gelesen markieren"
+        it: "Segna come letto"
+      proposals:
+        en: "Agent proposals"
+        de: "Agentenvorschläge"
+        it: "Proposte degli agenti"
+      plus_count:
+        en: "%{actor} +%{count}"
+        de: "%{actor} +%{count}"
+        it: "%{actor} +%{count}"
+      mention_everyone:
+        en: "%{names} mentioned Everyone"
+        de: "%{names} hat Everyone erwähnt"
+        it: "%{names} ha menzionato Everyone"
+      mention_channel:
+        en: "%{names} mentioned %{channel}"
+        de: "%{names} hat %{channel} erwähnt"
+        it: "%{names} ha menzionato %{channel}"
+      mention_channel_generic:
+        en: "%{names} mentioned the channel"
+        de: "%{names} hat den Kanal erwähnt"
+        it: "%{names} ha menzionato il canale"
+      mention_team:
+        en: "%{names} mentioned %{team}"
+        de: "%{names} hat %{team} erwähnt"
+        it: "%{names} ha menzionato %{team}"
+      mention_team_generic:
+        en: "%{names} mentioned the team"
+        de: "%{names} hat das Team erwähnt"
+        it: "%{names} ha menzionato il team"
+      mention_you:
+        en: "%{names} mentioned you"
+        de: "%{names} hat dich erwähnt"
+        it: "%{names} ti ha menzionato"
+      reacted:
+        en: "%{names} reacted to your message"
+        de: "%{names} hat auf deine Nachricht reagiert"
+        it: "%{names} ha reagito al tuo messaggio"
+      missed_call:
+        en: "Missed call from %{actor}"
+        de: "Anruf von %{actor} verpasst"
+        it: "Chiamata persa da %{actor}"
+      voicemail:
+        en: "Voicemail from %{actor}"
+        de: "Voicemail von %{actor}"
+        it: "Segreteria telefonica da %{actor}"
+      join_meeting:
+        en: "%{actor} asked you to join a meeting"
+        de: "%{actor} hat dich gebeten, an einer Besprechung teilzunehmen"
+        it: "%{actor} ti ha chiesto di partecipare a una riunione"
+      replied:
+        en: "%{names} replied"
+        de: "%{names} hat geantwortet"
+        it: "%{names} ha risposto"
+      posted:
+        en: "%{names} posted a new message"
+        de: "%{names} hat eine neue Nachricht gepostet"
+        it: "%{names} ha pubblicato un nuovo messaggio"
+      made_owner:
+        en: "%{actor} made you an owner of %{team}"
+        de: "%{actor} hat dich zum Besitzer von %{team} gemacht"
+        it: "%{actor} ti ha reso proprietario di %{team}"
+      added_to_team:
+        en: "%{actor} added you to %{team}"
+        de: "%{actor} hat dich zu %{team} hinzugefügt"
+        it: "%{actor} ti ha aggiunto a %{team}"
+      replied_to_post:
+        en: "%{names} replied to your post"
+        de: "%{names} hat auf deinen Beitrag geantwortet"
+        it: "%{names} ha risposto al tuo post"
+      replied_to_message:
+        en: "%{names} replied to message"
+        de: "%{names} hat auf eine Nachricht geantwortet"
+        it: "%{names} ha risposto a un messaggio"
+      replied_generic:
+        en: "%{names} replied"
+        de: "%{names} hat geantwortet"
+        it: "%{names} ha risposto"
+      a_team:
+        en: "a team"
+        de: "ein Team"
+        it: "un team"
+      reaction_detail:
+        en: "%{glyphs} to: %{preview}"
+        de: "%{glyphs} zu: %{preview}"
+        it: "%{glyphs} a: %{preview}"
+      missed_calls_count:
+        en: "%{count} missed calls"
+        de: "%{count} verpasste Anrufe"
+        it: "%{count} chiamate perse"
+      chat_with:
+        en: "Chat with %{title}"
+        de: "Chat mit %{title}"
+        it: "Chat con %{title}"
+      filter_all:
+        en: "All"
+        de: "Alle"
+        it: "Tutti"
+      filter_mentions:
+        en: "@Mentions"
+        de: "@Erwähnungen"
+        it: "@Menzioni"
+      filter_unread:
+        en: "Unread"
+        de: "Ungelesen"
+        it: "Non letti"
+      filter_replies:
+        en: "Replies"
+        de: "Antworten"
+        it: "Risposte"
+      filter_reactions:
+        en: "Reactions"
+        de: "Reaktionen"
+        it: "Reazioni"
+      filter_missed_calls:
+        en: "Missed calls"
+        de: "Verpasste Anrufe"
+        it: "Chiamate perse"
+      empty_all:
+        en: "No activity yet"
+        de: "Noch keine Aktivität"
+        it: "Nessuna attività"
+      empty_mentions:
+        en: "No mentions"
+        de: "Keine Erwähnungen"
+        it: "Nessuna menzione"
+      empty_unread:
+        en: "Nothing unread"
+        de: "Nichts ungelesen"
+        it: "Nulla di non letto"
+      empty_replies:
+        en: "No replies"
+        de: "Keine Antworten"
+        it: "Nessuna risposta"
+      empty_reactions:
+        en: "No reactions"
+        de: "Keine Reaktionen"
+        it: "Nessuna reazione"
+      empty_missed_calls:
+        en: "No missed calls"
+        de: "Keine verpassten Anrufe"
+        it: "Nessuna chiamata persa"
+      bucket_today:
+        en: "Today"
+        de: "Heute"
+        it: "Oggi"
+      bucket_yesterday:
+        en: "Yesterday"
+        de: "Gestern"
+        it: "Ieri"
+      bucket_earlier:
+        en: "Earlier"
+        de: "Früher"
+        it: "Precedenti"
+      more_filters:
+        en: "More filters"
+        de: "Mehr Filter"
+        it: "Più filtri"
+      fewer_filters:
+        en: "Fewer filters"
+        de: "Weniger Filter"
+        it: "Meno filtri"
+    sidebar:
+      proposal_from:
+        en: "Proposal from %{agent}"
+        de: "Vorschlag von %{agent}"
+        it: "Proposta di %{agent}"
+      empty_folder:
+        en: "Empty. Drag chats here."
+        de: "Leer. Chats hierher ziehen."
+        it: "Vuota. Trascina qui le chat."
+      deleted_preview:
+        en: "This message was deleted"
+        de: "Diese Nachricht wurde gelöscht"
+        it: "Questo messaggio è stato eliminato"
+      own_prefix:
+        en: "You"
+        de: "Du"
+        it: "Tu"
+    title:
+      search_hint:
+        en: "Search chats, people and channels"
+        de: "Chats, Personen und Kanäle durchsuchen"
+        it: "Cerca chat, persone e canali"
+      demo:
+        en: "Demo"
+        de: "Demo"
+        it: "Demo"
+      read_only:
+        en: "Read-only"
+        de: "Schreibgeschützt"
+        it: "Sola lettura"
+      restarting:
+        en: "Restarting..."
+        de: "Neustart läuft..."
+        it: "Riavvio in corso..."
+      restart_to_update:
+        en: "Restart to update"
+        de: "Zum Aktualisieren neu starten"
+        it: "Riavvia per aggiornare"
+    shell:
+      opening_link:
+        en: "Opening link..."
+        de: "Link wird geöffnet..."
+        it: "Apertura del link..."
+      opening_host:
+        en: "Opening %{host}..."
+        de: "%{host} wird geöffnet..."
+        it: "Apertura di %{host}..."
+      open_action:
+        en: "Open"
+        de: "Öffnen"
+        it: "Apri"
+      forwarded_to:
+        en: "Forwarded to %{title}"
+        de: "Weitergeleitet an %{title}"
+        it: "Inoltrato a %{title}"
+    switcher:
+      messages:
+        en: "Messages"
+        de: "Nachrichten"
+        it: "Messaggi"
+      people:
+        en: "People"
+        de: "Personen"
+        it: "Persone"
+      unknown:
+        en: "Unknown"
+        de: "Unbekannt"
+        it: "Sconosciuto"
+      subtitle_chat:
+        en: "Chat"
+        de: "Chat"
+        it: "Chat"
+      subtitle_group:
+        en: "Group chat, %{count} participants"
+        de: "Gruppenchat, %{count} Teilnehmer"
+        it: "Chat di gruppo, %{count} partecipanti"
+      placeholder:
+        en: "Jump to a chat, channel, person or message"
+        de: "Zu Chat, Kanal, Person oder Nachricht springen"
+        it: "Vai a una chat, un canale, una persona o un messaggio"
+      group_chats:
+        en: "Chats"
+        de: "Chats"
+        it: "Chat"
+      group_channels:
+        en: "Channels"
+        de: "Kanäle"
+        it: "Canali"
+      in_conversation:
+        en: "in %{conversation}"
+        de: "in %{conversation}"
+        it: "in %{conversation}"
+      hint_open:
+        en: "Enter to open"
+        de: "Eingabetaste zum Öffnen"
+        it: "Invio per aprire"
+      hint_select:
+        en: "Arrows to select"
+        de: "Pfeiltasten zum Auswählen"
+        it: "Frecce per selezionare"
+      hint_close:
+        en: "Esc to close"
+        de: "Esc zum Schließen"
+        it: "Esc per chiudere"
+    new:
+      title:
+        en: "You're starting a new conversation"
+        de: "Du beginnst eine neue Unterhaltung"
+        it: "Stai iniziando una nuova conversazione"
+      hint:
+        en: "Type your first message below."
+        de: "Gib unten deine erste Nachricht ein."
+        it: "Scrivi il tuo primo messaggio qui sotto."
+      to_placeholder:
+        en: "Enter name or email"
+        de: "Name oder E-Mail-Adresse eingeben"
+        it: "Inserisci nome o indirizzo email"
+      message_placeholder:
+        en: "Type a message"
+        de: "Nachricht eingeben"
+        it: "Digita un messaggio"
+      message_named:
+        en: "Message %{name}"
+        de: "Nachricht an %{name}"
+        it: "Messaggio a %{name}"
+      group_name_placeholder:
+        en: "Group name (optional)"
+        de: "Gruppenname (optional)"
+        it: "Nome del gruppo (facoltativo)"
+      suggested:
+        en: "Suggested"
+        de: "Vorschläge"
+        it: "Suggeriti"
+      people:
+        en: "People"
+        de: "Personen"
+        it: "Persone"
+      search_failed:
+        en: "Search failed"
+        de: "Suche fehlgeschlagen"
+        it: "Ricerca non riuscita"
+      searching:
+        en: "Searching ..."
+        de: "Suche läuft ..."
+        it: "Ricerca in corso..."
+      no_people:
+        en: "No people found for \"%{query}\""
+        de: "Keine Personen für \"%{query}\" gefunden"
+        it: "Nessuna persona trovata per \"%{query}\""
+      to_label:
+        en: "To:"
+        de: "An:"
+        it: "A:"
+      name_label:
+        en: "Name"
+        de: "Name"
+        it: "Nome"
+      empty_hint:
+        en: "No messages yet. Say hi."
+        de: "Noch keine Nachrichten. Sag Hallo."
+        it: "Nessun messaggio. Saluta."
+      group_summary:
+        en: "New group chat with you and %{count} people"
+        de: "Neuer Gruppenchat mit dir und %{count} Personen"
+        it: "Nuova chat di gruppo con te e %{count} persone"
+    quick_view:
+      unknown_author:
+        en: "Unknown"
+        de: "Unbekannt"
+        it: "Sconosciuto"
+      unsave:
+        en: "Unsave"
+        de: "Aus gespeicherten entfernen"
+        it: "Rimuovi dai salvati"
+    update:
+      failed:
+        en: "Update failed: %{detail}"
+        de: "Update fehlgeschlagen: %{detail}"
+        it: "Aggiornamento non riuscito: %{detail}"
+    composer:
+      placeholder:
+        en: "Type a message"
+        de: "Nachricht eingeben"
+        it: "Digita un messaggio"
+      mention_channel:
+        en: "Channel"
+        de: "Kanal"
+        it: "Canale"
+      mention_team:
+        en: "Team"
+        de: "Team"
+        it: "Team"
+      mention_tag:
+        en: "Tag"
+        de: "Tag"
+        it: "Tag"
+      link_placeholder:
+        en: "Paste or type a link"
+        de: "Link einfügen oder eingeben"
+        it: "Incolla o digita un link"
+      paste_hint:
+        en: "Formatted from Markdown"
+        de: "Aus Markdown formatiert"
+        it: "Formattato da Markdown"
+      plain_text:
+        en: "plain text"
+        de: "Nur Text"
+        it: "testo normale"
+      editing_scheduled:
+        en: "Editing scheduled message - %{time}"
+        de: "Geplante Nachricht wird bearbeitet – %{time}"
+        it: "Modifica del messaggio pianificato - %{time}"
+      editing_message:
+        en: "Editing message"
+        de: "Nachricht wird bearbeitet"
+        it: "Modifica del messaggio"
+      replying_to:
+        en: "Replying to %{author}"
+        de: "Antwort an %{author}"
+        it: "Risposta a %{author}"
+      emoji_gif_stickers:
+        en: "Emoji, GIFs and stickers"
+        de: "Emoji, GIFs und Sticker"
+        it: "Emoji, GIF e sticker"
+      image_only_preview:
+        en: "Image"
+        de: "Bild"
+        it: "Immagine"
+      insert_table:
+        en: "Insert %{columns}x%{rows} table"
+        de: "Tabelle %{columns}x%{rows} einfügen"
+        it: "Inserisci tabella %{columns}x%{rows}"
+      cut:
+        en: "Cut"
+        de: "Ausschneiden"
+        it: "Taglia"
+      copy:
+        en: "Copy"
+        de: "Kopieren"
+        it: "Copia"
+      paste:
+        en: "Paste"
+        de: "Einfügen"
+        it: "Incolla"
+    delivery:
+      send_as_standard:
+        en: "Send as standard"
+        de: "Als Standard senden"
+        it: "Invia come standard"
+    attach:
+      button_label:
+        en: "Attach file"
+        de: "Datei anhängen"
+        it: "Allega file"
+      search_placeholder:
+        en: "Search cloud files"
+        de: "Cloud-Dateien durchsuchen"
+        it: "Cerca file cloud"
+      recent_title:
+        en: "Recent cloud files"
+        de: "Zuletzt verwendete Cloud-Dateien"
+        it: "File cloud recenti"
+      results_title:
+        en: "Cloud files"
+        de: "Cloud-Dateien"
+        it: "File cloud"
+      upload_label:
+        en: "Upload from this device"
+        de: "Von diesem Gerät hochladen"
+        it: "Carica da questo dispositivo"
+      loading:
+        en: "Loading ..."
+        de: "Wird geladen ..."
+        it: "Caricamento ..."
+      no_recent:
+        en: "Your recent files will show up here."
+        de: "Deine zuletzt verwendeten Dateien werden hier angezeigt."
+        it: "I tuoi file recenti appariranno qui."
+      no_results:
+        en: "No files found."
+        de: "Keine Dateien gefunden."
+        it: "Nessun file trovato."
+      failed:
+        en: "Couldn't load files."
+        de: "Dateien konnten nicht geladen werden."
+        it: "Impossibile caricare i file."
+      attach_failed:
+        en: "Couldn't attach %{name}"
+        de: "%{name} konnte nicht angehängt werden"
+        it: "Impossibile allegare %{name}"
+      opened_just_now:
+        en: "Opened just now"
+        de: "Gerade geöffnet"
+        it: "Aperto poco fa"
+      opened_minute:
+        en: "Opened %{count} minute ago"
+        de: "Vor %{count} Minute geöffnet"
+        it: "Aperto %{count} minuto fa"
+      opened_minutes:
+        en: "Opened %{count} minutes ago"
+        de: "Vor %{count} Minuten geöffnet"
+        it: "Aperto %{count} minuti fa"
+      opened_hour:
+        en: "Opened %{count} hour ago"
+        de: "Vor %{count} Stunde geöffnet"
+        it: "Aperto %{count} ora fa"
+      opened_hours:
+        en: "Opened %{count} hours ago"
+        de: "Vor %{count} Stunden geöffnet"
+        it: "Aperto %{count} ore fa"
+      opened_day:
+        en: "Opened %{count} day ago"
+        de: "Vor %{count} Tag geöffnet"
+        it: "Aperto %{count} giorno fa"
+      opened_days:
+        en: "Opened %{count} days ago"
+        de: "Vor %{count} Tagen geöffnet"
+        it: "Aperto %{count} giorni fa"
+    cloud:
+      attach_label:
+        en: "Attach cloud files"
+        de: "Cloud-Dateien anhängen"
+        it: "Allega file cloud"
+      name:
+        en: "Name"
+        de: "Name"
+        it: "Nome"
+      opened:
+        en: "Opened"
+        de: "Geöffnet"
+        it: "Aperto"
+      owner:
+        en: "Owner"
+        de: "Besitzer"
+        it: "Proprietario"
+      date_shared:
+        en: "Date shared"
+        de: "Freigabedatum"
+        it: "Data di condivisione"
+      shared_by:
+        en: "Shared by"
+        de: "Freigegeben von"
+        it: "Condiviso da"
+      modified:
+        en: "Modified"
+        de: "Geändert"
+        it: "Modificato"
+      modified_by:
+        en: "Modified By"
+        de: "Geändert von"
+        it: "Modificato da"
+      home:
+        en: "Home"
+        de: "Start"
+        it: "Home"
+      my_files:
+        en: "My files"
+        de: "Meine Dateien"
+        it: "I miei file"
+      shared:
+        en: "Shared"
+        de: "Freigegeben"
+        it: "Condivisi"
+      quick_access:
+        en: "Quick access"
+        de: "Schnellzugriff"
+        it: "Accesso rapido"
+      just_now:
+        en: "Just now"
+        de: "Gerade eben"
+        it: "Poco fa"
+      minutes_ago:
+        en: "%{minutes}m ago"
+        de: "vor %{minutes} Min."
+        it: "%{minutes} min fa"
+      hours_ago:
+        en: "%{hours}h ago"
+        de: "vor %{hours} Std."
+        it: "%{hours} h fa"
+      loading:
+        en: "Loading ..."
+        de: "Wird geladen ..."
+        it: "Caricamento ..."
+      failed:
+        en: "Couldn't load files."
+        de: "Dateien konnten nicht geladen werden."
+        it: "Impossibile caricare i file."
+      empty:
+        en: "This folder is empty."
+        de: "Dieser Ordner ist leer."
+        it: "Questa cartella è vuota."
+      documents:
+        en: "Documents"
+        de: "Dokumente"
+        it: "Documenti"
+      shared_with_you:
+        en: "Shared with you"
+        de: "Für dich freigegeben"
+        it: "Condivisi con te"
+    format:
+      color_red:
+        en: "Red"
+        de: "Rot"
+        it: "Rosso"
+      color_tuscan_orange:
+        en: "Tuscan orange"
+        de: "Toskanisches Orange"
+        it: "Arancione toscano"
+      color_sunglow:
+        en: "Sunglow"
+        de: "Sonnenglut"
+        it: "Giallo sole"
+      color_pear:
+        en: "Pear"
+        de: "Birne"
+        it: "Pera"
+      color_eucalyptus:
+        en: "Eucalyptus"
+        de: "Eukalyptus"
+        it: "Eucalipto"
+      color_faded_jade:
+        en: "Faded jade"
+        de: "Verblasstes Jadegrün"
+        it: "Giada sbiadita"
+      color_fun_blue:
+        en: "Fun blue"
+        de: "Vergnügliches Blau"
+        it: "Blu divertente"
+      color_tyrian_purple:
+        en: "Tyrian purple"
+        de: "Tyrisches Purpur"
+        it: "Porpora di Tiro"
+      color_kobi_red:
+        en: "Kobi red"
+        de: "Kobirot"
+        it: "Rosso kobi"
+      color_rose_bud:
+        en: "Rose bud"
+        de: "Rosenknospe"
+        it: "Bocciolo di rosa"
+      color_goldenrod:
+        en: "Goldenrod"
+        de: "Goldrute"
+        it: "Verga d'oro"
+      color_primrose:
+        en: "Primrose"
+        de: "Primel"
+        it: "Primula"
+      color_mantis:
+        en: "Mantis"
+        de: "Gottesanbeterin"
+        it: "Mantide"
+      color_regent_st_blue:
+        en: "Regent St. blue"
+        de: "Regent-Street-Blau"
+        it: "Blu Regent Street"
+      color_periwinkle_grey:
+        en: "Periwinkle grey"
+        de: "Immergrün-Grau"
+        it: "Grigio pervinca"
+      color_pale_rose:
+        en: "Pale rose"
+        de: "Blasses Rosa"
+        it: "Rosa pallido"
+      paragraph:
+        en: "Paragraph"
+        de: "Absatz"
+        it: "Paragrafo"
+      heading_1:
+        en: "Heading 1"
+        de: "Überschrift 1"
+        it: "Titolo 1"
+      heading_2:
+        en: "Heading 2"
+        de: "Überschrift 2"
+        it: "Titolo 2"
+      heading_3:
+        en: "Heading 3"
+        de: "Überschrift 3"
+        it: "Titolo 3"
+      size_large:
+        en: "Large"
+        de: "Groß"
+        it: "Grande"
+      size_medium:
+        en: "Medium"
+        de: "Mittel"
+        it: "Medio"
+      size_small:
+        en: "Small"
+        de: "Klein"
+        it: "Piccolo"
+      automatic:
+        en: "Automatic"
+        de: "Automatisch"
+        it: "Automatico"
+      no_highlight:
+        en: "No highlight"
+        de: "Keine Hervorhebung"
+        it: "Nessuna evidenziazione"
+    plus:
+      title:
+        en: "Actions and apps"
+        de: "Aktionen und Apps"
+        it: "Azioni e app"
+      schedule_message:
+        en: "Schedule message"
+        de: "Nachricht planen"
+        it: "Pianifica messaggio"
+      delivery_options:
+        en: "Delivery options"
+        de: "Zustelloptionen"
+        it: "Opzioni di recapito"
+      schedule_meeting:
+        en: "Schedule meeting"
+        de: "Besprechung planen"
+        it: "Pianifica riunione"
+    post_editor:
+      announcement_tooltip:
+        en: "Announcement"
+        de: "Ankündigung"
+        it: "Annuncio"
+      upload_image_tooltip:
+        en: "Upload an image"
+        de: "Bild hochladen"
+        it: "Carica un'immagine"
+      headline_placeholder:
+        en: "Type a headline"
+        de: "Überschrift eingeben"
+        it: "Digita un titolo"
+      subject_placeholder:
+        en: "Add a subject"
+        de: "Betreff hinzufügen"
+        it: "Aggiungi un oggetto"
+      subheading_placeholder:
+        en: "Add a subheading"
+        de: "Unterüberschrift hinzufügen"
+        it: "Aggiungi un sottotitolo"
+      post:
+        en: "Post"
+        de: "Posten"
+        it: "Pubblica"
+      audience_one:
+        en: "1 person will see your message."
+        de: "1 Person wird deine Nachricht sehen."
+        it: "1 persona vedrà il tuo messaggio."
+      audience_many:
+        en: "%{count} people will see your message."
+        de: "%{count} Personen werden deine Nachricht sehen."
+        it: "%{count} persone vedranno il tuo messaggio."
+    rewrite:
+      button:
+        en: "Write with Copilot"
+        de: "Mit Copilot schreiben"
+        it: "Scrivi con Copilot"
+      with_profile:
+        en: "Rewrite with %{name}"
+        de: "Umschreiben mit %{name}"
+        it: "Riscrivi con %{name}"
+      switch_hint:
+        en: "Choose another model under Settings > Agents, Write with."
+        de: "Wähle unter Einstellungen > Agenten, Mit schreiben ein anderes Modell."
+        it: "Scegli un altro modello in Impostazioni > Agenti, Scrivi con."
+      close:
+        en: "Close"
+        de: "Schließen"
+        it: "Chiudi"
+      adjust:
+        en: "Adjust"
+        de: "Anpassen"
+        it: "Adatta"
+      customised:
+        en: "Customised"
+        de: "Angepasst"
+        it: "Personalizzato"
+      custom_placeholder:
+        en: "Describe how to adjust it, e.g. make it sound friendlier"
+        de: "Beschreibe die Anpassung, z. B. freundlicher formulieren"
+        it: "Descrivi come adattarlo, ad es. rendilo più cordiale"
+      replace:
+        en: "Replace"
+        de: "Ersetzen"
+        it: "Sostituisci"
+      disclaimer:
+        en: "AI-generated content may be incorrect"
+        de: "KI-generierte Inhalte können falsch sein"
+        it: "I contenuti generati dall'IA potrebbero non essere corretti"
+      rewrite:
+        en: "Rewrite"
+        de: "Umschreiben"
+        it: "Riscrivi"
+      proofread:
+        en: "Proofread"
+        de: "Korrekturlesen"
+        it: "Correggi"
+      working:
+        en: "%{name} is writing ..."
+        de: "%{name} schreibt ..."
+        it: "%{name} sta scrivendo..."
+      failed:
+        en: "%{name} could not rewrite this:"
+        de: "%{name} konnte dies nicht umschreiben:"
+        it: "%{name} non è riuscito a riscriverlo:"
+      empty:
+        en: "Type a message first, then let %{name} rewrite it."
+        de: "Gib zuerst eine Nachricht ein und lass sie dann von %{name} umschreiben."
+        it: "Scrivi prima un messaggio, poi lascia che %{name} lo riscriva."
+      text_only:
+        en: "%{name} rewrites text only. Move images and tables out of the message first."
+        de: "%{name} schreibt nur Text um. Verschiebe zuerst Bilder und Tabellen aus der Nachricht."
+        it: "%{name} riscrive solo il testo. Sposta prima immagini e tabelle fuori dal messaggio."
+      adjust_concise:
+        en: "Concise"
+        de: "Kurz"
+        it: "Conciso"
+      adjust_longer:
+        en: "Longer"
+        de: "Länger"
+        it: "Più lungo"
+      adjust_casual:
+        en: "Casual"
+        de: "Locker"
+        it: "Informale"
+      adjust_professional:
+        en: "Professional"
+        de: "Professionell"
+        it: "Professionale"
+      adjust_confident:
+        en: "Confident"
+        de: "Selbstbewusst"
+        it: "Sicuro"
+      adjust_enthusiastic:
+        en: "Enthusiastic"
+        de: "Begeistert"
+        it: "Entusiasta"
+    schedule:
+      bad_time:
+        en: "Enter a time like 14:30."
+        de: "Gib eine Uhrzeit wie 14:30 ein."
+        it: "Inserisci un'ora come 14:30."
+      blocked_read_only:
+        en: "Read-only mode"
+        de: "Schreibgeschützter Modus"
+        it: "Modalità sola lettura"
+      blocked_inline:
+        en: "Open the conversation to schedule a reply"
+        de: "Öffne die Unterhaltung, um eine Antwort zu planen"
+        it: "Apri la conversazione per pianificare una risposta"
+      blocked_notes:
+        en: "Not available in your notes"
+        de: "In deinen Notizen nicht verfügbar"
+        it: "Non disponibile nelle note"
+      blocked_new_chat:
+        en: "Not available in a new chat yet"
+        de: "In einem neuen Chat noch nicht verfügbar"
+        it: "Non ancora disponibile in una nuova chat"
+      blocked_editing:
+        en: "Can't schedule while editing"
+        de: "Beim Bearbeiten kann nicht geplant werden"
+        it: "Impossibile pianificare durante la modifica"
+      blocked_mentions:
+        en: "Can't schedule messages with mentions yet"
+        de: "Nachrichten mit Erwähnungen können noch nicht geplant werden"
+        it: "Impossibile pianificare messaggi con menzioni"
+      blocked_attachments:
+        en: "Can't schedule messages with images or files yet"
+        de: "Nachrichten mit Bildern oder Dateien können noch nicht geplant werden"
+        it: "Impossibile pianificare messaggi con immagini o file"
+      blocked_reply:
+        en: "Can't schedule replies yet"
+        de: "Antworten können noch nicht geplant werden"
+        it: "Impossibile pianificare risposte"
+      blocked_empty:
+        en: "Nothing to schedule yet"
+        de: "Noch nichts zum Planen"
+        it: "Nulla da pianificare"
+      schedule_send:
+        en: "Schedule send"
+        de: "Senden planen"
+        it: "Pianifica invio"
+      custom:
+        en: "Custom..."
+        de: "Benutzerdefiniert..."
+        it: "Personalizzato..."
+      schedule:
+        en: "Schedule"
+        de: "Planen"
+        it: "Pianifica"
+    slash:
+      header:
+        en: "Commands"
+        de: "Befehle"
+        it: "Comandi"
+      no_results:
+        en: "No results"
+        de: "Keine Ergebnisse"
+        it: "Nessun risultato"
+      available:
+        en: "Set your status to available"
+        de: "Status auf „Verfügbar“ setzen"
+        it: "Imposta lo stato su Disponibile"
+      away:
+        en: "Set your status to away"
+        de: "Status auf „Abwesend“ setzen"
+        it: "Imposta lo stato su Assente"
+      brb:
+        en: "Set your status to be right back"
+        de: "Status auf „Gleich zurück“ setzen"
+        it: "Imposta lo stato su Torno subito"
+      busy:
+        en: "Set your status to busy"
+        de: "Status auf „Beschäftigt“ setzen"
+        it: "Imposta lo stato su Occupato"
+      dnd:
+        en: "Set your status to do not disturb"
+        de: "Status auf „Nicht stören“ setzen"
+        it: "Imposta lo stato su Non disturbare"
+      offline:
+        en: "Set your status to offline"
+        de: "Status auf „Offline“ setzen"
+        it: "Imposta lo stato su Offline"
+      reset:
+        en: "Reset your presence status"
+        de: "Anwesenheitsstatus zurücksetzen"
+        it: "Reimposta lo stato di presenza"
+      goto:
+        en: "Go right to a chat or channel"
+        de: "Direkt zu einem Chat oder Kanal"
+        it: "Vai subito a una chat o a un canale"
+      leavechat:
+        en: "Leave the chat"
+        de: "Chat verlassen"
+        it: "Abbandona la chat"
+      mute:
+        en: "Mute the chat"
+        de: "Chat stummschalten"
+        it: "Disattiva le notifiche della chat"
+      unmute:
+        en: "Unmute the chat"
+        de: "Stummschaltung der Chat aufheben"
+        it: "Riattiva le notifiche della chat"
+      schedule:
+        en: "Schedule a message"
+        de: "Nachricht planen"
+        it: "Pianifica un messaggio"
+      settings:
+        en: "Open Settings"
+        de: "Einstellungen öffnen"
+        it: "Apri impostazioni"
+      shortcuts:
+        en: "Open keyboard shortcuts"
+        de: "Tastenkürzel öffnen"
+        it: "Apri le scorciatoie da tastiera"
+      confirm_available:
+        en: "Your status is set to available."
+        de: "Dein Status ist jetzt „Verfügbar“."
+        it: "Il tuo stato è impostato su Disponibile."
+      confirm_away:
+        en: "Your status is set to away."
+        de: "Dein Status ist jetzt „Abwesend“."
+        it: "Il tuo stato è impostato su Assente."
+      confirm_brb:
+        en: "Your status is set to be right back."
+        de: "Dein Status ist jetzt „Gleich zurück“."
+        it: "Il tuo stato è impostato su Torno subito."
+      confirm_busy:
+        en: "Your status is set to busy."
+        de: "Dein Status ist jetzt „Beschäftigt“."
+        it: "Il tuo stato è impostato su Occupato."
+      confirm_dnd:
+        en: "Your status is set to do not disturb."
+        de: "Dein Status ist jetzt „Nicht stören“."
+        it: "Il tuo stato è impostato su Non disturbare."
+      confirm_offline:
+        en: "Your status is set to offline."
+        de: "Dein Status ist jetzt „Offline“."
+        it: "Il tuo stato è impostato su Offline."
+      confirm_reset:
+        en: "Your presence status is reset."
+        de: "Dein Anwesenheitsstatus wurde zurückgesetzt."
+        it: "Il tuo stato di presenza è stato reimpostato."
+    details:
+      open_channel:
+        en: "Open channel details"
+        de: "Kanaldetails öffnen"
+        it: "Apri dettagli canale"
+      close_channel:
+        en: "Close channel details"
+        de: "Kanaldetails schließen"
+        it: "Chiudi dettagli canale"
+      open_chat:
+        en: "Open chat details"
+        de: "Chatdetails öffnen"
+        it: "Apri dettagli chat"
+      close_chat:
+        en: "Close chat details"
+        de: "Chatdetails schließen"
+        it: "Chiudi dettagli chat"
+      in_this_chat:
+        en: "In this chat"
+        de: "In diesem Chat"
+        it: "In questa chat"
+      pinned:
+        en: "Pinned"
+        de: "Angeheftet"
+        it: "In evidenza"
+      shared:
+        en: "Shared"
+        de: "Freigegeben"
+        it: "Condivisi"
+      see_all_shared:
+        en: "See all shared files"
+        de: "Alle freigegebenen Dateien anzeigen"
+        it: "Mostra tutti i file condivisi"
+      see_all:
+        en: "See all"
+        de: "Alle anzeigen"
+        it: "Mostra tutto"
+      see_all_pinned:
+        en: "See all pinned posts"
+        de: "Alle angehefteten Beiträge anzeigen"
+        it: "Mostra tutti i post con pin"
+      back:
+        en: "Back"
+        de: "Zurück"
+        it: "Indietro"
+      pinned_post:
+        en: "Pinned post"
+        de: "Angehefteter Beitrag"
+        it: "Post con pin"
+    header:
+      schedule_meeting:
+        en: "Schedule meeting"
+        de: "Besprechung planen"
+        it: "Pianifica riunione"
+      more_channel_options:
+        en: "More channel options"
+        de: "Weitere Kanaloptionen"
+        it: "Altre opzioni del canale"
+      more_chat_options:
+        en: "More chat options"
+        de: "Weitere Chatoptionen"
+        it: "Altre opzioni della chat"
+      external:
+        en: "External"
+        de: "Extern"
+        it: "Esterno"
+    copilot:
+      greeting:
+        en: "Hi, how can I help?"
+        de: "Hallo, wie kann ich helfen?"
+        it: "Ciao, come posso aiutarti?"
+      suggestion_summarize:
+        en: "Summarize this chat"
+        de: "Diesen Chat zusammenfassen"
+        it: "Riassumi questa chat"
+      suggestion_open_items:
+        en: "What are open items?"
+        de: "Welche offenen Punkte gibt es?"
+        it: "Quali sono i punti aperti?"
+      suggestion_decisions:
+        en: "What decisions were made?"
+        de: "Welche Entscheidungen wurden getroffen?"
+        it: "Quali decisioni sono state prese?"
+      close:
+        en: "Close %{name}"
+        de: "%{name} schließen"
+        it: "Chiudi %{name}"
+      open:
+        en: "Open %{name}"
+        de: "%{name} öffnen"
+        it: "Apri %{name}"
+      message_named:
+        en: "Message %{name}"
+        de: "Nachricht an %{name}"
+        it: "Messaggio a %{name}"
+      reading:
+        en: "%{name} is reading the chat ..."
+        de: "%{name} liest den Chat ..."
+        it: "%{name} sta leggendo la chat..."
+      failed:
+        en: "%{name} could not answer:"
+        de: "%{name} konnte nicht antworten:"
+        it: "%{name} non è riuscito a rispondere:"
+      unavailable:
+        en: "%{name} needs a signed-in account."
+        de: "%{name} benötigt ein angemeldetes Konto."
+        it: "%{name} richiede un account con accesso effettuato."
+    delete:
+      read_only:
+        en: "Read-only mode: message not deleted"
+        de: "Schreibgeschützter Modus: Nachricht nicht gelöscht"
+        it: "Modalità sola lettura: messaggio non eliminato"
+      cancelled:
+        en: "cancelled"
+        de: "abgebrochen"
+        it: "annullato"
+      failed:
+        en: "Delete failed: %{detail}"
+        de: "Löschen fehlgeschlagen: %{detail}"
+        it: "Eliminazione non riuscita: %{detail}"
+      tombstone:
+        en: "This message has been deleted."
+        de: "Diese Nachricht wurde gelöscht."
+        it: "Questo messaggio è stato eliminato."
+      undo:
+        en: "Undo"
+        de: "Rückgängig"
+        it: "Annulla"
+      restore_failed:
+        en: "Message restore failed. Please try again"
+        de: "Wiederherstellen der Nachricht fehlgeschlagen. Bitte erneut versuchen."
+        it: "Ripristino del messaggio non riuscito. Riprova."
+    detached:
+      load_message_failed:
+        en: "Could not load the message: %{detail}"
+        de: "Nachricht konnte nicht geladen werden: %{detail}"
+        it: "Impossibile caricare il messaggio: %{detail}"
+      not_found:
+        en: "Could not find the message"
+        de: "Nachricht nicht gefunden"
+        it: "Impossibile trovare il messaggio"
+      unavailable:
+        en: "Messages around this one are not available in this chat"
+        de: "Nachrichten um diese herum sind in diesem Chat nicht verfügbar"
+        it: "I messaggi intorno a questo non sono disponibili in questa chat"
+      load_messages_failed:
+        en: "Could not load messages: %{detail}"
+        de: "Nachrichten konnten nicht geladen werden: %{detail}"
+        it: "Impossibile caricare i messaggi: %{detail}"
+    feed:
+      reply_placeholder:
+        en: "Reply in thread"
+        de: "Im Thread antworten"
+        it: "Rispondi nel thread"
+      replies_failed:
+        en: "Could not load all replies: %{detail}"
+        de: "Nicht alle Antworten konnten geladen werden: %{detail}"
+        it: "Impossibile caricare tutte le risposte: %{detail}"
+    forward:
+      title:
+        en: "Forward this message"
+        de: "Diese Nachricht weiterleiten"
+        it: "Inoltra questo messaggio"
+      subtitle:
+        en: "You can forward to any chat or channel."
+        de: "Du kannst an jeden Chat oder Kanal weiterleiten."
+        it: "Puoi inoltrare a qualsiasi chat o canale."
+      attachment:
+        en: "Attachment"
+        de: "Anhang"
+        it: "Allegato"
+      search_placeholder:
+        en: "Search chats and channels"
+        de: "Chats und Kanäle durchsuchen"
+        it: "Cerca chat e canali"
+      comment_placeholder:
+        en: "Add a message (optional)"
+        de: "Nachricht hinzufügen (optional)"
+        it: "Aggiungi un messaggio (facoltativo)"
+      read_only:
+        en: "Read-only mode: message not forwarded"
+        de: "Schreibgeschützter Modus: Nachricht nicht weitergeleitet"
+        it: "Modalità sola lettura: messaggio non inoltrato"
+      not_connected:
+        en: "Not connected"
+        de: "Nicht verbunden"
+        it: "Non connesso"
+      cancelled:
+        en: "cancelled"
+        de: "abgebrochen"
+        it: "annullato"
+      to_target:
+        en: "To: %{title}"
+        de: "An: %{title}"
+        it: "A: %{title}"
+      send:
+        en: "Forward"
+        de: "Weiterleiten"
+        it: "Inoltra"
+      action:
+        en: "Forward"
+        de: "Weiterleiten"
+        it: "Inoltra"
+      this_message:
+        en: "This message"
+        de: "Diese Nachricht"
+        it: "Questo messaggio"
+      multiple_messages:
+        en: "Multiple messages"
+        de: "Mehrere Nachrichten"
+        it: "Più messaggi"
+      select_message:
+        en: "Select message"
+        de: "Nachricht auswählen"
+        it: "Seleziona messaggio"
+      next:
+        en: "Next"
+        de: "Weiter"
+        it: "Avanti"
+      cancel:
+        en: "Cancel"
+        de: "Abbrechen"
+        it: "Annulla"
+      limit_reason:
+        en: "You can only forward up to 5 messages at a time."
+        de: "Du kannst höchstens 5 Nachrichten gleichzeitig weiterleiten."
+        it: "Puoi inoltrare al massimo 5 messaggi alla volta."
+      image_limit_reason:
+        en: "Messages with more than 5 images can't be forwarded."
+        de: "Nachrichten mit mehr als 5 Bildern können nicht weitergeleitet werden."
+        it: "I messaggi con più di 5 immagini non possono essere inoltrati."
+      undelivered_reason:
+        en: "Undelivered messages can't be forwarded."
+        de: "Nicht zugestellte Nachrichten können nicht weitergeleitet werden."
+        it: "I messaggi non consegnati non possono essere inoltrati."
+      scheduled_reason:
+        en: "Scheduled messages can't be forwarded until they're sent."
+        de: "Geplante Nachrichten können erst nach dem Senden weitergeleitet werden."
+        it: "I messaggi pianificati non possono essere inoltrati finché non vengono inviati."
+      default_reason:
+        en: "This message can't be forwarded."
+        de: "Diese Nachricht kann nicht weitergeleitet werden."
+        it: "Questo messaggio non può essere inoltrato."
+      selected_count:
+        en: "%{count} selected"
+        de: "%{count} ausgewählt"
+        it: "%{count} selezionati"
+    share:
+      action:
+        en: "Share to Outlook"
+        de: "An Outlook senden"
+        it: "Condividi in Outlook"
+      cancelled:
+        en: "cancelled"
+        de: "abgebrochen"
+        it: "annullato"
+      no_link:
+        en: "No link to the message: %{reason}"
+        de: "Kein Link zur Nachricht: %{reason}"
+        it: "Nessun link al messaggio: %{reason}"
+    presence:
+      notify_when_available:
+        en: "Notify when available"
+        de: "Benachrichtigen, wenn verfügbar"
+        it: "Avvisa quando disponibile"
+      turn_off_notifications:
+        en: "Turn off notifications"
+        de: "Benachrichtigungen ausschalten"
+        it: "Disattiva notifiche"
+      now_following:
+        en: "You are now following the presence of %{name}"
+        de: "Du folgst jetzt der Anwesenheit von %{name}"
+        it: "Ora stai seguendo la presenza di %{name}"
+      no_longer_following:
+        en: "You are no longer following the presence of %{name}"
+        de: "Du folgst nicht mehr der Anwesenheit von %{name}"
+        it: "Non stai più seguendo la presenza di %{name}"
+    post_follow:
+      turn_off:
+        en: "Turn off notifications"
+        de: "Benachrichtigungen ausschalten"
+        it: "Disattiva notifiche"
+      turn_on:
+        en: "Turn on notifications"
+        de: "Benachrichtigungen einschalten"
+        it: "Attiva notifiche"
+      notice_on:
+        en: "Notifications turned on"
+        de: "Benachrichtigungen eingeschaltet"
+        it: "Notifiche attivate"
+      notice_off:
+        en: "Notifications turned off"
+        de: "Benachrichtigungen ausgeschaltet"
+        it: "Notifiche disattivate"
+      failure_on:
+        en: "Couldn't turn on notifications"
+        de: "Benachrichtigungen konnten nicht eingeschaltet werden"
+        it: "Impossibile attivare le notifiche"
+      failure_off:
+        en: "Couldn't turn off notifications"
+        de: "Benachrichtigungen konnten nicht ausgeschaltet werden"
+        it: "Impossibile disattivare le notifiche"
+    importance:
+      important:
+        en: "IMPORTANT!"
+        de: "WICHTIG!"
+        it: "IMPORTANTE!"
+      urgent:
+        en: "URGENT!"
+        de: "DRINGEND!"
+        it: "URGENTE!"
+      urgent_toast_suffix:
+        en: "%{sender} sent an urgent message"
+        de: "%{sender} hat eine dringende Nachricht gesendet"
+        it: "%{sender} ha inviato un messaggio urgente"
+    find:
+      in_chat:
+        en: "Find in chat"
+        de: "In Chat suchen"
+        it: "Cerca nella chat"
+      in_channel:
+        en: "Find in channel"
+        de: "Im Kanal suchen"
+        it: "Cerca nel canale"
+      empty_hint:
+        en: "Find messages and links shared in this chat."
+        de: "Suche in diesem Chat nach Nachrichten und geteilten Links."
+        it: "Cerca messaggi e link condivisi in questa chat."
+      no_results_chat:
+        en: "We couldn't find any results in this chat"
+        de: "Keine Ergebnisse in diesem Chat gefunden"
+        it: "Impossibile trovare risultati in questa chat"
+      no_results_channel:
+        en: "We couldn't find any results in this channel"
+        de: "Keine Ergebnisse in diesem Kanal gefunden"
+        it: "Impossibile trovare risultati in questo canale"
+      load_error:
+        en: "Something went wrong while loading the results."
+        de: "Beim Laden der Ergebnisse ist ein Fehler aufgetreten."
+        it: "Si è verificato un errore durante il caricamento dei risultati."
+      loading:
+        en: "Fetching Data..."
+        de: "Daten werden abgerufen..."
+        it: "Recupero dati..."
+      from:
+        en: "From"
+        de: "Von"
+        it: "Da"
+      date:
+        en: "Date"
+        de: "Datum"
+        it: "Data"
+      has_attachment:
+        en: "Has attachment"
+        de: "Mit Anhang"
+        it: "Con allegato"
+      mentions:
+        en: "@Mentions"
+        de: "@Erwähnungen"
+        it: "@Menzioni"
+      this_month:
+        en: "This month"
+        de: "Dieser Monat"
+        it: "Questo mese"
+      last_month:
+        en: "Last month"
+        de: "Letzter Monat"
+        it: "Mese scorso"
+      no_results_with_filters:
+        en: "We couldn't find any results for '%{term}' with the applied filters."
+        de: "Keine Ergebnisse für '%{term}' mit den angewendeten Filtern gefunden."
+        it: "Nessun risultato per '%{term}' con i filtri applicati."
+      range_today:
+        en: "Today"
+        de: "Heute"
+        it: "Oggi"
+      range_yesterday:
+        en: "Yesterday"
+        de: "Gestern"
+        it: "Ieri"
+      range_this_week:
+        en: "This week"
+        de: "Diese Woche"
+        it: "Questa settimana"
+      range_this_month:
+        en: "This month"
+        de: "Dieser Monat"
+        it: "Questo mese"
+    notes:
+      title:
+        en: "This is your space"
+        de: "Das ist dein Bereich"
+        it: "Questo è il tuo spazio"
+      text:
+        en: "This chat is just for you...with you. Use it for drafts, send files to yourself, or get to know chat features a little better."
+        de: "Dieser Chat ist nur für dich ... mit dir. Nutze ihn für Entwürfe, sende dir selbst Dateien oder lerne die Chatfunktionen besser kennen."
+        it: "Questa chat è solo per te... con te. Usala per le bozze, invia file a te stesso o scopri meglio le funzioni della chat."
+    jump:
+      to_newest:
+        en: "Jump to newest"
+        de: "Zu den neuesten springen"
+        it: "Vai ai più recenti"
+    proposal:
+      read_only:
+        en: "read-only mode"
+        de: "schreibgeschützter Modus"
+        it: "modalità sola lettura"
+      not_connected:
+        en: "not connected yet"
+        de: "noch nicht verbunden"
+        it: "non ancora connesso"
+      large_images:
+        en: "Large images upload as files - check the draft and press Send"
+        de: "Große Bilder werden als Dateien hochgeladen – prüfe den Entwurf und drücke Senden"
+        it: "Le immagini grandi vengono caricate come file - controlla la bozza e premi Invia"
+    recap:
+      search_placeholder:
+        en: "Search transcript"
+        de: "Transkript durchsuchen"
+        it: "Cerca nella trascrizione"
+      delete_failed:
+        en: "Recording not deleted: %{reason}"
+        de: "Aufzeichnung nicht gelöscht: %{reason}"
+        it: "Registrazione non eliminata: %{reason}"
+      not_connected:
+        en: "not connected"
+        de: "nicht verbunden"
+        it: "non connesso"
+      audio_only:
+        en: "Audio only"
+        de: "Nur Audio"
+        it: "Solo audio"
+      loading_recording:
+        en: "Loading recording .."
+        de: "Aufzeichnung wird geladen .."
+        it: "Caricamento registrazione .."
+      recording_unavailable:
+        en: "Recording not available: %{reason}"
+        de: "Aufzeichnung nicht verfügbar: %{reason}"
+        it: "Registrazione non disponibile: %{reason}"
+      play:
+        en: "Play"
+        de: "Abspielen"
+        it: "Riproduci"
+      download:
+        en: "Download"
+        de: "Herunterladen"
+        it: "Scarica"
+      recording:
+        en: "Recording"
+        de: "Aufzeichnung"
+        it: "Registrazione"
+      download_vtt:
+        en: "Download .vtt"
+        de: ".vtt herunterladen"
+        it: "Scarica .vtt"
+      download_docx:
+        en: "Download .docx"
+        de: ".docx herunterladen"
+        it: "Scarica .docx"
+      loading_transcript:
+        en: "Loading transcript .."
+        de: "Transkript wird geladen .."
+        it: "Caricamento trascrizione .."
+      transcript_unavailable:
+        en: "Transcript not available: %{reason}"
+        de: "Transkript nicht verfügbar: %{reason}"
+        it: "Trascrizione non disponibile: %{reason}"
+      no_lines_match:
+        en: "No lines match."
+        de: "Keine Zeilen passen."
+        it: "Nessuna riga corrisponde."
+      transcript:
+        en: "Transcript"
+        de: "Transkript"
+        it: "Trascrizione"
+      column_name:
+        en: "Name"
+        de: "Name"
+        it: "Nome"
+      column_joined:
+        en: "Joined"
+        de: "Beigetreten"
+        it: "Partecipazione"
+      column_left:
+        en: "Left"
+        de: "Verlassen"
+        it: "Uscita"
+      column_duration:
+        en: "Duration"
+        de: "Dauer"
+        it: "Durata"
+      loading_attendance:
+        en: "Loading attendance .."
+        de: "Teilnahme wird geladen .."
+        it: "Caricamento presenze .."
+      no_attendees:
+        en: "No attendees recorded."
+        de: "Keine Teilnehmer aufgezeichnet."
+        it: "Nessun partecipante registrato."
+      attendance:
+        en: "Attendance"
+        de: "Teilnahme"
+        it: "Presenze"
+      files:
+        en: "Files"
+        de: "Dateien"
+        it: "File"
+    scheduled:
+      edit_lost:
+        en: "This scheduled message can no longer be changed: your text is back in the composer"
+        de: "Diese geplante Nachricht kann nicht mehr geändert werden: Dein Text ist zurück im Eingabefeld"
+        it: "Questo messaggio pianificato non può più essere modificato: il testo è tornato nell'editor"
+      read_only:
+        en: "Read-only mode: nothing was changed"
+        de: "Schreibgeschützter Modus: Es wurde nichts geändert"
+        it: "Modalità sola lettura: nulla è stato modificato"
+      post_subject:
+        en: "Can't schedule a post with a subject yet"
+        de: "Beiträge mit Betreff können noch nicht geplant werden"
+        it: "Impossibile pianificare un post con oggetto"
+      failed:
+        en: "Couldn't schedule: %{detail}"
+        de: "Planen fehlgeschlagen: %{detail}"
+        it: "Impossibile pianificare: %{detail}"
+    shared:
+      folder_placeholder:
+        en: "Folder name"
+        de: "Ordnername"
+        it: "Nome cartella"
+      uploading:
+        en: "Uploading %{count} ..."
+        de: "%{count} werden hochgeladen ..."
+        it: "Caricamento di %{count} ..."
+      not_connected:
+        en: "not connected"
+        de: "nicht verbunden"
+        it: "non connesso"
+      folder_create_failed:
+        en: "Folder not created"
+        de: "Ordner nicht erstellt"
+        it: "Cartella non creata"
+      upload_failed:
+        en: "%{name} not uploaded"
+        de: "%{name} nicht hochgeladen"
+        it: "%{name} non caricato"
+    conversation:
+      posted_without_banner:
+        en: "Posted, but Teams did not take the banner."
+        de: "Gepostet, aber Teams hat das Banner nicht übernommen."
+        it: "Pubblicato, ma Teams non ha applicato il banner."
+      file_count_one:
+        en: "1 file"
+        de: "1 Datei"
+        it: "1 file"
+      file_count_many:
+        en: "%{count} files"
+        de: "%{count} Dateien"
+        it: "%{count} file"
+      drop_attach:
+        en: "Drop to attach to %{title}"
+        de: "Zum Anhängen an %{title} ablegen"
+        it: "Rilascia per allegare a %{title}"
+      drop_upload:
+        en: "Drop to upload to %{title}"
+        de: "Zum Hochladen in %{title} ablegen"
+        it: "Rilascia per caricare in %{title}"
+      drop_chat_detail:
+        en: "%{files}. Images go into the message, other files to your OneDrive."
+        de: "%{files}. Bilder werden in die Nachricht eingefügt, andere Dateien in dein OneDrive."
+        it: "%{files}. Le immagini vanno nel messaggio, gli altri file nel tuo OneDrive."
+      drop_channel_detail:
+        en: "%{files}. Images go into the message, other files to the channel's Files."
+        de: "%{files}. Bilder werden in die Nachricht eingefügt, andere Dateien in die Dateien des Kanals."
+        it: "%{files}. Le immagini vanno nel messaggio, gli altri file nei File del canale."
+      drop_library_detail:
+        en: "%{files}. Files go into the folder you have open."
+        de: "%{files}. Dateien werden in den geöffneten Ordner verschoben."
+        it: "%{files}. I file vanno nella cartella aperta."
+      drop_new_chat:
+        en: "Drop to attach to the new chat"
+        de: "Zum Anhängen an den neuen Chat ablegen"
+        it: "Rilascia per allegare alla nuova chat"
+      drop_new_chat_detail:
+        en: "%{files}. Images go into the message. Files can be added once the chat exists."
+        de: "%{files}. Bilder werden in die Nachricht eingefügt. Dateien können hinzugefügt werden, sobald der Chat existiert."
+        it: "%{files}. Le immagini vanno nel messaggio. I file possono essere aggiunti una volta creata la chat."
+      not_connected:
+        en: "not connected"
+        de: "nicht verbunden"
+        it: "non connesso"
+      unknown:
+        en: "Unknown"
+        de: "Unbekannt"
+        it: "Sconosciuto"
+      no_access:
+        en: "No access to this chat"
+        de: "Kein Zugriff auf diesen Chat"
+        it: "Nessun accesso a questa chat"
+      receipt_seen:
+        en: "Seen"
+        de: "Gesehen"
+        it: "Visualizzato"
+      receipt_sent:
+        en: "Sent"
+        de: "Gesendet"
+        it: "Inviato"
+      receipt_seen_all:
+        en: "Seen by everyone"
+        de: "Von allen gesehen"
+        it: "Visualizzato da tutti"
+      receipt_seen_by:
+        en: "Seen by %{names}"
+        de: "Gesehen von %{names}"
+        it: "Visualizzato da %{names}"
+      older_unavailable:
+        en: "Older messages are not available in this chat"
+        de: "Ältere Nachrichten sind in diesem Chat nicht verfügbar"
+        it: "I messaggi più vecchi non sono disponibili in questa chat"
+      older_failed:
+        en: "Could not load older messages: %{detail}"
+        de: "Ältere Nachrichten konnten nicht geladen werden: %{detail}"
+        it: "Impossibile caricare i messaggi più vecchi: %{detail}"
+      read_only_not_sent:
+        en: "Read-only mode: nothing was sent"
+        de: "Schreibgeschützter Modus: Es wurde nichts gesendet"
+        it: "Modalità sola lettura: nulla è stato inviato"
+      not_connected_not_sent:
+        en: "Not connected yet: nothing was sent"
+        de: "Noch nicht verbunden: Es wurde nichts gesendet"
+        it: "Non ancora connesso: nulla è stato inviato"
+      add_person_first:
+        en: "Add at least one person first"
+        de: "Füge zuerst mindestens eine Person hinzu"
+        it: "Aggiungi prima almeno una persona"
+      still_creating:
+        en: "Still creating the chat"
+        de: "Chat wird noch erstellt"
+        it: "Chat ancora in creazione"
+      send_failed:
+        en: "Couldn't send the message."
+        de: "Nachricht konnte nicht gesendet werden."
+        it: "Impossibile inviare il messaggio."
+      create_failed:
+        en: "Couldn't create the chat."
+        de: "Chat konnte nicht erstellt werden."
+        it: "Impossibile creare la chat."
+      reaction_read_only:
+        en: "Read-only mode: reaction not sent"
+        de: "Schreibgeschützter Modus: Reaktion nicht gesendet"
+        it: "Modalità sola lettura: reazione non inviata"
+      edit_read_only:
+        en: "Read-only mode: edit not saved"
+        de: "Schreibgeschützter Modus: Bearbeitung nicht gespeichert"
+        it: "Modalità sola lettura: modifica non salvata"
+      edit_failed:
+        en: "Edit failed"
+        de: "Bearbeitung fehlgeschlagen"
+        it: "Modifica non riuscita"
+      edit_failed_restore:
+        en: "Edit failed: your text is back in the composer"
+        de: "Bearbeitung fehlgeschlagen: Dein Text ist zurück im Eingabefeld"
+        it: "Modifica non riuscita: il testo è tornato nell'editor"
+      see_original:
+        en: "See original"
+        de: "Original anzeigen"
+        it: "Mostra originale"
+      see_translation:
+        en: "See translation"
+        de: "Übersetzung anzeigen"
+        it: "Mostra traduzione"
+      translate:
+        en: "Translate"
+        de: "Übersetzen"
+        it: "Traduci"
+      back_to_channel:
+        en: "Back to channel"
+        de: "Zurück zum Kanal"
+        it: "Torna al canale"
+      posts:
+        en: "Posts"
+        de: "Beiträge"
+        it: "Post"
+      conversation:
+        en: "Conversation"
+        de: "Unterhaltung"
+        it: "Conversazione"
+      not_up_to_date:
+        en: "Not up to date"
+        de: "Nicht aktuell"
+        it: "Non aggiornato"
+      loading_message:
+        en: "Loading message ..."
+        de: "Nachricht wird geladen ..."
+        it: "Caricamento messaggio..."
+      taking_longer:
+        en: "Taking longer than usual ..."
+        de: "Dauert länger als üblich ..."
+        it: "Richiede più tempo del solito..."
+      loading_messages:
+        en: "Loading messages ..."
+        de: "Nachrichten werden geladen ..."
+        it: "Caricamento messaggi..."
+      select_chat:
+        en: "Select a chat or channel"
+        de: "Chat oder Kanal auswählen"
+        it: "Seleziona una chat o un canale"
+      loading_older:
+        en: "Loading older messages"
+        de: "Ältere Nachrichten werden geladen"
+        it: "Caricamento messaggi più vecchi"
+      loading_newer:
+        en: "Loading newer messages"
+        de: "Neuere Nachrichten werden geladen"
+        it: "Caricamento messaggi più recenti"
+      beginning:
+        en: "This is the beginning of the conversation"
+        de: "Das ist der Anfang der Unterhaltung"
+        it: "Questo è l'inizio della conversazione"
+      no_posts:
+        en: "No posts in this channel yet"
+        de: "Noch keine Beiträge in diesem Kanal"
+        it: "Nessun post in questo canale"
+    table:
+      insert_row_above:
+        en: "Insert row above"
+        de: "Zeile oben einfügen"
+        it: "Inserisci riga sopra"
+      insert_row_below:
+        en: "Insert row below"
+        de: "Zeile unten einfügen"
+        it: "Inserisci riga sotto"
+      insert_column_left:
+        en: "Insert column to the left"
+        de: "Spalte links einfügen"
+        it: "Inserisci colonna a sinistra"
+      insert_column_right:
+        en: "Insert column to the right"
+        de: "Spalte rechts einfügen"
+        it: "Inserisci colonna a destra"
+      delete_row:
+        en: "Delete row"
+        de: "Zeile löschen"
+        it: "Elimina riga"
+      delete_column:
+        en: "Delete column"
+        de: "Spalte löschen"
+        it: "Elimina colonna"
+      delete_table:
+        en: "Delete table"
+        de: "Tabelle löschen"
+        it: "Elimina tabella"
+    channel_menu:
+      copied:
+        en: "Copied to clipboard"
+        de: "In die Zwischenablage kopiert"
+        it: "Copiato negli appunti"
+      pinned_cannot_hide:
+        en: "Pinned channels can't be hidden."
+        de: "Angeheftete Kanäle können nicht ausgeblendet werden."
+        it: "I canali con pin non possono essere nascosti."
+      notifications:
+        en: "Channel notifications"
+        de: "Kanalbenachrichtigungen"
+        it: "Notifiche del canale"
+      pin:
+        en: "Pin"
+        de: "Anheften"
+        it: "Aggiungi pin"
+      unpin:
+        en: "Unpin"
+        de: "Anheftung aufheben"
+        it: "Rimuovi il pin"
+      show:
+        en: "Show"
+        de: "Anzeigen"
+        it: "Mostra"
+      hide:
+        en: "Hide"
+        de: "Ausblenden"
+        it: "Nascondi"
+      edit:
+        en: "Edit channel"
+        de: "Kanal bearbeiten"
+        it: "Modifica canale"
+      manage:
+        en: "Manage channel"
+        de: "Kanal verwalten"
+        it: "Gestisci canale"
+      copy_link:
+        en: "Copy link"
+        de: "Link kopieren"
+        it: "Copia link"
+      delete:
+        en: "Delete channel"
+        de: "Kanal löschen"
+        it: "Elimina canale"
+      add_channel:
+        en: "Add channel"
+        de: "Kanal hinzufügen"
+        it: "Aggiungi canale"
+      manage_team:
+        en: "Manage team"
+        de: "Team verwalten"
+        it: "Gestisci team"
+      copy_failed:
+        en: "Copy link failed: %{reason}"
+        de: "Link kopieren fehlgeschlagen: %{reason}"
+        it: "Copia link non riuscita: %{reason}"
+      open_failed:
+        en: "Couldn't open Teams on the web: %{reason}"
+        de: "Teams im Web konnte nicht geöffnet werden: %{reason}"
+        it: "Impossibile aprire Teams sul web: %{reason}"
+      pin_channel_failed:
+        en: "We couldn't pin the channel."
+        de: "Der Kanal konnte nicht angeheftet werden."
+        it: "Impossibile aggiungere il pin al canale."
+      unpin_channel_failed:
+        en: "We couldn't unpin the channel."
+        de: "Der Kanal konnte nicht gelöst werden."
+        it: "Impossibile rimuovere il pin dal canale."
+      show_channel_failed:
+        en: "We couldn't show the channel."
+        de: "Der Kanal konnte nicht angezeigt werden."
+        it: "Impossibile mostrare il canale."
+      hide_channel_failed:
+        en: "We couldn't hide the channel."
+        de: "Der Kanal konnte nicht ausgeblendet werden."
+        it: "Impossibile nascondere il canale."
+      show_team_failed:
+        en: "We couldn't show the team."
+        de: "Das Team konnte nicht angezeigt werden."
+        it: "Impossibile mostrare il team."
+      hide_team_failed:
+        en: "We couldn't hide the team."
+        de: "Das Team konnte nicht ausgeblendet werden."
+        it: "Impossibile nascondere il team."
+      pin_dialog_title:
+        en: "Pin in channel"
+        de: "Im Kanal anheften"
+        it: "Aggiungi pin nel canale"
+      pin_dialog_body:
+        en: "The message will be pinned for everyone who views the channel."
+        de: "Die Nachricht wird für alle angeheftet, die den Kanal ansehen."
+        it: "Il messaggio verrà aggiunto ai pin per tutti coloro che visualizzano il canale."
+      unpin_dialog_title:
+        en: "Unpin this message?"
+        de: "Anheftung dieser Nachricht aufheben?"
+        it: "Rimuovere il pin da questo messaggio?"
+      unpin_dialog_body:
+        en: "The message will be unpinned for everyone who views the channel."
+        de: "Die Anheftung der Nachricht wird für alle aufgehoben, die den Kanal ansehen."
+        it: "Il pin del messaggio verrà rimosso per tutti coloro che visualizzano il canale."
+      post_pinned:
+        en: "Post pinned"
+        de: "Beitrag angeheftet"
+        it: "Post aggiunto ai pin"
+      post_unpinned:
+        en: "Post unpinned"
+        de: "Anheftung des Beitrags aufgehoben"
+        it: "Pin del post rimosso"
+      pin_post_failed:
+        en: "We couldn't pin the post."
+        de: "Der Beitrag konnte nicht angeheftet werden."
+        it: "Impossibile aggiungere il pin al post."
+      unpin_post_failed:
+        en: "We couldn't unpin the post."
+        de: "Die Anheftung des Beitrags konnte nicht aufgehoben werden."
+        it: "Impossibile rimuovere il pin dal post."
+    translation:
+      translate:
+        en: "Translate"
+        de: "Übersetzen"
+        it: "Traduci"
+      never:
+        en: "Never translate %{language}"
+        de: "%{language} nie übersetzen"
+        it: "Non tradurre mai %{language}"
+      working:
+        en: "Translating..."
+        de: "Wird übersetzt..."
+        it: "Traduzione in corso..."
+      failed:
+        en: "Couldn't translate."
+        de: "Übersetzung fehlgeschlagen."
+        it: "Traduzione non riuscita."
+      showing_original:
+        en: "Showing original"
+        de: "Original wird angezeigt"
+        it: "Visualizzazione dell'originale"
+      translated_from:
+        en: "Translated from %{language}"
+        de: "Übersetzt aus %{language}"
+        it: "Tradotto da %{language}"
+      translated:
+        en: "Translated"
+        de: "Übersetzt"
+        it: "Tradotto"
+    chat_actions:
+      change_notifications:
+        en: "Change notifications"
+        de: "Benachrichtigungen ändern"
+        it: "Modifica notifiche"
+      hidden:
+        en: "\"%{title}\" hidden"
+        de: "\"%{title}\" ausgeblendet"
+        it: "\"%{title}\" nascosta"
+      leave_chat:
+        en: "Leave chat"
+        de: "Chat verlassen"
+        it: "Abbandona chat"
+      rename_group:
+        en: "Rename group chat"
+        de: "Gruppenchat umbenennen"
+        it: "Rinomina chat di gruppo"
+      cancelled:
+        en: "cancelled"
+        de: "abgebrochen"
+        it: "annullato"
+      failed:
+        en: "%{action} failed: %{reason}"
+        de: "%{action} fehlgeschlagen: %{reason}"
+        it: "%{action} non riuscita: %{reason}"
+      read_only:
+        en: "Read-only mode: chat not changed"
+        de: "Schreibgeschützter Modus: Chat nicht geändert"
+        it: "Modalità sola lettura: chat non modificata"
+    team_admin:
+      create_failed:
+        en: "We couldn't create the channel."
+        de: "Der Kanal konnte nicht erstellt werden."
+        it: "Impossibile creare il canale."
+      edit_failed:
+        en: "Channel wasn't renamed."
+        de: "Der Kanal wurde nicht umbenannt."
+        it: "Il canale non è stato rinominato."
+      name_characters:
+        en: "Channel names can't contain ~ # % & * { } + / \\ : < > ? | ' \" , or .."
+        de: "Kanalnamen dürfen ~ # % & * { } + / \\ : < > ? | ' \" , oder .. nicht enthalten."
+        it: "I nomi dei canali non possono contenere ~ # % & * { } + / \\ : < > ? | ' \" , o .."
+      name_edges:
+        en: "Channel names can't start with _ or . and can't end with ."
+        de: "Kanalnamen dürfen nicht mit _ oder . beginnen und nicht mit . enden."
+        it: "I nomi dei canali non possono iniziare con _ o . né terminare con ."
+      name_length:
+        en: "Channel names can have up to 50 characters."
+        de: "Kanalnamen dürfen höchstens 50 Zeichen lang sein."
+        it: "I nomi dei canali possono avere fino a 50 caratteri."
+      delete_failed:
+        en: "We couldn't delete the %{channel} channel. Try deleting it again."
+        de: "Der Kanal %{channel} konnte nicht gelöscht werden. Versuche es erneut."
+        it: "Impossibile eliminare il canale %{channel}. Riprova."
+      deleted_notice:
+        en: "%{channel} has been deleted"
+        de: "%{channel} wurde gelöscht"
+        it: "%{channel} è stato eliminato"
+    profile:
+      email_copied:
+        en: "Email copied"
+        de: "E-Mail-Adresse kopiert"
+        it: "Email copiata"
+      read_only:
+        en: "Read-only mode: chat not created"
+        de: "Schreibgeschützter Modus: Chat nicht erstellt"
+        it: "Modalità sola lettura: chat non creata"
+      no_chat:
+        en: "No chat with this person yet"
+        de: "Noch kein Chat mit dieser Person"
+        it: "Ancora nessuna chat con questa persona"
+    duration_minutes:
+      en: "%{minutes} min"
+      de: "%{minutes} Min."
+      it: "%{minutes} min"
+    duration_hours:
+      en: "%{hours} h"
+      de: "%{hours} Std."
+      it: "%{hours} h"
+    duration_hours_minutes:
+      en: "%{hours} h %{minutes} min"
+      de: "%{hours} Std. %{minutes} Min."
+      it: "%{hours} h %{minutes} min"
+    just_now:
+      en: "just now"
+      de: "gerade eben"
+      it: "adesso"
+    minutes_ago:
+      en: "%{minutes} min ago"
+      de: "vor %{minutes} Min."
+      it: "%{minutes} min fa"
+    hours_ago:
+      en: "%{hours} h ago"
+      de: "vor %{hours} Std."
+      it: "%{hours} h fa"
+    days_ago:
+      en: "%{days} d ago"
+      de: "vor %{days} T."
+      it: "%{days} g fa"
+    free_writing_ask:
+      en: "%{agent} asks to keep writing here without review for %{duration}"
+      de: "%{agent} bittet, hier %{duration} ohne Prüfung weiterzuschreiben"
+      it: "%{agent} chiede di continuare a scrivere qui senza revisione per %{duration}"
+    send_and_allow_for:
+      en: "Send and allow for"
+      de: "Senden und erlauben für"
+      it: "Invia e consenti per"
+    free_writing_until:
+      en: "%{agent} writes here without review until %{until}"
+      de: "%{agent} schreibt hier ohne Prüfung bis %{until}"
+      it: "%{agent} scrive qui senza revisione fino alle %{until}"
+    proposal_pending:
+      en: "%{agent} proposes a reply"
+      de: "%{agent} schlägt eine Antwort vor"
+      it: "%{agent} propone una risposta"
+    proposal_stale:
+      en: "%{agent}'s reply is outdated - you answered at %{time}"
+      de: "Die Antwort von %{agent} ist veraltet – du hast um %{time} geantwortet"
+      it: "La risposta di %{agent} è obsoleta - hai risposto alle %{time}"
+    proposal_failed:
+      en: "Could not send - %{reason}"
+      de: "Senden fehlgeschlagen - %{reason}"
+      it: "Invio non riuscito - %{reason}"
+    mentions_tooltip:
+      en: "Mentions: %{names}"
+      de: "Erwähnungen: %{names}"
+      it: "Menzioni: %{names}"
+    send:
+      en: "Send"
+      de: "Senden"
+      it: "Invia"
+    edit:
+      en: "Edit"
+      de: "Bearbeiten"
+      it: "Modifica"
+    discard:
+      en: "Discard"
+      de: "Verwerfen"
+      it: "Scarta"
+    open_session:
+      en: "Open session"
+      de: "Sitzung öffnen"
+      it: "Apri sessione"
+    pop_out:
+      en: "Pop out chat"
+      de: "Chat in eigenem Fenster öffnen"
+      it: "Apri chat in una finestra"
+    pop_in:
+      en: "Pop in back to the main window"
+      de: "Wieder im Hauptfenster anzeigen"
+      it: "Riporta nella finestra principale"
+  settings:
+    about:
+      version:
+        en: "Version"
+        de: "Version"
+        it: "Versione"
+      build:
+        en: "Build"
+        de: "Build"
+        it: "Build"
+    account:
+      activity_and_banner:
+        en: "Show in Activity and banner"
+        de: "In Aktivität und Banner anzeigen"
+        it: "Mostra in Attività e banner"
+      activity_only:
+        en: "Show in Activity"
+        de: "In Aktivität anzeigen"
+        it: "Mostra in Attività"
+      banner_only:
+        en: "Show in banner"
+        de: "Im Banner anzeigen"
+        it: "Mostra nel banner"
+      density_comfy:
+        en: "Comfy"
+        de: "Komfortabel"
+        it: "Comodo"
+      density_compact:
+        en: "Compact"
+        de: "Kompakt"
+        it: "Compatto"
+      enter_newline:
+        en: "Start a new line (to send, select Send or use Ctrl+Enter)."
+        de: "Neue Zeile beginnen (zum Senden Send auswählen oder Strg+Enter drücken)."
+        it: "Inizia una nuova riga (per inviare, seleziona Invia o premi Ctrl+Invio)."
+      enter_send:
+        en: "Send the message"
+        de: "Nachricht senden"
+        it: "Invia il messaggio"
+      meeting_mute:
+        en: "Mute"
+        de: "Stumm schalten"
+        it: "Disattiva"
+      meeting_mute_detail:
+        en: "Don't send notifications for any meetings."
+        de: "Für keine Besprechungen Benachrichtigungen senden."
+        it: "Non inviare notifiche per nessuna riunione."
+      meeting_mute_until_join:
+        en: "Mute until I join or send a message"
+        de: "Stumm bis ich beitrete oder eine Nachricht sende"
+        it: "Disattiva finché non partecipo o invio un messaggio"
+      meeting_mute_until_join_detail:
+        en: "Only send notifications if I've joined a meeting or sent a message."
+        de: "Nur benachrichtigen, wenn ich einer Besprechung beigetreten bin oder eine Nachricht gesendet habe."
+        it: "Invia notifiche solo se ho partecipato a una riunione o inviato un messaggio."
+      meeting_unmute:
+        en: "Unmute"
+        de: "Benachrichtigungen einschalten"
+        it: "Riattiva"
+      meeting_unmute_detail:
+        en: "Send notifications for all meetings."
+        de: "Benachrichtigungen für alle Besprechungen senden."
+        it: "Invia notifiche per tutte le riunioni."
+      off:
+        en: "Off"
+        de: "Aus"
+        it: "Disattivato"
+      preset_all:
+        en: "All activity"
+        de: "Alle Aktivitäten"
+        it: "Tutte le attività"
+      preset_all_detail:
+        en: "New messages, reactions, and all mentions"
+        de: "Neue Nachrichten, Reaktionen und alle Erwähnungen"
+        it: "Nuovi messaggi, reazioni e tutte le menzioni"
+      preset_custom:
+        en: "Customised"
+        de: "Angepasst"
+        it: "Personalizzato"
+      preset_custom_detail:
+        en: "Your customised settings are active."
+        de: "Ihre angepassten Einstellungen sind aktiv."
+        it: "Le tue impostazioni personalizzate sono attive."
+      preset_mentions:
+        en: "Mentions & replies"
+        de: "Erwähnungen & Antworten"
+        it: "Menzioni e risposte"
+      preset_mentions_detail:
+        en: "Personal mentions and replies to your messages"
+        de: "Persönliche Erwähnungen und Antworten auf Ihre Nachrichten"
+        it: "Menzioni personali e risposte ai tuoi messaggi"
+      up_edit_last:
+        en: "Edit last message"
+        de: "Letzte Nachricht bearbeiten"
+        it: "Modifica l'ultimo messaggio"
+      up_navigate:
+        en: "Move focus to message list"
+        de: "Fokus in die Nachrichtenliste verschieben"
+        it: "Sposta lo stato attivo nell'elenco messaggi"
+      up_stay:
+        en: "Stay in compose box"
+        de: "Im Eingabefeld bleiben"
+        it: "Rimani nel campo di composizione"
+    agents:
+      action_default_dir:
+        en: "action default"
+        de: "Standard der Aktion"
+        it: "predefinito dell'azione"
+      add_action:
+        en: "+ Add action"
+        de: "+ Aktion hinzufügen"
+        it: "+ Aggiungi azione"
+      add_agent:
+        en: "+ Add agent"
+        de: "+ Agent hinzufügen"
+        it: "+ Aggiungi agent"
+      ask_extra:
+        en: "Ask for extra instructions"
+        de: "Zusätzliche Anweisungen abfragen"
+        it: "Chiedi istruzioni aggiuntive"
+      ask_extra_detail:
+        en: "Dialog before each run"
+        de: "Dialog vor jedem Lauf"
+        it: "Finestra prima di ogni esecuzione"
+      cancelled:
+        en: "Cancelled"
+        de: "Abgebrochen"
+        it: "Annullato"
+      choose_agent:
+        en: "Choose an agent"
+        de: "Agent auswählen"
+        it: "Scegli un agent"
+      choose_model:
+        en: "Choose a model"
+        de: "Modell auswählen"
+        it: "Scegli un modello"
+      command_empty:
+        en: "The command is empty"
+        de: "Der Befehl ist leer"
+        it: "Il comando è vuoto"
+      empty:
+        en: "No agent runs yet. Hover a message and click the robot button."
+        de: "Noch keine Agent-Läufe. Auf eine Nachricht zeigen und auf die Roboter-Schaltfläche klicken."
+        it: "Nessuna esecuzione dell'agent. Passa su un messaggio e fai clic sul pulsante robot."
+      failed:
+        en: "Failed"
+        de: "Fehlgeschlagen"
+        it: "Non riuscito"
+      field_agent:
+        en: "Agent"
+        de: "Agent"
+        it: "Agent"
+      field_api_key:
+        en: "API key"
+        de: "API-Schlüssel"
+        it: "Chiave API"
+      field_base_url:
+        en: "Base URL"
+        de: "Basis-URL"
+        it: "URL di base"
+      field_command:
+        en: "Command"
+        de: "Befehl"
+        it: "Comando"
+      field_distro:
+        en: "Distro name"
+        de: "Distro-Name"
+        it: "Nome della distro"
+      field_extra_args:
+        en: "Extra args"
+        de: "Zusätzliche Argumente"
+        it: "Argomenti aggiuntivi"
+      field_installed_models:
+        en: "Installed models"
+        de: "Installierte Modelle"
+        it: "Modelli installati"
+      field_label:
+        en: "Label"
+        de: "Bezeichnung"
+        it: "Etichetta"
+      field_mcp_flag:
+        en: "MCP config flag"
+        de: "MCP-Konfigurationsschalter"
+        it: "Flag di configurazione MCP"
+      field_model:
+        en: "Model"
+        de: "Modell"
+        it: "Modello"
+      field_name:
+        en: "Name"
+        de: "Name"
+        it: "Nome"
+      field_open_session:
+        en: "Open session"
+        de: "Sitzung öffnen"
+        it: "Apri sessione"
+      field_output:
+        en: "Output"
+        de: "Ausgabe"
+        it: "Output"
+      field_prompt:
+        en: "Prompt"
+        de: "Prompt"
+        it: "Prompt"
+      field_runs_in:
+        en: "Runs in"
+        de: "Läuft in"
+        it: "Esegue in"
+      found:
+        en: "Found: %{line}"
+        de: "Gefunden: %{line}"
+        it: "Trovato: %{line}"
+      from_session:
+        en: "from session"
+        de: "aus Sitzung"
+        it: "dalla sessione"
+      hint_api_key:
+        en: "Stored in the local app database. Ollama can stay empty."
+        de: "In der lokalen App-Datenbank gespeichert. Bei Ollama kann das Feld leer bleiben."
+        it: "Salvata nel database locale dell'app. Con Ollama può restare vuoto."
+      hint_api_key_saved:
+        en: "A key is saved. Type a new one to replace it. Ollama can stay empty."
+        de: "Ein Schlüssel ist gespeichert. Neuen eingeben, um ihn zu ersetzen. Bei Ollama kann das Feld leer bleiben."
+        it: "Una chiave è salvata. Digitane una nuova per sostituirla. Con Ollama può restare vuoto."
+      hint_base_url:
+        en: "OpenAI-compatible, including /v1."
+        de: "OpenAI-kompatibel, einschließlich /v1."
+        it: "Compatibile con OpenAI, incluso /v1."
+      hint_command:
+        en: "The prompt goes to stdin unless the command has {prompt}."
+        de: "Der Prompt geht an stdin, sofern der Befehl nicht {prompt} enthält."
+        it: "Il prompt va su stdin a meno che il comando non contenga {prompt}."
+      hint_extra_args:
+        en: "Added after the agent command."
+        de: "Wird nach dem Agent-Befehl angehängt."
+        it: "Aggiunti dopo il comando dell'agent."
+      hint_installed_models:
+        en: "Loaded from the endpoint. The choice fills Model."
+        de: "Vom Endpunkt geladen. Die Auswahl füllt Modell."
+        it: "Caricati dall'endpoint. La scelta compila Modello."
+      hint_mcp_flag:
+        en: "Passes the Teams MCP endpoint to the agent. Empty = none."
+        de: "Übergibt den Teams-MCP-Endpunkt an den Agent. Leer = keiner."
+        it: "Passa l'endpoint MCP di Teams all'agent. Vuoto = nessuno."
+      hint_model:
+        en: "Pick a loaded model, or type an id. Leave the URL or key field to reload."
+        de: "Ein geladenes Modell wählen oder eine ID eingeben. URL- oder Schlüsselfeld verlassen, um neu zu laden."
+        it: "Scegli un modello caricato o digita un id. Esci dal campo URL o chiave per ricaricare."
+      hint_open_session:
+        en: "Available: {cwd} and {session_id}."
+        de: "Verfügbar: {cwd} und {session_id}."
+        it: "Disponibili: {cwd} e {session_id}."
+      hint_output:
+        en: "Plain text shows only the time and the last line."
+        de: "Bei reinem Text werden nur Uhrzeit und letzte Zeile angezeigt."
+        it: "Il testo semplice mostra solo l'ora e l'ultima riga."
+      hint_runs_in:
+        en: "This computer or a WSL distro. Paths below are in that system."
+        de: "Dieser Computer oder eine WSL-Distro. Die Pfade unten gelten in diesem System."
+        it: "Questo computer o una distro WSL. I percorsi sotto sono in quel sistema."
+      hint_working_dir:
+        en: "A path inside the system the agent runs in."
+        de: "Ein Pfad im System, in dem der Agent läuft."
+        it: "Un percorso nel sistema in cui viene eseguito l'agent."
+      loading_models:
+        en: "Loading models..."
+        de: "Modelle werden geladen..."
+        it: "Caricamento modelli..."
+      log:
+        en: "Log"
+        de: "Protokoll"
+        it: "Log"
+      model_many:
+        en: "%{count} models"
+        de: "%{count} Modelle"
+        it: "%{count} modelli"
+      model_one:
+        en: "1 model"
+        de: "1 Modell"
+        it: "1 modello"
+      no_output:
+        en: "No output"
+        de: "Keine Ausgabe"
+        it: "Nessun output"
+      no_steps:
+        en: "No steps yet"
+        de: "Noch keine Schritte"
+        it: "Ancora nessun passaggio"
+      open_chat:
+        en: "Open chat"
+        de: "Chat öffnen"
+        it: "Apri chat"
+      open_session:
+        en: "Open session"
+        de: "Sitzung öffnen"
+        it: "Apri sessione"
+      output_claude_stream:
+        en: "Claude stream-json - live steps"
+        de: "Claude stream-json – Live-Schritte"
+        it: "Claude stream-json - passaggi in tempo reale"
+      output_copilot_json:
+        en: "Copilot JSON - live steps"
+        de: "Copilot JSON – Live-Schritte"
+        it: "Copilot JSON - passaggi in tempo reale"
+      output_plain_text:
+        en: "Plain text - time and last line"
+        de: "Reiner Text – Uhrzeit und letzte Zeile"
+        it: "Testo semplice - ora e ultima riga"
+      preset_custom:
+        en: "Custom"
+        de: "Benutzerdefiniert"
+        it: "Personalizzato"
+      prompt_placeholder:
+        en: "e.g. only the backend, open a PR when done"
+        de: "z. B. nur das Backend, am Ende einen PR öffnen"
+        it: "ad es. solo il backend, apri una PR al termine"
+      resume_detail:
+        en: "Continue running agents after the app restarts"
+        de: "Agents nach dem Neustart der App weiter ausführen"
+        it: "Continua l'esecuzione degli agent dopo il riavvio dell'app"
+      resume_title:
+        en: "Resume interrupted runs"
+        de: "Unterbrochene Läufe fortsetzen"
+        it: "Riprendi le esecuzioni interrotte"
+      review:
+        en: "Review"
+        de: "Prüfen"
+        it: "Esamina"
+      running:
+        en: "Running"
+        de: "Laufend"
+        it: "In esecuzione"
+      show:
+        en: "Show"
+        de: "Anzeigen"
+        it: "Mostra"
+      stopped:
+        en: "Stopped"
+        de: "Gestoppt"
+        it: "Fermato"
+      test:
+        en: "Test"
+        de: "Testen"
+        it: "Prova"
+      testing:
+        en: "Testing..."
+        de: "Wird getestet..."
+        it: "Verifica in corso..."
+      this_computer:
+        en: "This computer"
+        de: "Dieser Computer"
+        it: "Questo computer"
+      wsl_default:
+        en: "WSL - default distro"
+        de: "WSL – Standard-Distro"
+        it: "WSL - distro predefinita"
+      wsl_distro_mismatch:
+        en: "That folder is in a different WSL distro than the agent"
+        de: "Dieser Ordner liegt in einer anderen WSL-Distro als der Agent"
+        it: "Questa cartella si trova in una distro WSL diversa da quella dell'agent"
+      wsl_named:
+        en: "WSL - named distro"
+        de: "WSL – benannte Distro"
+        it: "WSL - distro con nome"
+    calendar:
+      ics_name_placeholder:
+        en: "Holidays"
+        de: "Feiertage"
+        it: "Festività"
+    chats:
+      account_detail:
+        en: "Read from your Teams account"
+        de: "Aus Ihrem Teams-Konto gelesen"
+        it: "Letto dal tuo account Teams"
+      actions_detail:
+        en: "Reactions and More options appear when you right click a message instead of when you point at it."
+        de: "Reaktionen und Weitere Optionen erscheinen beim Rechtsklick auf eine Nachricht statt beim Daraufzeigen."
+        it: "Reazioni e Altre opzioni compaiono facendo clic con il pulsante destro su un messaggio invece che al passaggio del mouse."
+      caption:
+        en: "CHATS"
+        de: "CHATS"
+        it: "CHAT"
+      density_detail:
+        en: "Compact your chats and see more messages"
+        de: "Kompaktere Chats und mehr sichtbare Nachrichten"
+        it: "Chat più compatti e più messaggi visibili"
+      enter_detail:
+        en: "This setting doesn't apply when message formatting is active."
+        de: "Diese Einstellung gilt nicht, wenn die Nachrichtenformatierung aktiv ist."
+        it: "Questa impostazione non si applica quando la formattazione dei messaggi è attiva."
+      list_caption:
+        en: "CHAT LIST"
+        de: "CHATLISTE"
+        it: "ELENCO CHAT"
+      receipts_detail:
+        en: "Let people know when you've seen their messages and know when they've seen yours. Close and reopen any chat windows for the setting to take effect in those chats."
+        de: "Andere sehen, wann Sie ihre Nachrichten gelesen haben, und Sie sehen, wann Ihre gelesen wurden. Schließen und öffnen Sie Chatfenster erneut, damit die Einstellung dort wirkt."
+        it: "Fai sapere agli altri quando hai letto i loro messaggi e scopri quando hanno letto i tuoi. Chiudi e riapri le finestre delle chat perché l'impostazione abbia effetto."
+    common:
+      copy:
+        en: "Copy"
+        de: "Kopieren"
+        it: "Copia"
+      preview:
+        en: "Preview"
+        de: "Vorschau"
+        it: "Anteprima"
+    devices:
+      background:
+        en: "Background"
+        de: "Hintergrund"
+        it: "Sfondo"
+      camera:
+        en: "Camera"
+        de: "Kamera"
+        it: "Fotocamera"
+      camera_failed:
+        en: "Camera could not start: %{reason}"
+        de: "Kamera konnte nicht gestartet werden: %{reason}"
+        it: "Impossibile avviare la fotocamera: %{reason}"
+      camera_in_use:
+        en: "Camera is in use by the call"
+        de: "Die Kamera wird vom Anruf verwendet"
+        it: "La fotocamera è in uso nella chiamata"
+      caption_audio:
+        en: "AUDIO DEVICES"
+        de: "AUDIOGERÄTE"
+        it: "DISPOSITIVI AUDIO"
+      caption_camera:
+        en: "CAMERA"
+        de: "KAMERA"
+        it: "FOTOCAMERA"
+      caption_diagnostics:
+        en: "DIAGNOSTICS"
+        de: "DIAGNOSE"
+        it: "DIAGNOSTICA"
+      default_camera:
+        en: "Default camera"
+        de: "Standardkamera"
+        it: "Fotocamera predefinita"
+      default_device:
+        en: "Default device"
+        de: "Standardgerät"
+        it: "Dispositivo predefinito"
+      effect_brightness:
+        en: "Adjust brightness"
+        de: "Helligkeit anpassen"
+        it: "Regola luminosità"
+      effect_framing:
+        en: "Auto framing"
+        de: "Automatische Bildausschnittsanpassung"
+        it: "Inquadratura automatica"
+      effect_mirror:
+        en: "Mirror my video"
+        de: "Mein Video spiegeln"
+        it: "Specchia il mio video"
+      effect_soft_focus:
+        en: "Soft focus"
+        de: "Weichzeichner"
+        it: "Focus morbido"
+      fps:
+        en: "%{fps} fps"
+        de: "%{fps} fps"
+        it: "%{fps} fps"
+      microphone:
+        en: "Microphone"
+        de: "Mikrofon"
+        it: "Microfono"
+      music_mode:
+        en: "Music mode"
+        de: "Musikmodus"
+        it: "Modalità musica"
+      music_mode_detail:
+        en: "Keeps echo cancellation, turns off the rest"
+        de: "Behält die Echounterdrückung bei, deaktiviert den Rest"
+        it: "Mantiene la cancellazione dell'eco, disattiva il resto"
+      noise_detail:
+        en: "Echo, hum and background noise"
+        de: "Echo, Brummen und Hintergrundgeräusche"
+        it: "Eco, ronzio e rumore di fondo"
+      noise_off_music:
+        en: "Off while music mode is on"
+        de: "Aus, solange der Musikmodus aktiv ist"
+        it: "Disattivato mentre la modalità musica è attiva"
+      noise_suppression:
+        en: "Noise suppression"
+        de: "Rauschunterdrückung"
+        it: "Riduzione del rumore"
+      none:
+        en: "None"
+        de: "Keiner"
+        it: "Nessuno"
+      save_report:
+        en: "Save a test report after each call"
+        de: "Nach jedem Anruf einen Testbericht speichern"
+        it: "Salva un rapporto di prova dopo ogni chiamata"
+      save_report_detail:
+        en: "Pseudonymized, stays on this computer"
+        de: "Pseudonymisiert, bleibt auf diesem Computer"
+        it: "Pseudonimizzato, resta su questo computer"
+      soft_focus_high:
+        en: "High"
+        de: "Hoch"
+        it: "Alto"
+      soft_focus_low:
+        en: "Low"
+        de: "Niedrig"
+        it: "Basso"
+      soft_focus_medium:
+        en: "Medium"
+        de: "Mittel"
+        it: "Medio"
+      soft_focus_strength:
+        en: "Soft focus strength"
+        de: "Stärke des Weichzeichners"
+        it: "Intensità del focus morbido"
+      speaker:
+        en: "Speaker"
+        de: "Lautsprecher"
+        it: "Altoparlante"
+      starting_camera:
+        en: "Starting camera..."
+        de: "Kamera wird gestartet..."
+        it: "Avvio della fotocamera..."
+      test_call:
+        en: "Make a test call"
+        de: "Testanruf durchführen"
+        it: "Effettua una chiamata di prova"
+      test_call_detail:
+        en: "Echo bot, checks your speaker and microphone"
+        de: "Echo-Bot, prüft Lautsprecher und Mikrofon"
+        it: "Echo bot, verifica altoparlante e microfono"
+      noise_auto:
+        en: "Auto"
+        de: "Automatisch"
+        it: "Automatica"
+      noise_low:
+        en: "Low"
+        de: "Niedrig"
+        it: "Bassa"
+      noise_off:
+        en: "Off"
+        de: "Aus"
+        it: "Disattivata"
+    dialog:
+      search_placeholder:
+        en: "Find in Settings"
+        de: "In Einstellungen suchen"
+        it: "Cerca nelle impostazioni"
+    downloads:
+      failed:
+        en: "Save failed: %{reason}. Click to retry"
+        de: "Speichern fehlgeschlagen: %{reason}. Zum Wiederholen klicken"
+        it: "Salvataggio non riuscito: %{reason}. Fai clic per riprovare"
+      save:
+        en: "Save to Downloads"
+        de: "In Downloads speichern"
+        it: "Salva in Download"
+      saving:
+        en: "Saving"
+        de: "Wird gespeichert"
+        it: "Salvataggio"
+      show_in_folder:
+        en: "Show in folder"
+        de: "Im Ordner anzeigen"
+        it: "Mostra nella cartella"
+    files:
+      earlier:
+        en: "Earlier"
+        de: "Älter"
+        it: "Precedenti"
+      item_many:
+        en: "%{count} items"
+        de: "%{count} Elemente"
+        it: "%{count} elementi"
+      item_one:
+        en: "1 item"
+        de: "1 Element"
+        it: "1 elemento"
+      this_week:
+        en: "This week"
+        de: "Diese Woche"
+        it: "Questa settimana"
+    mcp:
+      add_channel:
+        en: "+ Add channel"
+        de: "+ Kanal hinzufügen"
+        it: "+ Aggiungi canale"
+      add_chat:
+        en: "+ Add chat"
+        de: "+ Chat hinzufügen"
+        it: "+ Aggiungi chat"
+      added:
+        en: "Added"
+        de: "Hinzugefügt"
+        it: "Aggiunto"
+      all:
+        en: "All"
+        de: "Alle"
+        it: "Tutti"
+      calendar_detail:
+        en: "Times, titles, organizers, join links"
+        de: "Zeiten, Titel, Organisatoren, Beitrittslinks"
+        it: "Orari, titoli, organizzatori, link di partecipazione"
+      calendar_title:
+        en: "Calendar and meetings"
+        de: "Kalender und Besprechungen"
+        it: "Calendario e riunioni"
+      caption_access:
+        en: "ACCESS"
+        de: "ZUGRIFF"
+        it: "ACCESSO"
+      caption_install:
+        en: "INSTALL"
+        de: "INSTALLATION"
+        it: "INSTALLAZIONE"
+      caption_server:
+        en: "SERVER"
+        de: "SERVER"
+        it: "SERVER"
+      chat_kind_chat:
+        en: "Chat"
+        de: "Chat"
+        it: "Chat"
+      chat_kind_group:
+        en: "Group"
+        de: "Gruppe"
+        it: "Gruppo"
+      chat_kind_meeting:
+        en: "Meeting"
+        de: "Besprechung"
+        it: "Riunione"
+      copied:
+        en: "Copied"
+        de: "Kopiert"
+        it: "Copiato"
+      install:
+        en: "Install"
+        de: "Installieren"
+        it: "Installa"
+      installed:
+        en: "Installed"
+        de: "Installiert"
+        it: "Installato"
+      installing:
+        en: "Installing..."
+        de: "Wird installiert..."
+        it: "Installazione..."
+      meetings_open_detail:
+        en: "Without review: agents create meetings and invite people right away"
+        de: "Ohne Prüfung: Agents erstellen Besprechungen und laden Personen sofort ein"
+        it: "Senza revisione: gli agent creano riunioni e invitano subito le persone"
+      meetings_review_detail:
+        en: "Free/busy of people, meeting card in Calendar. You create it"
+        de: "Verfügbarkeit von Personen, Besprechungskarte im Kalender. Sie erstellen sie"
+        it: "Disponibilità delle persone, scheda riunione nel calendario. La crei tu"
+      meetings_title:
+        en: "Organize meetings"
+        de: "Besprechungen organisieren"
+        it: "Organizza riunioni"
+      new:
+        en: "New"
+        de: "Neu"
+        it: "Nuovo"
+      no_review_note:
+        en: "Agents only see what is allowed here. Without review they send as you."
+        de: "Agents sehen nur, was hier erlaubt ist. Ohne Prüfung senden sie als Sie."
+        it: "Gli agent vedono solo ciò che è consentito qui. Senza revisione inviano come te."
+      none:
+        en: "None"
+        de: "Keine"
+        it: "Nessuno"
+      not_installed:
+        en: "Not installed"
+        de: "Nicht installiert"
+        it: "Non installato"
+      out_of_date:
+        en: "Out of date - Update"
+        de: "Veraltet – Aktualisieren"
+        it: "Non aggiornato - Aggiorna"
+      port:
+        en: "Port"
+        de: "Port"
+        it: "Porta"
+      port_detail:
+        en: "Only this computer can connect"
+        de: "Nur dieser Computer kann sich verbinden"
+        it: "Solo questo computer può connettersi"
+      port_in_use:
+        en: "Port %{port} is in use by another program. Pick another port, then press Install again for each agent."
+        de: "Port %{port} wird von einem anderen Programm verwendet. Wählen Sie einen anderen Port und klicken Sie für jeden Agent erneut auf Installieren."
+        it: "La porta %{port} è in uso da un altro programma. Scegli un'altra porta, poi premi di nuovo Installa per ogni agent."
+      port_invalid:
+        en: "Enter a port from 1 to 65535. Nothing was saved."
+        de: "Port von 1 bis 65535 eingeben. Es wurde nichts gespeichert."
+        it: "Inserisci una porta da 1 a 65535. Non è stato salvato nulla."
+      remove:
+        en: "Remove"
+        de: "Entfernen"
+        it: "Rimuovi"
+      removing:
+        en: "Removing..."
+        de: "Wird entfernt..."
+        it: "Rimozione..."
+      review_detail:
+        en: "Card above the composer, note under a message. You decide"
+        de: "Scheda über dem Eingabefeld, Notiz unter einer Nachricht. Sie entscheiden"
+        it: "Scheda sopra il campo di composizione, nota sotto un messaggio. Decidi tu"
+      review_note:
+        en: "Agents only see what is allowed here. They never send - you do."
+        de: "Agents sehen nur, was hier erlaubt ist. Sie senden nie – das tun Sie."
+        it: "Gli agent vedono solo ciò che è consentito qui. Non inviano mai: invii tu."
+      review_off_detail:
+        en: "Off: agents send and react right away, as you"
+        de: "Aus: Agents senden und reagieren sofort, als Sie"
+        it: "Disattivato: gli agent inviano e reagiscono subito, come te"
+      review_title:
+        en: "Review before sending"
+        de: "Vor dem Senden prüfen"
+        it: "Esamina prima di inviare"
+      scope_all_channels:
+        en: "All channels"
+        de: "Alle Kanäle"
+        it: "Tutti i canali"
+      scope_all_chats:
+        en: "All chats"
+        de: "Alle Chats"
+        it: "Tutte le chat"
+      scope_channels:
+        en: "Channels"
+        de: "Kanäle"
+        it: "Canali"
+      scope_chats:
+        en: "Chats"
+        de: "Chats"
+        it: "Chat"
+      scope_no_channel:
+        en: "No channel visible"
+        de: "Kein Kanal sichtbar"
+        it: "Nessun canale visibile"
+      scope_no_chat:
+        en: "No chat visible"
+        de: "Kein Chat sichtbar"
+        it: "Nessuna chat visibile"
+      scope_selected:
+        en: "%{count} selected"
+        de: "%{count} ausgewählt"
+        it: "%{count} selezionati"
+      scope_selected_meeting:
+        en: "%{count} selected, incl. meeting chats"
+        de: "%{count} ausgewählt, inkl. Besprechungschats"
+        it: "%{count} selezionati, incl. chat di riunione"
+      search:
+        en: "Search"
+        de: "Suchen"
+        it: "Cerca"
+      selected:
+        en: "Selected"
+        de: "Ausgewählt"
+        it: "Selezionati"
+      server_failed:
+        en: "Could not start"
+        de: "Konnte nicht gestartet werden"
+        it: "Impossibile avviare"
+      server_off_detail:
+        en: "Off - agents cannot reach Rusty Teams"
+        de: "Aus – Agents können Rusty Teams nicht erreichen"
+        it: "Disattivato - gli agent non possono raggiungere Rusty Teams"
+      server_running_detail:
+        en: "Agents on this computer can read and write"
+        de: "Agents auf diesem Computer können lesen und schreiben"
+        it: "Gli agent su questo computer possono leggere e scrivere"
+      server_title:
+        en: "MCP server"
+        de: "MCP-Server"
+        it: "Server MCP"
+      token:
+        en: "Token"
+        de: "Token"
+        it: "Token"
+      transcripts_detail:
+        en: "Spoken text goes to the agent's provider"
+        de: "Gesprochener Text geht an den Anbieter des Agents"
+        it: "Il testo parlato va al provider dell'agent"
+      transcripts_title:
+        en: "Meeting transcripts"
+        de: "Besprechungstranskripte"
+        it: "Trascrizioni delle riunioni"
+      unknown:
+        en: "Unknown"
+        de: "Unbekannt"
+        it: "Sconosciuto"
+      update:
+        en: "Update"
+        de: "Aktualisieren"
+        it: "Aggiorna"
+      updating:
+        en: "Updating..."
+        de: "Wird aktualisiert..."
+        it: "Aggiornamento..."
+      url:
+        en: "URL"
+        de: "URL"
+        it: "URL"
+      write_detail:
+        en: "Agents can answer in the chats and channels above"
+        de: "Agents können in den Chats und Kanälen oben antworten"
+        it: "Gli agent possono rispondere nelle chat e nei canali sopra"
+      write_title:
+        en: "Write messages and reactions"
+        de: "Nachrichten und Reaktionen schreiben"
+        it: "Scrivi messaggi e reazioni"
+      wsl_warning:
+        en: "WSL agents cannot reach 127.0.0.1 on Windows. Add networkingMode=mirrored to .wslconfig and run wsl --shutdown."
+        de: "WSL-Agents können 127.0.0.1 unter Windows nicht erreichen. Fügen Sie networkingMode=mirrored in .wslconfig hinzu und führen Sie wsl --shutdown aus."
+        it: "Gli agent WSL non possono raggiungere 127.0.0.1 su Windows. Aggiungi networkingMode=mirrored a .wslconfig ed esegui wsl --shutdown."
+    nav:
+      term_agent_runs:
+        en: "Agent runs"
+        de: "Agent-Läufe"
+        it: "Esecuzioni agent"
+      term_conversation_access:
+        en: "Conversation access"
+        de: "Konversationszugriff"
+        it: "Accesso alle conversazioni"
+      term_diagnostics:
+        en: "diagnostics"
+        de: "Diagnose"
+        it: "diagnostica"
+      term_model_context_protocol:
+        en: "Model Context Protocol"
+        de: "Model Context Protocol"
+        it: "Model Context Protocol"
+      term_support:
+        en: "support"
+        de: "Support"
+        it: "supporto"
+    notifications:
+      caption_chat:
+        en: "CHAT"
+        de: "CHAT"
+        it: "CHAT"
+      caption_meetings_calls:
+        en: "MEETINGS AND CALLS"
+        de: "BESPRECHUNGEN UND ANRUFE"
+        it: "RIUNIONI E CHIAMATE"
+      caption_people:
+        en: "PEOPLE"
+        de: "PERSONEN"
+        it: "PERSONE"
+      caption_teams_channels:
+        en: "TEAMS AND CHANNELS"
+        de: "TEAMS UND KANÄLE"
+        it: "TEAMS E CANALI"
+      everyone_mentions:
+        en: "Everyone in chat @mentions"
+        de: "@Erwähnungen aller im Chat"
+        it: "@menzioni di tutti nella chat"
+      personal_mentions:
+        en: "Personal @mentions"
+        de: "Persönliche @Erwähnungen"
+        it: "@menzioni personali"
+      preview_off_detail:
+        en: "Off: only \"New message\""
+        de: "Aus: nur „Neue Nachricht“"
+        it: "Disattivato: solo \"Nuovo messaggio\""
+      corner_top_left:
+        en: "Top left"
+        de: "Oben links"
+        it: "In alto a sinistra"
+      corner_top_right:
+        en: "Top right"
+        de: "Oben rechts"
+        it: "In alto a destra"
+      corner_bottom_left:
+        en: "Bottom left"
+        de: "Unten links"
+        it: "In basso a sinistra"
+      corner_bottom_right:
+        en: "Bottom right"
+        de: "Unten rechts"
+        it: "In basso a destra"
+      sound_default:
+        en: "Default"
+        de: "Standard"
+        it: "Predefinito"
+    pill:
+      accept:
+        en: "Accept"
+        de: "Annehmen"
+        it: "Accetta"
+      discard:
+        en: "Discard"
+        de: "Verwerfen"
+        it: "Scarta"
+    recap:
+      attendance_failed:
+        en: "Attendance could not be loaded."
+        de: "Anwesenheit konnte nicht geladen werden."
+        it: "Impossibile caricare la presenza."
+      attendance_off:
+        en: "Attendance reports are turned off for your organization."
+        de: "Anwesenheitsberichte sind für Ihre Organisation deaktiviert."
+        it: "I rapporti di presenza sono disattivati per la tua organizzazione."
+      delete_question:
+        en: "Delete this recording for everyone?"
+        de: "Diese Aufzeichnung für alle löschen?"
+        it: "Eliminare questa registrazione per tutti?"
+      empty:
+        en: "No recording or transcript for this meeting."
+        de: "Keine Aufzeichnung oder Transkript für diese Besprechung."
+        it: "Nessuna registrazione o trascrizione per questa riunione."
+      expires_in_days:
+        en: "Expires in %{days} days"
+        de: "Läuft in %{days} Tagen ab"
+        it: "Scade tra %{days} giorni"
+      expires_in_one_day:
+        en: "Expires in 1 day"
+        de: "Läuft in 1 Tag ab"
+        it: "Scade tra 1 giorno"
+      expires_today:
+        en: "Expires today"
+        de: "Läuft heute ab"
+        it: "Scade oggi"
+      hours:
+        en: "%{hours} h"
+        de: "%{hours} Std."
+        it: "%{hours} h"
+      hours_minutes:
+        en: "%{hours} h %{minutes} min"
+        de: "%{hours} Std. %{minutes} Min."
+        it: "%{hours} h %{minutes} min"
+      minutes:
+        en: "%{minutes} min"
+        de: "%{minutes} Min."
+        it: "%{minutes} min"
+      no_transcript:
+        en: "No transcript for this recording."
+        de: "Kein Transkript für diese Aufzeichnung."
+        it: "Nessuna trascrizione per questa registrazione."
+      under_one_minute:
+        en: "< 1 min"
+        de: "< 1 Min."
+        it: "< 1 min"
+    schedule:
+      later_today:
+        en: "Later today"
+        de: "Später heute"
+        it: "Più tardi oggi"
+      monday_morning:
+        en: "Monday morning"
+        de: "Montagmorgen"
+        it: "Lunedì mattina"
+      past:
+        en: "That time has passed."
+        de: "Dieser Zeitpunkt ist vorbei."
+        it: "Quell'ora è già passata."
+      too_far:
+        en: "Teams schedules up to 7 days ahead."
+        de: "Teams plant bis zu 7 Tage im Voraus."
+        it: "Teams pianifica fino a 7 giorni in anticipo."
+      tomorrow_morning:
+        en: "Tomorrow morning"
+        de: "Morgen früh"
+        it: "Domani mattina"
+    status:
+      appear_away:
+        en: "Appear away"
+        de: "Abwesend erscheinen"
+        it: "Mostrati assente"
+      appear_offline:
+        en: "Appear offline"
+        de: "Offline erscheinen"
+        it: "Mostrati offline"
+      available:
+        en: "Available"
+        de: "Verfügbar"
+        it: "Disponibile"
+      away:
+        en: "Away"
+        de: "Abwesend"
+        it: "Assente"
+      be_right_back:
+        en: "Be right back"
+        de: "Gleich zurück"
+        it: "Torno subito"
+      busy:
+        en: "Busy"
+        de: "Beschäftigt"
+        it: "Occupato"
+      do_not_disturb:
+        en: "Do not disturb"
+        de: "Nicht stören"
+        it: "Non disturbare"
+      duration_half_hour:
+        en: "30 minutes"
+        de: "30 Minuten"
+        it: "30 minuti"
+      duration_one_hour:
+        en: "1 hour"
+        de: "1 Stunde"
+        it: "1 ora"
+      duration_this_week:
+        en: "This week"
+        de: "Diese Woche"
+        it: "Questa settimana"
+      duration_today:
+        en: "Today"
+        de: "Heute"
+        it: "Oggi"
+      duration_two_hours:
+        en: "2 hours"
+        de: "2 Stunden"
+        it: "2 ore"
+      offline:
+        en: "Offline"
+        de: "Offline"
+        it: "Offline"
+    tabs:
+      chat:
+        en: "Chat"
+        de: "Chat"
+        it: "Chat"
+      posts:
+        en: "Posts"
+        de: "Beiträge"
+        it: "Post"
+      recap:
+        en: "Recap"
+        de: "Rückblick"
+        it: "Riepilogo"
+      shared:
+        en: "Shared"
+        de: "Geteilt"
+        it: "Condivisi"
+    toast:
+      close:
+        en: "close"
+        de: "schließen"
+        it: "chiudi"
+      hide_all:
+        en: "Hide all"
+        de: "Alle ausblenden"
+        it: "Nascondi tutto"
+      mention:
+        en: "Mention"
+        de: "Erwähnung"
+        it: "Menzione"
+      more_waiting:
+        en: "%{count} more waiting"
+        de: "%{count} weitere warten"
+        it: "%{count} in attesa"
+      new_line:
+        en: "new line"
+        de: "neue Zeile"
+        it: "nuova riga"
+      new_messages:
+        en: "%{count} new"
+        de: "%{count} neu"
+        it: "%{count} nuovi"
+      reply_placeholder:
+        en: "Reply ..."
+        de: "Antworten ..."
+        it: "Rispondi ..."
+      send:
+        en: "send"
+        de: "senden"
+        it: "invia"
+      send_failed:
+        en: "Couldn't send"
+        de: "Senden fehlgeschlagen"
+        it: "Invio non riuscito"
+      sent_to:
+        en: "Sent to %{target}"
+        de: "Gesendet an %{target}"
+        it: "Inviato a %{target}"
+    tray:
+      duration:
+        en: "Duration"
+        de: "Dauer"
+        it: "Durata"
+      reset_status:
+        en: "Reset status"
+        de: "Status zurücksetzen"
+        it: "Reimposta stato"
+    calls:
+      ringtone_default:
+        en: "Default"
+        de: "Standard"
+        it: "Predefinita"
+      ringtone_bubbles_loud:
+        en: "Bubbles (Loud)"
+        de: "Bubbles (laut)"
+        it: "Bubbles (forte)"
+      call_type_regular:
+        en: "Calls for you"
+        de: "Anrufe für dich"
+        it: "Chiamate per te"
+      call_type_group:
+        en: "Forwarded calls"
+        de: "Weitergeleitete Anrufe"
+        it: "Chiamate inoltrate"
+      call_type_queue:
+        en: "Call queue calls"
+        de: "Anrufwarteschlangen-Anrufe"
+        it: "Chiamate in coda"
+      call_type_delegate:
+        en: "Delegated calls"
+        de: "Delegierte Anrufe"
+        it: "Chiamate delegate"
+  misc:
+    action_not_supported:
+      en: "Not supported in this app"
+      de: "In dieser App nicht unterstützt"
+      it: "Non supportato in questa app"
+    add_people:
+      en: "Add people"
+      de: "Personen hinzufügen"
+      it: "Aggiungi persone"
+    all_emojis:
+      en: "All emojis"
+      de: "Alle Emojis"
+      it: "Tutte le emoji"
+    apply:
+      en: "Apply"
+      de: "Übernehmen"
+      it: "Applica"
+    author_in:
+      en: "%{name} in"
+      de: "%{name} in"
+      it: "%{name} in"
+    back:
+      en: "Back"
+      de: "Zurück"
+      it: "Indietro"
+    banner_color_indigo:
+      en: "Indigo"
+      de: "Indigo"
+      it: "Indaco"
+    banner_color_orange_sherbet:
+      en: "Orange sherbet"
+      de: "Orange Sherbet"
+      it: "Sorbetto all'arancia"
+    banner_color_periwinkle:
+      en: "Periwinkle"
+      de: "Immergrün"
+      it: "Pervinca"
+    banner_color_rose:
+      en: "Rose"
+      de: "Rosé"
+      it: "Rosa"
+    chat:
+      en: "Chat"
+      de: "Chat"
+      it: "Chat"
+    choose_emoji:
+      en: "Choose an emoji"
+      de: "Emoji auswählen"
+      it: "Scegli un'emoji"
+    clear_message:
+      en: "Clear message"
+      de: "Nachricht löschen"
+      it: "Cancella messaggio"
+    clear_status_message_after:
+      en: "Clear status message after"
+      de: "Statusnachricht löschen nach"
+      it: "Cancella il messaggio di stato dopo"
+    close_shortcut:
+      en: "Close (Esc)"
+      de: "Schließen (Esc)"
+      it: "Chiudi (Esc)"
+    collapse:
+      en: "Collapse"
+      de: "Einklappen"
+      it: "Comprimi"
+    column_modified:
+      en: "Modified"
+      de: "Geändert"
+      it: "Modificato"
+    column_modified_by:
+      en: "Modified by"
+      de: "Geändert von"
+      it: "Modificato da"
+    column_name:
+      en: "Name"
+      de: "Name"
+      it: "Nome"
+    column_size:
+      en: "Size"
+      de: "Größe"
+      it: "Dimensione"
+    contact:
+      en: "Contact"
+      de: "Kontakt"
+      it: "Contatto"
+    copied_file_path:
+      en: "Copied file path"
+      de: "Dateipfad kopiert"
+      it: "Percorso file copiato"
+    copy_code:
+      en: "Copy code"
+      de: "Code kopieren"
+      it: "Copia codice"
+    copy_email:
+      en: "Copy email"
+      de: "E-Mail kopieren"
+      it: "Copia email"
+    copy_image:
+      en: "Copy image"
+      de: "Bild kopieren"
+      it: "Copia immagine"
+    copy_image_shortcut:
+      en: "Copy image (Ctrl C)"
+      de: "Bild kopieren (Ctrl C)"
+      it: "Copia immagine (Ctrl C)"
+    copy_join_info:
+      en: "Copy join info"
+      de: "Beitrittsinfo kopieren"
+      it: "Copia info di partecipazione"
+    copy_link:
+      en: "Copy link"
+      de: "Link kopieren"
+      it: "Copia link"
+    could_not_read_file:
+      en: "Could not read %{name}."
+      de: "%{name} konnte nicht gelesen werden."
+      it: "Impossibile leggere %{name}."
+    could_not_rotate:
+      en: "Could not rotate"
+      de: "Drehen fehlgeschlagen"
+      it: "Impossibile ruotare"
+    could_not_save_image:
+      en: "Could not save the image"
+      de: "Bild konnte nicht gespeichert werden"
+      it: "Impossibile salvare l'immagine"
+    customise_default_reactions:
+      en: "Customise default reactions"
+      de: "Standardsreaktionen anpassen"
+      it: "Personalizza reazioni predefinite"
+    customise_reactions_description:
+      en: "Click on a reaction below, then choose an emoji to replace it with."
+      de: "Klicke unten auf eine Reaktion und wähle dann ein Emoji als Ersatz."
+      it: "Fai clic su una reazione qui sotto, poi scegli un'emoji con cui sostituirla."
+    customise_reactions_skin_tone:
+      en: "Choose a skin tone. After selection, reactions and emoji will appear with this skin tone."
+      de: "Wähle einen Hautton. Nach der Auswahl werden Reaktionen und Emoji in diesem Hautton angezeigt."
+      it: "Scegli un tono della pelle. Dopo la selezione, reazioni ed emoji appariranno con questo tono."
+    customise_reactions_title:
+      en: "Customise your reactions and appearance in Teams"
+      de: "Passe deine Reaktionen und dein Erscheinungsbild in Teams an"
+      it: "Personalizza le tue reazioni e l'aspetto in Teams"
+    direct_reports:
+      en: "%{count} direct reports"
+      de: "%{count} direkte Mitarbeiter"
+      it: "%{count} dipendenti diretti"
+    done:
+      en: "Done"
+      de: "Fertig"
+      it: "Fatto"
+    dont_include_history:
+      en: "Don't include chat history"
+      de: "Chatverlauf nicht einbeziehen"
+      it: "Non includere la cronologia chat"
+    download:
+      en: "Download"
+      de: "Herunterladen"
+      it: "Scarica"
+    download_failed_retry:
+      en: "Failed, click to retry"
+      de: "Fehlgeschlagen, zum Wiederholen klicken"
+      it: "Non riuscito, fai clic per riprovare"
+    email:
+      en: "Email"
+      de: "E-Mail"
+      it: "Email"
+    emoji:
+      en: "Emoji"
+      de: "Emoji"
+      it: "Emoji"
+    empty_library:
+      en: "No files yet. Upload or drop files here."
+      de: "Noch keine Dateien. Lade Dateien hoch oder ziehe sie hierher."
+      it: "Ancora nessun file. Carica o trascina i file qui."
+    empty_shared_messages:
+      en: "No files or links shared in this channel yet."
+      de: "In diesem Kanal wurden noch keine Dateien oder Links geteilt."
+      it: "Nessun file o link condiviso in questo canale."
+    expand_more_lines:
+      en: "Expand (%{count} more lines)"
+      de: "Erweitern (%{count} weitere Zeilen)"
+      it: "Espandi (altre %{count} righe)"
+    file_is_empty:
+      en: "%{name} is empty."
+      de: "%{name} ist leer."
+      it: "%{name} è vuoto."
+    file_kind_archive:
+      en: "Archive"
+      de: "Archiv"
+      it: "Archivio"
+    file_kind_excel:
+      en: "Excel spreadsheet"
+      de: "Excel-Tabelle"
+      it: "Foglio di calcolo Excel"
+    file_kind_image:
+      en: "Image"
+      de: "Bild"
+      it: "Immagine"
+    file_kind_loop:
+      en: "Loop component"
+      de: "Loop-Komponente"
+      it: "Componente Loop"
+    file_kind_other:
+      en: "File"
+      de: "Datei"
+      it: "File"
+    file_kind_pdf:
+      en: "PDF document"
+      de: "PDF-Dokument"
+      it: "Documento PDF"
+    file_kind_video:
+      en: "Video"
+      de: "Video"
+      it: "Video"
+    file_kind_word:
+      en: "Word document"
+      de: "Word-Dokument"
+      it: "Documento Word"
+    file_too_large:
+      en: "%{name} is larger than %{max} MB."
+      de: "%{name} ist größer als %{max} MB."
+      it: "%{name} supera %{max} MB."
+    files_later_notice:
+      en: "Files can be added once the chat exists."
+      de: "Dateien können hinzugefügt werden, sobald der Chat existiert."
+      it: "I file possono essere aggiunti una volta creato il file."
+    files_load_failed:
+      en: "Could not load the files: %{reason}"
+      de: "Die Dateien konnten nicht geladen werden: %{reason}"
+      it: "Impossibile caricare i file: %{reason}"
+    filter_all:
+      en: "All"
+      de: "Alle"
+      it: "Tutti"
+    filter_files:
+      en: "Files"
+      de: "Dateien"
+      it: "File"
+    filter_links:
+      en: "Links"
+      de: "Links"
+      it: "Link"
+    fmt_bold:
+      en: "Bold"
+      de: "Fett"
+      it: "Grassetto"
+    fmt_bulleted_list:
+      en: "Bulleted list"
+      de: "Aufzählungsliste"
+      it: "Elenco puntato"
+    fmt_clear_formatting:
+      en: "Clear all formatting"
+      de: "Gesamte Formatierung löschen"
+      it: "Cancella tutta la formattazione"
+    fmt_code:
+      en: "Code"
+      de: "Code"
+      it: "Codice"
+    fmt_code_block:
+      en: "Code block"
+      de: "Codeblock"
+      it: "Blocco di codice"
+    fmt_font_color:
+      en: "Font colour"
+      de: "Schriftfarbe"
+      it: "Colore carattere"
+    fmt_font_size:
+      en: "Font size"
+      de: "Schriftgröße"
+      it: "Dimensione carattere"
+    fmt_highlight:
+      en: "Text highlight colour"
+      de: "Texthervorhebungsfarbe"
+      it: "Colore evidenziazione testo"
+    fmt_indent:
+      en: "Increase indent"
+      de: "Einzug vergrößern"
+      it: "Aumenta rientro"
+    fmt_insert_table:
+      en: "Insert table"
+      de: "Tabelle einfügen"
+      it: "Inserisci tabella"
+    fmt_italic:
+      en: "Italic"
+      de: "Kursiv"
+      it: "Corsivo"
+    fmt_large_text:
+      en: "Large text"
+      de: "Großer Text"
+      it: "Testo grande"
+    fmt_link:
+      en: "Link"
+      de: "Link"
+      it: "Collegamento"
+    fmt_more:
+      en: "More options"
+      de: "Weitere Optionen"
+      it: "Altre opzioni"
+    fmt_normal_text:
+      en: "Normal text"
+      de: "Normaler Text"
+      it: "Testo normale"
+    fmt_numbered_list:
+      en: "Numbered list"
+      de: "Nummerierte Liste"
+      it: "Elenco numerato"
+    fmt_outdent:
+      en: "Decrease indent"
+      de: "Einzug verkleinern"
+      it: "Riduci rientro"
+    fmt_paragraph_style:
+      en: "Rich style"
+      de: "Formatvorlage"
+      it: "Stile avanzato"
+    fmt_quote:
+      en: "Quote"
+      de: "Zitat"
+      it: "Citazione"
+    fmt_rule:
+      en: "Insert horizontal rule"
+      de: "Horizontale Linie einfügen"
+      it: "Inserisci linea orizzontale"
+    fmt_small_text:
+      en: "Small text"
+      de: "Kleiner Text"
+      it: "Testo piccolo"
+    fmt_strikethrough:
+      en: "Strikethrough"
+      de: "Durchgestrichen"
+      it: "Barrato"
+    fmt_subscript:
+      en: "Subscript"
+      de: "Tiefgestellt"
+      it: "Pedice"
+    fmt_superscript:
+      en: "Superscript"
+      de: "Hochgestellt"
+      it: "Apice"
+    fmt_table_insert:
+      en: "Insert column or row"
+      de: "Spalte oder Zeile einfügen"
+      it: "Inserisci colonna o riga"
+    fmt_table_remove:
+      en: "Delete column, row, or table"
+      de: "Spalte, Zeile oder Tabelle löschen"
+      it: "Elimina colonna, riga o tabella"
+    fmt_underline:
+      en: "Underline"
+      de: "Unterstrichen"
+      it: "Sottolineato"
+    forward:
+      en: "Forward"
+      de: "Weiterleiten"
+      it: "Inoltra"
+    full_screen_shortcut:
+      en: "Full screen (F11)"
+      de: "Vollbild (F11)"
+      it: "Schermo intero (F11)"
+    gifs_disabled_by_org:
+      en: "GIFs are disabled in your organization."
+      de: "GIFs sind in deiner Organisation deaktiviert."
+      it: "Le GIF sono disabilitate nella tua organizzazione."
+    gifs_load_failed:
+      en: "Could not load GIFs."
+      de: "GIFs konnten nicht geladen werden."
+      it: "Impossibile caricare le GIF."
+    hide_formatting_options:
+      en: "Hide Formatting options"
+      de: "Formatierungsoptionen ausblenden"
+      it: "Nascondi opzioni di formattazione"
+    hint_close:
+      en: "close"
+      de: "schließen"
+      it: "chiudi"
+    hint_insert:
+      en: "insert"
+      de: "einfügen"
+      it: "inserisci"
+    hint_select:
+      en: "select"
+      de: "auswählen"
+      it: "seleziona"
+    image_copied:
+      en: "Image copied"
+      de: "Bild kopiert"
+      it: "Immagine copiata"
+    image_unavailable:
+      en: "Image unavailable"
+      de: "Bild nicht verfügbar"
+      it: "Immagine non disponibile"
+    in_library:
+      en: "In library"
+      de: "In Bibliothek"
+      it: "In raccolta"
+    in_messages:
+      en: "In messages"
+      de: "In Nachrichten"
+      it: "Nei messaggi"
+    include_all_history:
+      en: "Include all chat history"
+      de: "Gesamten Chatverlauf einbeziehen"
+      it: "Includi tutta la cronologia chat"
+    include_history_days:
+      en: "Include history from the past number of days:"
+      de: "Verlauf der letzten Tage einbeziehen:"
+      it: "Includi la cronologia degli ultimi giorni:"
+    label_with_shortcut:
+      en: "%{label} (%{shortcut})"
+      de: "%{label} (%{shortcut})"
+      it: "%{label} (%{shortcut})"
+    limit_notice_one:
+      en: "Up to %{max} attachments per message. %{count} file was not added."
+      de: "Bis zu %{max} Anhänge pro Nachricht. %{count} Datei wurde nicht hinzugefügt."
+      it: "Fino a %{max} allegati per messaggio. %{count} file non è stato aggiunto."
+    limit_notice_other:
+      en: "Up to %{max} attachments per message. %{count} files were not added."
+      de: "Bis zu %{max} Anhänge pro Nachricht. %{count} Dateien wurden nicht hinzugefügt."
+      it: "Fino a %{max} allegati per messaggio. %{count} file non sono stati aggiunti."
+    link_schemes_only:
+      en: "Only http, https and mailto links"
+      de: "Nur http-, https- und mailto-Links"
+      it: "Solo link http, https e mailto"
+    loading_image:
+      en: "Loading image"
+      de: "Bild wird geladen"
+      it: "Caricamento immagine"
+    manager:
+      en: "Manager"
+      de: "Vorgesetzter"
+      it: "Responsabile"
+    more_actions:
+      en: "More actions"
+      de: "Weitere Aktionen"
+      it: "Altre azioni"
+    new_folder:
+      en: "New folder"
+      de: "Neuer Ordner"
+      it: "Nuova cartella"
+    new_folder_hint:
+      en: "Enter to create, Esc to cancel"
+      de: "Enter zum Erstellen, Esc zum Abbrechen"
+      it: "Invio per creare, Esc per annullare"
+    no_emoji_found:
+      en: "No emoji found"
+      de: "Kein Emoji gefunden"
+      it: "Nessuna emoji trovata"
+    no_emojis_for:
+      en: "No emojis for \"%{query}\""
+      de: "Keine Emojis zu \"%{query}\""
+      it: "Nessuna emoji per \"%{query}\""
+    no_gifs_for:
+      en: "No GIFs for \"%{query}\""
+      de: "Keine GIFs zu \"%{query}\""
+      it: "Nessuna GIF per \"%{query}\""
+    no_gifs_found:
+      en: "No GIFs found"
+      de: "Keine GIFs gefunden"
+      it: "Nessuna GIF trovata"
+    no_stickers_for:
+      en: "No stickers for \"%{query}\""
+      de: "Keine Sticker zu \"%{query}\""
+      it: "Nessuno sticker per \"%{query}\""
+    not_shared_notice:
+      en: "Your organization does not allow sharing with this chat. People may need to request access."
+      de: "Deine Organisation erlaubt das Teilen mit diesem Chat nicht. Personen müssen möglicherweise Zugriff anfordern."
+      it: "La tua organizzazione non consente la condivisione con questa chat. Le persone potrebbero dover richiedere l'accesso."
+    notify_when_available:
+      en: "Notify when available"
+      de: "Benachrichtigen, wenn verfügbar"
+      it: "Avvisa quando disponibile"
+    one_direct_report:
+      en: "1 direct report"
+      de: "1 direkt unterstellte Person"
+      it: "1 dipendente diretto"
+    open_in_browser:
+      en: "Open in browser"
+      de: "Im Browser öffnen"
+      it: "Apri nel browser"
+    open_in_photos:
+      en: "Open in Photos"
+      de: "In Fotos öffnen"
+      it: "Apri in Foto"
+    open_in_sharepoint:
+      en: "Open in SharePoint ↗"
+      de: "In SharePoint öffnen ↗"
+      it: "Apri in SharePoint ↗"
+    organization:
+      en: "Organization"
+      de: "Organisation"
+      it: "Organizzazione"
+    popular:
+      en: "Popular"
+      de: "Beliebt"
+      it: "Popolari"
+    profile_load_failed:
+      en: "Profile details could not be loaded."
+      de: "Profildetails konnten nicht geladen werden."
+      it: "Impossibile caricare i dettagli del profilo."
+    read_only_not_forwarded:
+      en: "Read-only mode: message not forwarded"
+      de: "Nur-Lese-Modus: Nachricht nicht weitergeleitet"
+      it: "Modalità sola lettura: messaggio non inoltrato"
+    reading_file:
+      en: "Reading ..."
+      de: "Wird gelesen ..."
+      it: "Lettura in corso..."
+    recently_used:
+      en: "Recently used"
+      de: "Zuletzt verwendet"
+      it: "Usati di recente"
+    remove_reaction:
+      en: "Remove reaction"
+      de: "Reaktion entfernen"
+      it: "Rimuovi reazione"
+    results:
+      en: "Results"
+      de: "Ergebnisse"
+      it: "Risultati"
+    retry:
+      en: "Retry"
+      de: "Erneut versuchen"
+      it: "Riprova"
+    rotate_shortcut:
+      en: "Rotate (R)"
+      de: "Drehen (R)"
+      it: "Ruota (R)"
+    rotating:
+      en: "Rotating"
+      de: "Wird gedreht"
+      it: "Rotazione in corso"
+    save_as_shortcut:
+      en: "Save as (Ctrl S)"
+      de: "Speichern unter (Ctrl S)"
+      it: "Salva con nome (Ctrl S)"
+    saved:
+      en: "Saved"
+      de: "Gespeichert"
+      it: "Salvato"
+    saved_file:
+      en: "Saved %{name}"
+      de: "%{name} gespeichert"
+      it: "%{name} salvato"
+    schedule_meeting:
+      en: "Schedule meeting"
+      de: "Besprechung planen"
+      it: "Pianifica riunione"
+    search_emoji:
+      en: "Search emoji"
+      de: "Emoji suchen"
+      it: "Cerca emoji"
+    search_gifs:
+      en: "Search GIFs"
+      de: "GIFs suchen"
+      it: "Cerca GIF"
+    search_stickers:
+      en: "Search stickers"
+      de: "Sticker suchen"
+      it: "Cerca sticker"
+    sent_as_file:
+      en: "%{size}, sent as file"
+      de: "%{size}, als Datei gesendet"
+      it: "%{size}, inviato come file"
+    set_status_message:
+      en: "Set status message"
+      de: "Statusnachricht festlegen"
+      it: "Imposta messaggio di stato"
+    share:
+      en: "Share"
+      de: "Teilen"
+      it: "Condividi"
+    sharing_failed:
+      en: "Sharing failed."
+      de: "Teilen fehlgeschlagen."
+      it: "Condivisione non riuscita."
+    show_formatting_options:
+      en: "Show Formatting options"
+      de: "Formatierungsoptionen einblenden"
+      it: "Mostra opzioni di formattazione"
+    start_audio_call_with:
+      en: "Start an audio call with %{name}"
+      de: "Audiotelefonat mit %{name} starten"
+      it: "Avvia una chiamata audio con %{name}"
+    start_video_call_with:
+      en: "Start a video call with %{name}"
+      de: "Videotelefonat mit %{name} starten"
+      it: "Avvia una videochiamata con %{name}"
+    status_message_placeholder:
+      en: "What's your status message?"
+      de: "Wie lautet deine Statusnachricht?"
+      it: "Qual è il tuo messaggio di stato?"
+    status_show_when_messaged:
+      en: "Show when people message me"
+      de: "Anzeigen, wenn mir jemand schreibt"
+      it: "Mostra quando qualcuno mi scrive"
+    sticker:
+      en: "Sticker"
+      de: "Sticker"
+      it: "Sticker"
+    turn_off_notifications:
+      en: "Turn off notifications"
+      de: "Benachrichtigungen deaktivieren"
+      it: "Disattiva notifiche"
+    unknown_person:
+      en: "Unknown person"
+      de: "Unbekannte Person"
+      it: "Persona sconosciuta"
+    upload:
+      en: "Upload"
+      de: "Hochladen"
+      it: "Carica"
+    upload_failed:
+      en: "Upload failed."
+      de: "Hochladen fehlgeschlagen."
+      it: "Caricamento non riuscito."
+    uploading_percent:
+      en: "Uploading %{percent} %"
+      de: "Wird hochgeladen: %{percent} %"
+      it: "Caricamento %{percent} %"
+    zoom:
+      en: "Zoom"
+      de: "Zoom"
+      it: "Zoom"
+    zoom_default_size:
+      en: "Default size"
+      de: "Standardgröße"
+      it: "Dimensione predefinita"
+    zoom_in:
+      en: "Zoom in"
+      de: "Vergrößern"
+      it: "Ingrandisci"
+    zoom_in_shortcut:
+      en: "Zoom in (Ctrl +)"
+      de: "Vergrößern (Ctrl +)"
+      it: "Ingrandisci (Ctrl +)"
+    zoom_maximum:
+      en: "Maximum zoom"
+      de: "Maximaler Zoom"
+      it: "Zoom massimo"
+    zoom_minimum:
+      en: "Minimum zoom"
+      de: "Minimaler Zoom"
+      it: "Zoom minimo"
+    zoom_out:
+      en: "Zoom out"
+      de: "Verkleinern"
+      it: "Riduci"
+    zoom_out_shortcut:
+      en: "Zoom out (Ctrl -)"
+      de: "Verkleinern (Ctrl -)"
+      it: "Riduci (Ctrl -)"
+    zoom_reset:
+      en: "Reset zoom"
+      de: "Zoom zurücksetzen"
+      it: "Reimposta zoom"
+    zoomed_in:
+      en: "Zoomed in"
+      de: "Vergrößert"
+      it: "Ingrandito"
+    zoomed_out:
+      en: "Zoomed out"
+      de: "Verkleinert"
+      it: "Ridotto"
+  notify:
+    auto_start_failed:
+      en: "Auto-start could not be changed: %{detail}"
+      de: "Autostart konnte nicht geändert werden: %{detail}"
+      it: "Impossibile modificare l'avvio automatico: %{detail}"
+    sent_picture:
+      en: "Sent a picture"
+      de: "Ein Bild gesendet"
+      it: "Immagine inviata"
+    done:
+      en: "Done"
+      de: "Fertig"
+      it: "Fatto"
+    agent_finished:
+      en: "%{agent} finished: %{action} for %{sender}"
+      de: "%{agent} beendet: %{action} für %{sender}"
+      it: "%{agent} terminato: %{action} per %{sender}"
+    agent_failed:
+      en: "%{agent} failed: %{action} for %{sender}"
+      de: "%{agent} fehlgeschlagen: %{action} für %{sender}"
+      it: "%{agent} non riuscito: %{action} per %{sender}"
+    preview_off:
+      en: "New message"
+      de: "Neue Nachricht"
+      it: "Nuovo messaggio"
+    image:
+      en: "Image"
+      de: "Bild"
+      it: "Immagine"
+    unknown_sender:
+      en: "Unknown"
+      de: "Unbekannt"
+      it: "Sconosciuto"
+    direct:
+      en: "Direct"
+      de: "Direkt"
+      it: "Diretta"
+    group_people:
+      en: "Group, %{count} people"
+      de: "Gruppe, %{count} Personen"
+      it: "Gruppo, %{count} persone"
+    activity:
+      recap_ready:
+        en: "Meeting recap is ready"
+        de: "Besprechungszusammenfassung ist bereit"
+        it: "Il riepilogo della riunione è pronto"
+      recap_ready_subject:
+        en: "Recap ready: %{subject}"
+        de: "Zusammenfassung bereit: %{subject}"
+        it: "Riepilogo pronto: %{subject}"
+      sent_file:
+        en: "Sent a file"
+        de: "Datei gesendet"
+        it: "File inviato"
+      sent_image:
+        en: "Sent an image"
+        de: "Bild gesendet"
+        it: "Immagine inviata"
+      sent_card:
+        en: "Sent a card"
+        de: "Karte gesendet"
+        it: "Scheda inviata"
+      preview_unavailable:
+        en: "Preview Unavailable"
+        de: "Vorschau nicht verfügbar"
+        it: "Anteprima non disponibile"
+      deleted:
+        en: "This message has been deleted."
+        de: "Diese Nachricht wurde gelöscht."
+        it: "Questo messaggio è stato eliminato."
+      forwarded:
+        en: "Forwarded message"
+        de: "Weitergeleitete Nachricht"
+        it: "Messaggio inoltrato"
+      meeting:
+        en: "Teams Meeting"
+        de: "Teams-Besprechung"
+        it: "Riunione Teams"
+      replied_with_quote:
+        en: "Replied with quote"
+        de: "Mit Zitat geantwortet"
+        it: "Risposta con citazione"
+    review:
+      en: "Review"
+      de: "Prüfen"
+      it: "Controlla"
+    open_folder:
+      en: "Open folder"
+      de: "Ordner öffnen"
+      it: "Apri cartella"
+    undo:
+      en: "Undo"
+      de: "Rückgängig"
+      it: "Annulla"

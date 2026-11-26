@@ -8,6 +8,7 @@ use gpui_kit::*;
 use super::image_viewer::{suggested_name, write_image};
 use super::widgets::menu_icon;
 use crate::downloads;
+use crate::i18n::tr;
 use crate::image_clipboard::ClipboardImage;
 
 pub type ImageShare = Rc<dyn Fn(&mut App)>;
@@ -52,18 +53,18 @@ pub fn with_image_menu(
             let (copy_path, download_path) = (path.clone(), path.clone());
             let popup = popup
                 .item(
-                    PopupMenuItem::new("Copy image")
+                    PopupMenuItem::new(tr("ui.misc.copy_image"))
                         .icon(menu_icon(IconName::Copy))
                         .on_click(move |_, _, cx| copy_image_file(copy_path.clone(), cx)),
                 )
                 .item(
-                    PopupMenuItem::new("Download")
+                    PopupMenuItem::new(tr("ui.misc.download"))
                         .icon(menu_icon(IconName::Download))
                         .on_click(move |_, _, cx| download_image_file(download_path.clone(), cx)),
                 );
             match share.clone() {
                 Some(share) => popup.item(
-                    PopupMenuItem::new("Share")
+                    PopupMenuItem::new(tr("ui.misc.share"))
                         .icon(menu_icon(IconName::Share))
                         .on_click(move |_, _, cx| share(cx)),
                 ),

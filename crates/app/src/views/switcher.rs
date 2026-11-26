@@ -24,9 +24,11 @@ use crate::app_state::{AppState, Selection, chat_title};
 use crate::data::{Directory, is_one_on_one};
 use crate::format;
 use crate::fuzzy;
+use crate::i18n::tr;
 use crate::runtime;
 use crate::sidebar_model::{AvatarSpec, avatar_for};
 use crate::theme::{self, ElevatedSurface as _};
+use app_base::ui_locale::tr_with;
 
 const MAX_RESULTS: usize = 9;
 const MAX_RESULTS_WITH_MESSAGES: usize = 5;
@@ -35,8 +37,8 @@ const MIN_MESSAGE_QUERY_CHARS: usize = 2;
 const MAX_PEOPLE_RESULTS: usize = 4;
 const MIN_SERVER_QUERY_CHARS: usize = 2;
 const SERVER_DEBOUNCE: Duration = Duration::from_millis(200);
-const MESSAGE_GROUP: &str = "Messages";
-const PEOPLE_GROUP: &str = "People";
+const MESSAGE_GROUP: &str = "ui.chat.switcher.messages";
+const PEOPLE_GROUP: &str = "ui.chat.switcher.people";
 const CARD_WIDTH: f32 = 520.;
 const CARD_TOP: f32 = 6.;
 
@@ -95,7 +97,9 @@ pub fn message_results(
             Some(MessageResult {
                 selection,
                 message_id: hit.message_id,
-                author: hit.sender_name.unwrap_or_else(|| "Unknown".to_owned()),
+                author: hit
+                    .sender_name
+                    .unwrap_or_else(|| tr("ui.chat.switcher.unknown")),
                 conversation,
                 date: format::list_time_label(hit.created_at, today, offset),
                 snippet,
@@ -155,9 +159,12 @@ pub fn candidates_from(state: &AppState) -> Vec<(String, Candidate)> {
             Candidate {
                 title,
                 subtitle: if is_one_on_one(chat) {
-                    "Chat".to_owned()
+                    tr("ui.chat.switcher.subtitle_chat")
                 } else {
-                    format!("Group chat, {} participants", chat.members.len())
+                    tr_with(
+                        "ui.chat.switcher.subtitle_group",
+                        &[("count", &chat.members.len().to_string())],
+                    )
                 },
                 avatar: CandidateAvatar::Chat(avatar_for(chat, me)),
                 selection: Selection::Chat(chat.id.clone()),
@@ -213,9 +220,8 @@ impl Switcher {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let input = cx.new(|cx| {
-            InputState::new(window, cx).placeholder("Jump to a chat, channel, person or message")
-        });
+        let input = cx
+            .new(|cx| InputState::new(window, cx).placeholder(tr("ui.chat.switcher.placeholder")));
         if !initial_query.is_empty() {
             let query = initial_query.to_owned();
             input.update(cx, |input, cx| input.set_value(query, window, cx));
@@ -466,7 +472,7 @@ fn row_position(results: &[Candidate], people: usize, highlighted: usize) -> usi
     before_messages + 1 + (person - people)
 }
 
-fn group_header(label: &'static str) -> AnyElement {
+fn group_header(label: &str) -> AnyElement {
     div()
         .px(px(12.))
         .pt(px(8.))
@@ -474,8 +480,16 @@ fn group_header(label: &'static str) -> AnyElement {
         .text_size(theme::text_caption())
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme::text_muted())
-        .child(label)
+        .child(label.to_owned())
         .into_any_element()
+}
+
+fn group_label(group: &str) -> String {
+    match group {
+        "Chats" => tr("ui.chat.switcher.group_chats"),
+        "Channels" => tr("ui.chat.switcher.group_channels"),
+        other => other.to_owned(),
+    }
 }
 
 impl Render for Switcher {
@@ -487,7 +501,7 @@ impl Render for Switcher {
         for (index, candidate) in self.results.iter().enumerate() {
             if candidate.group() != last_group {
                 last_group = candidate.group();
-                rows.push(group_header(last_group));
+                rows.push(group_header(&group_label(last_group)));
             }
             let selection = candidate.selection.clone();
             let avatar = candidate_avatar(directory, &candidate.avatar, 28., theme::popup());
@@ -535,7 +549,7 @@ impl Render for Switcher {
             );
         }
         if !self.people.is_empty() {
-            rows.push(group_header(PEOPLE_GROUP));
+            rows.push(group_header(&tr(PEOPLE_GROUP)));
         }
         for (offset, person) in self.people.iter().enumerate() {
             let index = self.results.len() + offset;
@@ -589,7 +603,7 @@ impl Render for Switcher {
             );
         }
         if !self.messages.is_empty() {
-            rows.push(group_header(MESSAGE_GROUP));
+            rows.push(group_header(&tr(MESSAGE_GROUP)));
         }
         for (offset, message) in self.messages.iter().enumerate() {
             let index = self.results.len() + self.people.len() + offset;
@@ -644,7 +658,10 @@ impl Render for Switcher {
                                             .truncate()
                                             .text_size(theme::text_small())
                                             .text_color(theme::text_muted())
-                                            .child(format!("in {}", message.conversation)),
+                                            .child(tr_with(
+                                                "ui.chat.switcher.in_conversation",
+                                                &[("conversation", &message.conversation)],
+                                            )),
                                     )
                                     .child(div().flex_1())
                                     .child(
@@ -682,9 +699,9 @@ impl Render for Switcher {
             .items_center()
             .text_size(theme::text_caption())
             .text_color(theme::text_muted())
-            .child("Enter to open")
-            .child("Arrows to select")
-            .child("Esc to close");
+            .child(tr("ui.chat.switcher.hint_open"))
+            .child(tr("ui.chat.switcher.hint_select"))
+            .child(tr("ui.chat.switcher.hint_close"));
         div()
             .id("switcher-backdrop")
             .absolute()

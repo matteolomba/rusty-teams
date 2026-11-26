@@ -6,8 +6,8 @@ use crate::app_state::{AppEvent, AppState};
 use crate::data::{Presence, PresenceKind};
 
 const FOLLOWED_META_KEY: &str = "presence.followed";
-pub const NOTIFY_WHEN_AVAILABLE: &str = "Notify when available";
-pub const TURN_OFF_NOTIFICATIONS: &str = "Turn off notifications";
+pub const NOTIFY_WHEN_AVAILABLE: &str = "ui.chat.presence.notify_when_available";
+pub const TURN_OFF_NOTIFICATIONS: &str = "ui.chat.presence.turn_off_notifications";
 pub const MANAGE_STATUS_NOTIFICATIONS: &str = "Manage status notifications";
 pub const STATUS_NOTIFICATIONS_DESCRIPTION: &str =
     "Keep track of someone's status and get notified when they appear available or offline.";
@@ -52,11 +52,12 @@ pub fn status_change_text(previous: Presence, next: PresenceKind) -> Option<&'st
 }
 
 pub fn follow_notice(name: &str, follow: bool) -> String {
-    if follow {
-        format!("You are now following the presence of {name}")
+    let key = if follow {
+        "ui.chat.presence.now_following"
     } else {
-        format!("You are no longer following the presence of {name}")
-    }
+        "ui.chat.presence.no_longer_following"
+    };
+    app_base::ui_locale::tr_with(key, &[("name", name)])
 }
 
 impl AppState {
@@ -185,6 +186,7 @@ mod tests {
 
     #[test]
     fn the_notice_uses_the_teams_text() {
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(
             follow_notice("Anna", true),
             "You are now following the presence of Anna"

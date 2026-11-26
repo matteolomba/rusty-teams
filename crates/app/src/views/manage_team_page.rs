@@ -10,8 +10,10 @@ use super::avatar::{person_avatar, team_avatar};
 use super::widgets::icon;
 use crate::app_state::AppState;
 use crate::data::Directory;
+use crate::i18n::tr;
 use crate::manage_team::{MembersLoad, TeamMember, member_groups};
 use crate::theme;
+use app_base::ui_locale::tr_with;
 use app_ui_kit::scroll_edge::with_top_edge;
 
 const MANAGE_TEAM_TAG: &str = "shell/islands/main/manage-team";
@@ -26,7 +28,7 @@ const SEARCH_WIDTH: f32 = 260.;
 const SEARCH_HEIGHT: f32 = 32.;
 const ROLE_WIDTH: f32 = 96.;
 const LIST_MAX_WIDTH: f32 = 960.;
-const SEARCH_PLACEHOLDER: &str = "Search for members";
+const SEARCH_PLACEHOLDER: &str = "ui.chat.team.search_placeholder";
 
 pub struct ManageTeamPage {
     app: Entity<AppState>,
@@ -39,7 +41,7 @@ pub struct ManageTeamPage {
 
 impl ManageTeamPage {
     pub fn new(app: Entity<AppState>, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let search = cx.new(|cx| InputState::new(window, cx).placeholder(SEARCH_PLACEHOLDER));
+        let search = cx.new(|cx| InputState::new(window, cx).placeholder(tr(SEARCH_PLACEHOLDER)));
         let subscriptions = [
             cx.observe(&app, |_, _, cx| cx.notify()),
             cx.subscribe(&search, |_, _, event: &InputEvent, cx| {
@@ -114,7 +116,7 @@ impl ManageTeamPage {
                     .text_size(theme::text_body())
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_color(theme::text())
-                    .child("Members"),
+                    .child(tr("ui.chat.team.members_tab")),
             )
             .child(div().flex_1())
             .child(
@@ -130,7 +132,7 @@ impl ManageTeamPage {
                     .text_color(theme::text_soft())
                     .hover(|button| button.bg(theme::row_hover()))
                     .child(icon(IconName::ExternalLink, 14., theme::text_muted()))
-                    .child("Open in browser")
+                    .child(tr("ui.chat.team.open_in_browser"))
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.app.update(cx, |state, cx| {
                             if let Some(team_id) =
@@ -251,7 +253,11 @@ fn member_row(member: &TeamMember, directory: &Directory) -> Div {
                 .w(px(ROLE_WIDTH))
                 .text_size(theme::text_label())
                 .text_color(theme::text_soft())
-                .child(if member.owner { "Owner" } else { "Member" }),
+                .child(if member.owner {
+                    tr("ui.chat.team.role_owner")
+                } else {
+                    tr("ui.chat.team.role_member")
+                }),
         )
 }
 
@@ -275,20 +281,24 @@ impl Render for ManageTeamPage {
         let directory = &state.directory;
         let body: Vec<AnyElement> = match &manage_team.members {
             MembersLoad::Loading => {
-                vec![notice("Loading members...".to_owned()).into_any_element()]
+                vec![notice(tr("ui.chat.team.loading_members")).into_any_element()]
             }
             MembersLoad::Failed(message) => vec![notice(message.clone()).into_any_element()],
             MembersLoad::Loaded(members) => {
                 let groups = member_groups(members, &query);
                 if groups.owners.is_empty() && groups.others.is_empty() {
                     vec![
-                        notice(format!("No members match \"{}\"", query.trim())).into_any_element(),
+                        notice(tr_with(
+                            "ui.chat.team.no_members_match",
+                            &[("query", query.trim())],
+                        ))
+                        .into_any_element(),
                     ]
                 } else {
                     vec![
                         self.section(
                             "manage-team-owners",
-                            "Owners",
+                            &tr("ui.chat.team.owners"),
                             &groups.owners,
                             self.owners_open,
                             directory,
@@ -297,7 +307,7 @@ impl Render for ManageTeamPage {
                         .into_any_element(),
                         self.section(
                             "manage-team-others",
-                            "Members and guests",
+                            &tr("ui.chat.team.members_and_guests"),
                             &groups.others,
                             self.others_open,
                             directory,

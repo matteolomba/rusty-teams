@@ -3,6 +3,7 @@ use gpui_kit::*;
 use teams_core::{AnnouncementBanner, BannerBackground};
 
 use crate::data::Directory;
+use crate::i18n::tr;
 
 pub const ANNOUNCEMENT_BANNER_TAG: &str = "post/announcement-banner";
 pub const BANNER_COLORS: [&str; 4] = ["periwinkleBlue", "indigo", "rose", "orangeSherbet"];
@@ -13,12 +14,12 @@ const HEADLINE_INSET: f32 = 24.;
 const IMAGE_SHADE: f32 = 0.3;
 const GRADIENT_ANGLE: f32 = 120.;
 
-pub fn color_label(color: &str) -> &'static str {
+pub fn color_label(color: &str) -> String {
     match color {
-        "indigo" => "Indigo",
-        "rose" => "Rose",
-        "orangeSherbet" => "Orange sherbet",
-        _ => "Periwinkle",
+        "indigo" => tr("ui.misc.banner_color_indigo"),
+        "rose" => tr("ui.misc.banner_color_rose"),
+        "orangeSherbet" => tr("ui.misc.banner_color_orange_sherbet"),
+        _ => tr("ui.misc.banner_color_periwinkle"),
     }
 }
 

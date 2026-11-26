@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
 use agents::{AgentBackend, Environment, OutputFormat};
+use app_base::ui_locale::tr_with;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::{ActiveTheme as _, h_flex, input::Textarea, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
@@ -11,6 +12,7 @@ use super::settings_controls::{
 };
 use super::settings_problems::{agent_problem, command_problem, placeholder_problem};
 use super::settings_section::{AgentsSettings, Probe};
+use crate::i18n::tr;
 use crate::settings::switch;
 use crate::theme;
 use crate::views::widgets::icon;
@@ -27,25 +29,30 @@ const PLACEHOLDER_CHIPS: [&str; 9] = [
     "agent",
 ];
 
-fn host_label() -> &'static str {
+fn host_label() -> String {
     if cfg!(windows) {
-        "Windows"
+        "Windows".to_owned()
     } else {
-        "This computer"
+        tr("ui.settings.agents.this_computer")
     }
 }
 
-fn environment_choices() -> [(&'static str, Environment); 3] {
+fn environment_choices() -> [Environment; 3] {
     [
-        (host_label(), Environment::Host),
-        ("WSL - default distro", Environment::Wsl { distro: None }),
-        (
-            "WSL - named distro",
-            Environment::Wsl {
-                distro: Some(String::new()),
-            },
-        ),
+        Environment::Host,
+        Environment::Wsl { distro: None },
+        Environment::Wsl {
+            distro: Some(String::new()),
+        },
     ]
+}
+
+fn environment_label(environment: &Environment) -> String {
+    match environment {
+        Environment::Host => host_label(),
+        Environment::Wsl { distro: None } => tr("ui.settings.agents.wsl_default"),
+        Environment::Wsl { distro: Some(_) } => tr("ui.settings.agents.wsl_named"),
+    }
 }
 
 fn environment_kind(environment: &Environment) -> u8 {
@@ -63,11 +70,14 @@ fn same_environment_kind(left: &Environment, right: &Environment) -> bool {
 fn output_choices() -> [(&'static str, OutputFormat); 3] {
     [
         (
-            "Claude stream-json - live steps",
+            "ui.settings.agents.output_claude_stream",
             OutputFormat::ClaudeStreamJson,
         ),
-        ("Copilot JSON - live steps", OutputFormat::CopilotJsonl),
-        ("Plain text - time and last line", OutputFormat::Text),
+        (
+            "ui.settings.agents.output_copilot_json",
+            OutputFormat::CopilotJsonl,
+        ),
+        ("ui.settings.agents.output_plain_text", OutputFormat::Text),
     ]
 }
 
@@ -106,32 +116,30 @@ impl AgentsSettings {
         let this = cx.entity();
         let environment_entries: Vec<MenuEntry> = environment_choices()
             .into_iter()
-            .map(|(label, environment)| {
+            .map(|environment| {
                 let this = this.clone();
+                let label = environment_label(&environment);
                 let selected = same_environment_kind(&environment, &profile.environment);
                 let choose: Choice = Rc::new(move |window, cx| {
                     let environment = environment.clone();
                     this.update(cx, |this, cx| this.set_environment(environment, window, cx))
                 });
                 MenuEntry {
-                    label: label.to_owned(),
+                    label,
                     selected,
                     choose,
                 }
             })
             .collect();
-        let environment_label = environment_choices()
-            .into_iter()
-            .find(|(_, environment)| same_environment_kind(environment, &profile.environment))
-            .map_or(host_label(), |(label, _)| label);
+        let environment_text = environment_label(&profile.environment);
         let output_entries: Vec<MenuEntry> = output_choices()
             .into_iter()
-            .map(|(label, output)| {
+            .map(|(key, output)| {
                 let this = this.clone();
                 let choose: Choice =
                     Rc::new(move |_, cx| this.update(cx, |this, cx| this.set_output(output, cx)));
                 MenuEntry {
-                    label: label.to_owned(),
+                    label: tr(key),
                     selected: output == profile.output,
                     choose,
                 }
@@ -140,7 +148,7 @@ impl AgentsSettings {
         let output_label = output_choices()
             .into_iter()
             .find(|(_, output)| *output == profile.output)
-            .map_or("", |(label, _)| label);
+            .map_or_else(String::new, |(key, _)| tr(key));
         let command_problem = command_problem(&problems, &profile.id, &profile.command);
         let open_problem =
             placeholder_problem(&problems, &profile.id, &profile.open_session_command);
@@ -150,9 +158,9 @@ impl AgentsSettings {
             Probe::Idle => None,
             Probe::Running => Some((
                 if chat {
-                    "Loading models...".to_owned()
+                    tr("ui.settings.agents.loading_models")
                 } else {
-                    "Testing...".to_owned()
+                    tr("ui.settings.agents.testing")
                 },
                 theme::text_muted(),
             )),
@@ -160,7 +168,7 @@ impl AgentsSettings {
                 if chat {
                     line.clone()
                 } else {
-                    format!("Found: {line}")
+                    tr_with("ui.settings.agents.found", &[("line", line)])
                 },
                 theme::green(),
             )),
@@ -175,7 +183,7 @@ impl AgentsSettings {
         };
         let model_problem = problems.iter().find_map(|problem| match problem {
             agents::SettingsProblem::EmptyModel { agent_id } if agent_id == &profile.id => {
-                Some("Choose a model".to_owned())
+                Some(tr("ui.settings.agents.choose_model"))
             }
             _ => None,
         });
@@ -203,7 +211,7 @@ impl AgentsSettings {
             })
             .collect();
         let model_label = if current_model.is_empty() {
-            "Choose a model".to_owned()
+            tr("ui.settings.agents.choose_model")
         } else {
             current_model
         };
@@ -214,7 +222,7 @@ impl AgentsSettings {
             .child(back_row(profile.name.clone(), cx))
             .child(form([
                 field(
-                    "Name",
+                    tr("ui.settings.agents.field_name"),
                     text_field(&form_state.name, false, false, cx),
                     None,
                     None,
@@ -224,9 +232,9 @@ impl AgentsSettings {
                     .w_full()
                     .when(chat && shows_base, |slot| {
                         slot.child(field(
-                            "Base URL",
+                            tr("ui.settings.agents.field_base_url"),
                             text_field(&form_state.base_url, true, false, cx),
-                            Some(hint("OpenAI-compatible, including /v1.")),
+                            Some(hint(tr("ui.settings.agents.hint_base_url"))),
                             None,
                         ))
                     })
@@ -235,9 +243,9 @@ impl AgentsSettings {
                     .w_full()
                     .when(chat && !model_entries.is_empty(), |slot| {
                         slot.child(field(
-                            "Installed models",
+                            tr("ui.settings.agents.field_installed_models"),
                             dropdown("agent-model", model_label, model_entries),
-                            Some(hint("Loaded from the endpoint. The choice fills Model.")),
+                            Some(hint(tr("ui.settings.agents.hint_installed_models"))),
                             None,
                         ))
                     })
@@ -246,11 +254,9 @@ impl AgentsSettings {
                     .w_full()
                     .when(chat, |slot| {
                         slot.child(field(
-                            "Model",
+                            tr("ui.settings.agents.field_model"),
                             text_field(&form_state.model, true, model_problem.is_some(), cx),
-                            Some(hint(
-                                "Pick a loaded model, or type an id. Leave the URL or key field to reload.",
-                            )),
+                            Some(hint(tr("ui.settings.agents.hint_model"))),
                             model_problem.clone(),
                         ))
                     })
@@ -259,30 +265,28 @@ impl AgentsSettings {
                     .w_full()
                     .when(chat, |slot| {
                         slot.child(field(
-                        "API key",
-                        text_field(&form_state.api_key, true, false, cx),
-                        Some(hint(if key_saved {
-                            "A key is saved. Type a new one to replace it. Ollama can stay empty."
-                        } else {
-                            "Stored in the local app database. Ollama can stay empty."
-                        })),
-                        None,
-                    ))
+                            tr("ui.settings.agents.field_api_key"),
+                            text_field(&form_state.api_key, true, false, cx),
+                            Some(hint(if key_saved {
+                                tr("ui.settings.agents.hint_api_key_saved")
+                            } else {
+                                tr("ui.settings.agents.hint_api_key")
+                            })),
+                            None,
+                        ))
                     })
                     .into_any_element(),
                 div()
                     .w_full()
                     .when(!chat, |slot| {
                         slot.child(field(
-                            "Runs in",
+                            tr("ui.settings.agents.field_runs_in"),
                             dropdown(
                                 "agent-environment",
-                                environment_label.to_owned(),
+                                environment_text.to_owned(),
                                 environment_entries,
                             ),
-                            Some(hint(
-                                "This computer or a WSL distro. Paths below are in that system.",
-                            )),
+                            Some(hint(tr("ui.settings.agents.hint_runs_in"))),
                             None,
                         ))
                     })
@@ -291,7 +295,7 @@ impl AgentsSettings {
                     .w_full()
                     .when(!chat && named_distro, |slot| {
                         slot.child(field(
-                            "Distro name",
+                            tr("ui.settings.agents.field_distro"),
                             text_field(&form_state.distro, false, false, cx),
                             None,
                             None,
@@ -302,11 +306,9 @@ impl AgentsSettings {
                     .w_full()
                     .when(!chat, |slot| {
                         slot.child(field(
-                            "Command",
+                            tr("ui.settings.agents.field_command"),
                             text_field(&form_state.command, true, command_problem.is_some(), cx),
-                            Some(hint(
-                                "The prompt goes to stdin unless the command has {prompt}.",
-                            )),
+                            Some(hint(tr("ui.settings.agents.hint_command"))),
                             command_problem,
                         ))
                     })
@@ -315,9 +317,9 @@ impl AgentsSettings {
                     .w_full()
                     .when(!chat, |slot| {
                         slot.child(field(
-                            "Output",
+                            tr("ui.settings.agents.field_output"),
                             dropdown("agent-output", output_label.to_owned(), output_entries),
-                            Some(hint("Plain text shows only the time and the last line.")),
+                            Some(hint(tr("ui.settings.agents.hint_output"))),
                             None,
                         ))
                     })
@@ -326,11 +328,9 @@ impl AgentsSettings {
                     .w_full()
                     .when(!chat, |slot| {
                         slot.child(field(
-                            "MCP config flag",
+                            tr("ui.settings.agents.field_mcp_flag"),
                             text_field(&form_state.mcp_flag, true, false, cx),
-                            Some(hint(
-                                "Passes the Teams MCP endpoint to the agent. Empty = none.",
-                            )),
+                            Some(hint(tr("ui.settings.agents.hint_mcp_flag"))),
                             None,
                         ))
                     })
@@ -339,9 +339,9 @@ impl AgentsSettings {
                     .w_full()
                     .when(!chat, |slot| {
                         slot.child(field(
-                            "Open session",
+                            tr("ui.settings.agents.field_open_session"),
                             text_field(&form_state.open_session, true, open_problem.is_some(), cx),
-                            Some(hint("Available: {cwd} and {session_id}.")),
+                            Some(hint(tr("ui.settings.agents.hint_open_session"))),
                             open_problem,
                         ))
                     })
@@ -351,9 +351,9 @@ impl AgentsSettings {
                     .gap(px(8.))
                     .items_center()
                     .child(
-                        raised_button("agent-test", "Test").on_click(move |_, _, cx| {
-                            test_this.update(cx, |this, cx| this.test_agent(cx))
-                        }),
+                        raised_button("agent-test", tr("ui.settings.agents.test")).on_click(
+                            move |_, _, cx| test_this.update(cx, |this, cx| this.test_agent(cx)),
+                        ),
                     )
                     .children(status.map(|(text, color)| {
                         div()
@@ -371,7 +371,7 @@ impl AgentsSettings {
                             .cursor_pointer()
                             .text_size(theme::text_label())
                             .text_color(theme::red_soft())
-                            .child("Delete")
+                            .child(tr("common.delete"))
                             .on_click(move |_, _, cx| {
                                 delete_this.update(cx, |this, cx| this.delete_agent(cx))
                             }),
@@ -416,7 +416,10 @@ impl AgentsSettings {
             .agents
             .iter()
             .find(|agent| agent.id == action.agent_id)
-            .map_or("Choose an agent".to_owned(), |agent| agent.name.clone());
+            .map_or_else(
+                || tr("ui.settings.agents.choose_agent"),
+                |agent| agent.name.clone(),
+            );
         let agent_problem = agent_problem(&problems, &action.id);
         let prompt_problem = placeholder_problem(&problems, &action.id, &action.prompt_template);
         let args_problem = placeholder_problem(&problems, &action.id, &action.extra_args);
@@ -457,7 +460,7 @@ impl AgentsSettings {
                     .items_start()
                     .child(
                         field(
-                            "Label",
+                            tr("ui.settings.agents.field_label"),
                             text_field(&form_state.label, false, false, cx),
                             None,
                             None,
@@ -467,7 +470,7 @@ impl AgentsSettings {
                     )
                     .child(
                         field(
-                            "Agent",
+                            tr("ui.settings.agents.field_agent"),
                             dropdown("action-agent", agent_label, agent_entries),
                             None,
                             agent_problem,
@@ -477,14 +480,14 @@ impl AgentsSettings {
                     )
                     .into_any_element(),
                 field(
-                    "Working dir",
+                    tr("agents.start.working_dir"),
                     text_field(&form_state.working_dir, true, false, cx),
-                    Some(hint("A path inside the system the agent runs in.")),
+                    Some(hint(tr("ui.settings.agents.hint_working_dir"))),
                     None,
                 )
                 .into_any_element(),
                 field(
-                    "Prompt",
+                    tr("ui.settings.agents.field_prompt"),
                     boxed(
                         Textarea::new(&form_state.prompt)
                             .appearance(false)
@@ -509,13 +512,13 @@ impl AgentsSettings {
                                 div()
                                     .text_size(theme::text_body())
                                     .font_weight(FontWeight::SEMIBOLD)
-                                    .child("Ask for extra instructions"),
+                                    .child(tr("ui.settings.agents.ask_extra")),
                             )
                             .child(
                                 div()
                                     .text_size(theme::text_small())
                                     .text_color(theme::text_muted())
-                                    .child("Dialog before each run"),
+                                    .child(tr("ui.settings.agents.ask_extra_detail")),
                             ),
                     )
                     .child(switch(ask))
@@ -524,9 +527,9 @@ impl AgentsSettings {
                     })
                     .into_any_element(),
                 field(
-                    "Extra args",
+                    tr("ui.settings.agents.field_extra_args"),
                     text_field(&form_state.extra_args, true, args_problem.is_some(), cx),
-                    Some(hint("Added after the agent command.")),
+                    Some(hint(tr("ui.settings.agents.hint_extra_args"))),
                     args_problem,
                 )
                 .into_any_element(),
@@ -539,7 +542,7 @@ impl AgentsSettings {
                             .cursor_pointer()
                             .text_size(theme::text_label())
                             .text_color(theme::red_soft())
-                            .child("Delete")
+                            .child(tr("common.delete"))
                             .on_click(move |_, _, cx| {
                                 delete_this.update(cx, |this, cx| this.delete_action(cx))
                             }),
@@ -565,13 +568,13 @@ pub(super) fn resume_toggle(resume: bool, settings: Entity<AgentsSettings>) -> S
                     div()
                         .text_size(theme::text_body())
                         .font_weight(FontWeight::SEMIBOLD)
-                        .child("Resume interrupted runs"),
+                        .child(tr("ui.settings.agents.resume_title")),
                 )
                 .child(
                     div()
                         .text_size(theme::text_small())
                         .text_color(theme::text_muted())
-                        .child("Continue running agents after the app restarts"),
+                        .child(tr("ui.settings.agents.resume_detail")),
                 ),
         )
         .child(switch(resume))

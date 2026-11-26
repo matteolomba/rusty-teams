@@ -18,6 +18,7 @@ use crate::message_actions::{ForwardItem, ForwardSource};
 use crate::notice::short_error;
 use crate::runtime;
 use crate::theme::{self, ElevatedSurface as _};
+use app_base::ui_locale::tr_with;
 
 const MAX_RESULTS: usize = 8;
 const CARD_WIDTH: f32 = 480.;
@@ -34,13 +35,13 @@ const PREVIEW_GAP: f32 = 6.;
 const PREVIEW_MAX_HEIGHT: f32 = 240.;
 pub const FORWARD_CARD_TAG: &str = "forward-dialog";
 pub const FORWARD_PREVIEW_TAG: &str = "forward-dialog/preview";
-pub const DIALOG_TITLE: &str = "Forward this message";
-pub const DIALOG_SUBTITLE: &str = "You can forward to any chat or channel.";
+pub const DIALOG_TITLE: &str = "ui.chat.forward.title";
+pub const DIALOG_SUBTITLE: &str = "ui.chat.forward.subtitle";
 const CLOSE_SIZE: f32 = 28.;
 const FIELD_HEIGHT: f32 = 36.;
 const BUTTON_HEIGHT: f32 = 32.;
 const DISABLED_OPACITY: f32 = 0.4;
-const EMPTY_PREVIEW: &str = "Attachment";
+const EMPTY_PREVIEW: &str = "ui.chat.forward.attachment";
 
 pub enum ForwardDialogEvent {
     Close,
@@ -79,10 +80,12 @@ impl ForwardDialog {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let search =
-            cx.new(|cx| InputState::new(window, cx).placeholder("Search chats and channels"));
-        let comment =
-            cx.new(|cx| InputState::new(window, cx).placeholder("Add a message (optional)"));
+        let search = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(tr("ui.chat.forward.search_placeholder"))
+        });
+        let comment = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(tr("ui.chat.forward.comment_placeholder"))
+        });
         let subscriptions = [
             cx.subscribe_in(&search, window, Self::on_search_event),
             cx.subscribe_in(&comment, window, Self::on_comment_event),
@@ -175,7 +178,7 @@ impl ForwardDialog {
         let comment = self.comment.read(cx).value().trim().to_owned();
         let state = self.app.read(cx);
         if state.mode.read_only {
-            self.error = Some("Read-only mode: message not forwarded".to_owned());
+            self.error = Some(tr("ui.chat.forward.read_only"));
             cx.notify();
             return;
         }
@@ -191,7 +194,7 @@ impl ForwardDialog {
                 });
                 cx.emit(sent);
             } else {
-                self.error = Some("Not connected".to_owned());
+                self.error = Some(tr("ui.chat.forward.not_connected"));
                 cx.notify();
             }
             return;
@@ -210,7 +213,7 @@ impl ForwardDialog {
             let outcome = match receiver.await {
                 Ok(Ok(_)) => Ok(()),
                 Ok(Err(error)) => Err(short_error(&error)),
-                Err(_) => Err("cancelled".to_owned()),
+                Err(_) => Err(tr("ui.chat.forward.cancelled")),
             };
             this.update(cx, |this, cx| {
                 this.sending = false;
@@ -240,13 +243,13 @@ impl ForwardDialog {
                         div()
                             .text_size(px(15.))
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child(DIALOG_TITLE),
+                            .child(tr(DIALOG_TITLE)),
                     )
                     .child(
                         div()
                             .text_size(theme::text_small())
                             .text_color(theme::text_muted())
-                            .child(DIALOG_SUBTITLE),
+                            .child(tr(DIALOG_SUBTITLE)),
                     ),
             )
             .child(
@@ -282,7 +285,10 @@ impl ForwardDialog {
                         .min_w_0()
                         .truncate()
                         .text_size(theme::text_label())
-                        .child(format!("To: {}", target.title)),
+                        .child(tr_with(
+                            "ui.chat.forward.to_target",
+                            &[("title", &target.title)],
+                        )),
                 )
                 .child(
                     div()
@@ -391,7 +397,7 @@ impl ForwardDialog {
             .when(self.sending, |button| {
                 button.child(icon(IconName::Loader, 14., theme::on_accent()))
             })
-            .child("Forward");
+            .child(tr("ui.chat.forward.send"));
         if enabled {
             button
                 .cursor_pointer()
@@ -430,7 +436,7 @@ pub fn preview_lines(message_count: usize) -> usize {
 
 fn preview_quote(item: &ForwardItem, lines: usize) -> Div {
     let text = match item.text.trim() {
-        "" => EMPTY_PREVIEW.to_owned(),
+        "" => tr(EMPTY_PREVIEW),
         text => text.to_owned(),
     };
     v_flex()

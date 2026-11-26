@@ -1,6 +1,7 @@
 use std::collections::{BTreeSet, HashMap};
 use std::time::Duration;
 
+use app_base::ui_locale::tr_with;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::{
@@ -18,6 +19,7 @@ use crate::agent_api::{self, ServerStatus};
 use crate::app_state::AppState;
 use crate::data::is_one_on_one;
 use crate::fuzzy;
+use crate::i18n::tr;
 use crate::theme;
 use crate::views::switcher::{Candidate, candidate_avatar, candidates_from};
 use crate::views::widgets::icon;
@@ -32,7 +34,7 @@ const PICKER_MAX_ROWS: usize = 6;
 const PICKER_RESULTS: usize = 40;
 const TOKEN_TAIL: usize = 4;
 const CHIP_MAX_WIDTH: f32 = 180.;
-const WSL_WARNING: &str = "WSL agents cannot reach 127.0.0.1 on Windows. Add networkingMode=mirrored to .wslconfig and run wsl --shutdown.";
+const WSL_WARNING: &str = "ui.settings.mcp.wsl_warning";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Scope {
@@ -55,18 +57,26 @@ impl Scope {
         }
     }
 
-    fn title(self) -> &'static str {
+    fn title(self) -> String {
+        tr(match self {
+            Scope::Chats => "ui.settings.mcp.scope_chats",
+            Scope::Channels => "ui.settings.mcp.scope_channels",
+        })
+    }
+
+    /// Stable element-id fragment, independent of the UI language.
+    fn key(self) -> &'static str {
         match self {
-            Scope::Chats => "Chats",
-            Scope::Channels => "Channels",
+            Scope::Chats => "chats",
+            Scope::Channels => "channels",
         }
     }
 
-    fn add_label(self) -> &'static str {
-        match self {
-            Scope::Chats => "+ Add chat",
-            Scope::Channels => "+ Add channel",
-        }
+    fn add_label(self) -> String {
+        tr(match self {
+            Scope::Chats => "ui.settings.mcp.add_chat",
+            Scope::Channels => "ui.settings.mcp.add_channel",
+        })
     }
 
     fn contains(self, candidate: &Candidate) -> bool {
@@ -92,20 +102,20 @@ enum InstallAction {
 }
 
 impl InstallAction {
-    fn label(self) -> &'static str {
-        match self {
-            InstallAction::Install => "Install",
-            InstallAction::Update => "Update",
-            InstallAction::Remove => "Remove",
-        }
+    fn label(self) -> String {
+        tr(match self {
+            InstallAction::Install => "ui.settings.mcp.install",
+            InstallAction::Update => "ui.settings.mcp.update",
+            InstallAction::Remove => "ui.settings.mcp.remove",
+        })
     }
 
-    fn busy_label(self) -> &'static str {
-        match self {
-            InstallAction::Install => "Installing...",
-            InstallAction::Update => "Updating...",
-            InstallAction::Remove => "Removing...",
-        }
+    fn busy_label(self) -> String {
+        tr(match self {
+            InstallAction::Install => "ui.settings.mcp.installing",
+            InstallAction::Update => "ui.settings.mcp.updating",
+            InstallAction::Remove => "ui.settings.mcp.removing",
+        })
     }
 }
 
@@ -131,21 +141,21 @@ fn target_action(state: &InstallState) -> Option<InstallAction> {
     }
 }
 
-fn locations_label(locations: &[Location]) -> &'static str {
+fn locations_label(locations: &[Location]) -> String {
     let windows = locations.contains(&Location::Windows);
     let wsl = locations
         .iter()
         .any(|location| matches!(location, Location::Wsl { .. }));
     match (windows, wsl) {
-        (true, true) => "Windows + WSL",
-        (true, false) => "Windows",
-        (false, true) => "WSL",
-        (false, false) => "Installed",
+        (true, true) => "Windows + WSL".to_owned(),
+        (true, false) => "Windows".to_owned(),
+        (false, true) => "WSL".to_owned(),
+        (false, false) => tr("ui.settings.mcp.installed"),
     }
 }
 
 fn install_detail(target: Target, state: Option<&InstallState>) -> AnyElement {
-    let muted = |text: &'static str| {
+    let muted = |text: SharedString| {
         div()
             .text_size(theme::text_small())
             .text_color(theme::text_muted())
@@ -153,13 +163,13 @@ fn install_detail(target: Target, state: Option<&InstallState>) -> AnyElement {
             .into_any_element()
     };
     let Some(state) = state else {
-        return muted(target.config_hint());
+        return muted(target.config_hint().into());
     };
     if state.stale {
         return div()
             .text_size(theme::text_small())
             .text_color(theme::amber())
-            .child("Out of date - Update")
+            .child(tr("ui.settings.mcp.out_of_date"))
             .into_any_element();
     }
     if !state.installed_at.is_empty() {
@@ -173,9 +183,9 @@ fn install_detail(target: Target, state: Option<&InstallState>) -> AnyElement {
             .into_any_element();
     }
     if state.available {
-        muted(target.config_hint())
+        muted(target.config_hint().into())
     } else {
-        muted("Not installed")
+        muted(tr("ui.settings.mcp.not_installed").into())
     }
 }
 
@@ -190,7 +200,7 @@ fn wsl_warning() -> Div {
                     .text_color(theme::amber())
                     .child("!"),
             )
-            .child(div().flex_1().child(WSL_WARNING)),
+            .child(div().flex_1().child(tr(WSL_WARNING))),
         4.,
     )
 }
@@ -216,7 +226,8 @@ impl McpView {
         port_input.update(cx, |input, cx| {
             input.set_value(port.to_string(), window, cx)
         });
-        let search_input = cx.new(|cx| InputState::new(window, cx).placeholder("Search"));
+        let search_input =
+            cx.new(|cx| InputState::new(window, cx).placeholder(tr("ui.settings.mcp.search")));
         let mut subscriptions = vec![
             cx.subscribe_in(&port_input, window, Self::on_port_event),
             cx.subscribe_in(&search_input, window, |_, _, event, _, cx| {
@@ -438,11 +449,11 @@ fn chat_kind_label(state: &AppState, conversation_id: &str) -> Option<&'static s
         .iter()
         .find(|chat| chat.id == conversation_id)?;
     Some(if chat.kind.eq_ignore_ascii_case("meeting") {
-        "Meeting"
+        "ui.settings.mcp.chat_kind_meeting"
     } else if is_one_on_one(chat) {
-        "Chat"
+        "ui.settings.mcp.chat_kind_chat"
     } else {
-        "Group"
+        "ui.settings.mcp.chat_kind_group"
     })
 }
 
@@ -450,11 +461,11 @@ impl Render for McpView {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         v_flex()
             .w_full()
-            .child(caption("SERVER"))
+            .child(caption(tr("ui.settings.mcp.caption_server")))
             .child(self.server_tab(cx))
-            .child(caption("ACCESS"))
+            .child(caption(tr("ui.settings.mcp.caption_access")))
             .child(self.access_tab(cx))
-            .child(caption("INSTALL"))
+            .child(caption(tr("ui.settings.mcp.caption_install")))
             .child(self.install_tab(cx))
     }
 }
@@ -462,7 +473,7 @@ impl Render for McpView {
 impl McpView {
     fn field_row(
         &self,
-        label: &'static str,
+        label: impl Into<SharedString>,
         value: String,
         buttons: Vec<AnyElement>,
         cx: &App,
@@ -479,7 +490,7 @@ impl McpView {
                     .flex_none()
                     .text_size(theme::text_small())
                     .text_color(theme::text_faint())
-                    .child(label),
+                    .child(label.into()),
             )
             .child(
                 div()
@@ -507,9 +518,9 @@ impl McpView {
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let label = if self.copied == Some(target) {
-            "Copied"
+            tr("ui.settings.mcp.copied")
         } else {
-            "Copy"
+            tr("ui.settings.common.copy")
         };
         small_button(id, label)
             .on_click(cx.listener(move |this, _, _, cx| this.copy(target, text.clone(), cx)))
@@ -527,10 +538,10 @@ impl McpView {
         };
         let failed = matches!(status, ServerStatus::PortInUse(_) | ServerStatus::Failed(_));
         let (detail, detail_color) = match (policy.enabled, failed) {
-            (false, _) => ("Off - agents cannot reach Rusty Teams", theme::text_muted()),
-            (true, true) => ("Could not start", theme::red_soft()),
+            (false, _) => (tr("ui.settings.mcp.server_off_detail"), theme::text_muted()),
+            (true, true) => (tr("ui.settings.mcp.server_failed"), theme::red_soft()),
             (true, false) => (
-                "Agents on this computer can read and write",
+                tr("ui.settings.mcp.server_running_detail"),
                 theme::text_muted(),
             ),
         };
@@ -539,15 +550,16 @@ impl McpView {
         let reinstall_note =
             agent_api::handle(cx).and_then(|api| api.read(cx).reinstall_note().map(str::to_owned));
         let warning = match &status {
-            ServerStatus::PortInUse(port) => Some(format!(
-                "Port {port} is in use by another program. Pick another port, then press Install again for each agent."
+            ServerStatus::PortInUse(port) => Some(tr_with(
+                "ui.settings.mcp.port_in_use",
+                &[("port", &port.to_string())],
             )),
             ServerStatus::Failed(reason) => Some(reason.clone()),
             _ => None,
         }
         .or(reinstall_note);
         let url = agent_api::endpoint_url(policy.port);
-        let regenerate = small_button("mcp-token-new", "New")
+        let regenerate = small_button("mcp-token-new", tr("ui.settings.mcp.new"))
             .on_click(cx.listener(|this, _, _, cx| {
                 if let Some(api) = agent_api::handle(cx) {
                     api.update(cx, |api, cx| api.regenerate_token(cx));
@@ -558,11 +570,16 @@ impl McpView {
         v_flex()
             .w_full()
             .child(
-                toggle_row("mcp-enabled", "MCP server", detail, detail_color, enabled).on_click(
-                    cx.listener(move |_, _, _, cx| {
-                        agent_api::update_policy(cx, |policy| policy.enabled = !enabled)
-                    }),
-                ),
+                toggle_row(
+                    "mcp-enabled",
+                    tr("ui.settings.mcp.server_title"),
+                    detail,
+                    detail_color,
+                    enabled,
+                )
+                .on_click(cx.listener(move |_, _, _, cx| {
+                    agent_api::update_policy(cx, |policy| policy.enabled = !enabled)
+                })),
             )
             .children(warning.map(|text| {
                 note_box(
@@ -580,8 +597,8 @@ impl McpView {
                 )
             }))
             .child(control_row(
-                "Port",
-                "Only this computer can connect",
+                tr("ui.settings.mcp.port"),
+                tr("ui.settings.mcp.port_detail"),
                 div()
                     .w(px(PORT_WIDTH))
                     .flex_none()
@@ -594,20 +611,20 @@ impl McpView {
                         .pb(px(4.))
                         .text_size(theme::text_small())
                         .text_color(theme::red_soft())
-                        .child("Enter a port from 1 to 65535. Nothing was saved."),
+                        .child(tr("ui.settings.mcp.port_invalid")),
                 )
             })
             .when(running && self.wsl_unreachable, |tab| {
                 tab.child(wsl_warning())
             })
             .child(self.field_row(
-                "URL",
+                tr("ui.settings.mcp.url"),
                 url.clone(),
                 vec![self.copy_button("mcp-url-copy", Copied::Url, url, cx)],
                 cx,
             ))
             .child(self.field_row(
-                "Token",
+                tr("ui.settings.mcp.token"),
                 masked_token(&token),
                 vec![
                     self.copy_button("mcp-token-copy", Copied::Token, token, cx),
@@ -619,11 +636,19 @@ impl McpView {
 
     fn segmented(&self, scope: Scope, access: &Access, cx: &mut Context<Self>) -> Div {
         let options: [(&'static str, bool, fn() -> Access); 3] = [
-            ("All", matches!(access, Access::All), || Access::All),
-            ("Selected", matches!(access, Access::Selected(_)), || {
-                Access::Selected(BTreeSet::new())
+            ("ui.settings.mcp.all", matches!(access, Access::All), || {
+                Access::All
             }),
-            ("None", matches!(access, Access::None), || Access::None),
+            (
+                "ui.settings.mcp.selected",
+                matches!(access, Access::Selected(_)),
+                || Access::Selected(BTreeSet::new()),
+            ),
+            (
+                "ui.settings.mcp.none",
+                matches!(access, Access::None),
+                || Access::None,
+            ),
         ];
         h_flex()
             .flex_none()
@@ -632,7 +657,7 @@ impl McpView {
             .bg(theme::surface_raised())
             .children(options.map(|(label, active, make)| {
                 div()
-                    .id(SharedString::from(format!("{}-{label}", scope.title())))
+                    .id(SharedString::from(format!("{}-{label}", scope.key())))
                     .h(px(24.))
                     .px(px(10.))
                     .flex()
@@ -647,7 +672,7 @@ impl McpView {
                         theme::text_muted()
                     })
                     .when(active, |item| item.bg(theme::popup_hover()))
-                    .child(label)
+                    .child(tr(label))
                     .on_click(cx.listener(move |this, _, _, cx| {
                         if !active {
                             this.picker = None;
@@ -661,14 +686,18 @@ impl McpView {
 
     fn scope_detail(scope: Scope, access: &Access) -> String {
         match (scope, access) {
-            (Scope::Chats, Access::All) => "All chats".to_owned(),
-            (Scope::Channels, Access::All) => "All channels".to_owned(),
-            (Scope::Chats, Access::None) => "No chat visible".to_owned(),
-            (Scope::Channels, Access::None) => "No channel visible".to_owned(),
-            (Scope::Chats, Access::Selected(ids)) => {
-                format!("{} selected, incl. meeting chats", ids.len())
-            }
-            (Scope::Channels, Access::Selected(ids)) => format!("{} selected", ids.len()),
+            (Scope::Chats, Access::All) => tr("ui.settings.mcp.scope_all_chats"),
+            (Scope::Channels, Access::All) => tr("ui.settings.mcp.scope_all_channels"),
+            (Scope::Chats, Access::None) => tr("ui.settings.mcp.scope_no_chat"),
+            (Scope::Channels, Access::None) => tr("ui.settings.mcp.scope_no_channel"),
+            (Scope::Chats, Access::Selected(ids)) => tr_with(
+                "ui.settings.mcp.scope_selected_meeting",
+                &[("count", &ids.len().to_string())],
+            ),
+            (Scope::Channels, Access::Selected(ids)) => tr_with(
+                "ui.settings.mcp.scope_selected",
+                &[("count", &ids.len().to_string())],
+            ),
         }
     }
 
@@ -692,7 +721,7 @@ impl McpView {
             let title = titles
                 .get(conversation_id)
                 .cloned()
-                .unwrap_or_else(|| "Unknown".to_owned());
+                .unwrap_or_else(|| tr("ui.settings.mcp.unknown"));
             let conversation_id = conversation_id.clone();
             h_flex()
                 .h(px(24.))
@@ -725,7 +754,7 @@ impl McpView {
                 )
         });
         let add = div()
-            .id(SharedString::from(format!("add-{}", scope.title())))
+            .id(SharedString::from(format!("add-{}", scope.key())))
             .h(px(24.))
             .px(px(8.))
             .flex()
@@ -777,9 +806,8 @@ impl McpView {
                 let conversation_id = candidate.selection.conversation_id().to_owned();
                 let added = selected.contains(&conversation_id);
                 let kind = match scope {
-                    Scope::Chats => chat_kind_label(state, &conversation_id)
-                        .unwrap_or("Chat")
-                        .to_owned(),
+                    Scope::Chats => tr(chat_kind_label(state, &conversation_id)
+                        .unwrap_or("ui.settings.mcp.chat_kind_chat")),
                     Scope::Channels => candidate.subtitle.clone(),
                 };
                 h_flex()
@@ -816,7 +844,11 @@ impl McpView {
                             } else {
                                 theme::text_faint()
                             })
-                            .child(if added { "Added".to_owned() } else { kind }),
+                            .child(if added {
+                                tr("ui.settings.mcp.added")
+                            } else {
+                                kind
+                            }),
                     )
                     .on_click(cx.listener(move |this, _, _, cx| {
                         let conversation_id = conversation_id.clone();
@@ -870,27 +902,27 @@ impl McpView {
             .collect();
         let toggles: [(
             &'static str,
-            &'static str,
-            &'static str,
+            String,
+            String,
             Hsla,
             bool,
             fn(&mut AgentPolicy),
         ); 5] = [
             (
                 "mcp-write",
-                "Write messages and reactions",
-                "Agents can answer in the chats and channels above",
+                tr("ui.settings.mcp.write_title"),
+                tr("ui.settings.mcp.write_detail"),
                 theme::text_muted(),
                 policy.write,
                 |policy| policy.write = !policy.write,
             ),
             (
                 "mcp-review",
-                "Review before sending",
+                tr("ui.settings.mcp.review_title"),
                 if policy.review {
-                    "Card above the composer, note under a message. You decide"
+                    tr("ui.settings.mcp.review_detail")
                 } else {
-                    "Off: agents send and react right away, as you"
+                    tr("ui.settings.mcp.review_off_detail")
                 },
                 if policy.review {
                     theme::text_muted()
@@ -902,19 +934,19 @@ impl McpView {
             ),
             (
                 "mcp-calendar",
-                "Calendar and meetings",
-                "Times, titles, organizers, join links",
+                tr("ui.settings.mcp.calendar_title"),
+                tr("ui.settings.mcp.calendar_detail"),
                 theme::text_muted(),
                 policy.calendar,
                 |policy| policy.calendar = !policy.calendar,
             ),
             (
                 "mcp-meetings",
-                "Organize meetings",
+                tr("ui.settings.mcp.meetings_title"),
                 if policy.review {
-                    "Free/busy of people, meeting card in Calendar. You create it"
+                    tr("ui.settings.mcp.meetings_review_detail")
                 } else {
-                    "Without review: agents create meetings and invite people right away"
+                    tr("ui.settings.mcp.meetings_open_detail")
                 },
                 if policy.review {
                     theme::text_muted()
@@ -926,8 +958,8 @@ impl McpView {
             ),
             (
                 "mcp-transcripts",
-                "Meeting transcripts",
-                "Spoken text goes to the agent's provider",
+                tr("ui.settings.mcp.transcripts_title"),
+                tr("ui.settings.mcp.transcripts_detail"),
                 theme::amber(),
                 policy.transcripts,
                 |policy| policy.transcripts = !policy.transcripts,
@@ -943,9 +975,9 @@ impl McpView {
             }))
             .child(note_box(
                 if policy.review {
-                    "Agents only see what is allowed here. They never send - you do."
+                    tr("ui.settings.mcp.review_note")
                 } else {
-                    "Agents only see what is allowed here. Without review they send as you."
+                    tr("ui.settings.mcp.no_review_note")
                 },
                 4.,
             ))

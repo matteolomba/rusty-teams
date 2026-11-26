@@ -12,6 +12,7 @@ use super::widgets::{icon, symbol};
 use crate::data::Directory;
 use crate::downloads::{self, DownloadState};
 use crate::format;
+use crate::i18n::tr;
 use crate::inline_video;
 use crate::remote_image;
 use crate::render::{Block, render_blocks, render_table, table_images};
@@ -155,7 +156,7 @@ fn image_view(
                 div()
                     .text_size(theme::text_caption())
                     .text_color(theme::text_muted())
-                    .child("Loading image"),
+                    .child(tr("ui.misc.loading_image")),
             )
             .into_any_element();
     };
@@ -192,21 +193,21 @@ fn image_view(
 
 struct KindStyle {
     label: &'static str,
-    description: &'static str,
+    description: String,
     color: u32,
 }
 
 fn kind_style(kind: FileKind) -> KindStyle {
     let (label, description, color) = match kind {
-        FileKind::Word => ("DOC", "Word document", 0x2563EB),
-        FileKind::Excel => ("XLS", "Excel spreadsheet", 0x15803D),
-        FileKind::PowerPoint => ("PPT", "PowerPoint", 0xC2410C),
-        FileKind::Pdf => ("PDF", "PDF document", 0xB91C1C),
-        FileKind::Image => ("IMG", "Image", 0x7C3AED),
-        FileKind::Video => ("VID", "Video", 0xBE185D),
-        FileKind::Archive => ("ZIP", "Archive", 0xB45309),
-        FileKind::Loop => ("", "Loop component", 0x7C3AED),
-        FileKind::Other => ("", "File", 0x525252),
+        FileKind::Word => ("DOC", tr("ui.misc.file_kind_word"), 0x2563EB),
+        FileKind::Excel => ("XLS", tr("ui.misc.file_kind_excel"), 0x15803D),
+        FileKind::PowerPoint => ("PPT", "PowerPoint".to_owned(), 0xC2410C),
+        FileKind::Pdf => ("PDF", tr("ui.misc.file_kind_pdf"), 0xB91C1C),
+        FileKind::Image => ("IMG", tr("ui.misc.file_kind_image"), 0x7C3AED),
+        FileKind::Video => ("VID", tr("ui.misc.file_kind_video"), 0xBE185D),
+        FileKind::Archive => ("ZIP", tr("ui.misc.file_kind_archive"), 0xB45309),
+        FileKind::Loop => ("", tr("ui.misc.file_kind_loop"), 0x7C3AED),
+        FileKind::Other => ("", tr("ui.misc.file_kind_other"), 0x525252),
     };
     KindStyle {
         label,
@@ -215,7 +216,7 @@ fn kind_style(kind: FileKind) -> KindStyle {
     }
 }
 
-pub fn kind_description(kind: FileKind) -> &'static str {
+pub fn kind_description(kind: FileKind) -> String {
     kind_style(kind).description
 }
 
@@ -223,7 +224,7 @@ pub fn file_subtitle(card: &FileCard) -> String {
     let description = kind_style(card.kind).description;
     match card.size {
         Some(size) => format!("{description} \u{b7} {}", format::file_size_label(size)),
-        None => description.to_owned(),
+        None => description,
     }
 }
 
@@ -704,6 +705,8 @@ mod tests {
 
     #[test]
     fn subtitle_adds_the_size_when_known() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let card = FileCard {
             name: "a.pdf".into(),
             kind: FileKind::Pdf,

@@ -50,7 +50,7 @@ fn confirm_post_pin(
             .label(tr("common.cancel"))
             .on_click(|_, window, cx| window.close_dialog(cx));
         let confirm = Button::new("post-pin-confirm")
-            .label(dialog.confirm)
+            .label(tr(dialog.confirm))
             .primary()
             .on_click(move |_, window, cx| {
                 state.update(cx, |state, cx| {
@@ -59,8 +59,8 @@ fn confirm_post_pin(
                 window.close_dialog(cx);
             });
         alert
-            .title(dialog.title)
-            .description(dialog.body)
+            .title(tr(dialog.title))
+            .description(tr(dialog.body))
             .footer(DialogFooter::new().child(cancel).child(confirm))
             .on_ok(|_, _, _| false)
     });

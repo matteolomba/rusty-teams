@@ -12,6 +12,7 @@ use crate::sidebar_model::{
     Section, SectionInput, Step, build_sections, next_chat_id, step_id, step_unread_id,
     visible_chat_ids,
 };
+use app_base::ui_locale::{tr, tr_with};
 
 pub const TITLE_LIMIT: usize = 40;
 
@@ -53,7 +54,7 @@ impl AppState {
         let revert_id = owned_id.clone();
         let restored_read_at = chat.last_read_at.unwrap_or(last_message_at);
         self.run_chat_action(
-            "Mark as unread",
+            "ui.chat.menu.mark_unread",
             async move {
                 match message_created_at {
                     Some(created_at) => engine.mark_unread_from(&owned_id, created_at).await,
@@ -87,7 +88,11 @@ impl AppState {
         let owned_id = chat_id.to_owned();
         let revert_id = owned_id.clone();
         self.run_chat_action(
-            if muted { "Mute" } else { "Unmute" },
+            if muted {
+                "ui.chat.menu.mute"
+            } else {
+                "ui.chat.menu.unmute"
+            },
             async move { engine.set_chat_muted(&owned_id, muted).await },
             move |state, cx| {
                 let _ = state.store.set_chat_muted(&revert_id, !muted);
@@ -123,7 +128,7 @@ impl AppState {
         let owned_id = channel_id.to_owned();
         let revert_id = owned_id.clone();
         self.run_chat_action(
-            "Change notifications",
+            "ui.chat.chat_actions.change_notifications",
             async move {
                 engine
                     .set_channel_notifications(&owned_id, notifications)
@@ -160,14 +165,18 @@ impl AppState {
         };
         let owned_id = chat_id.to_owned();
         let undo_id = owned_id.clone();
-        let text = format!("\"{}\" hidden", truncated(&chat_title(&chat), TITLE_LIMIT));
+        let text = tr_with(
+            "ui.chat.chat_actions.hidden",
+            &[("title", &truncated(&chat_title(&chat), TITLE_LIMIT))],
+        );
         self.run_chat_action(
-            "Hide",
+            "ui.chat.menu.hide",
             async move { engine.hide_chat(&owned_id).await },
             move |state, cx| state.restore_chat_locally(&chat, cx),
             move |state, cx| {
-                let undo =
-                    NoticeAction::new("Undo", move |state, cx| state.unhide_chat(&undo_id, cx));
+                let undo = NoticeAction::new("ui.notify.undo", move |state, cx| {
+                    state.unhide_chat(&undo_id, cx)
+                });
                 state.raise_notice(text, Some(undo), cx);
             },
             cx,
@@ -180,7 +189,7 @@ impl AppState {
         };
         let owned_id = chat_id.to_owned();
         self.run_chat_action(
-            "Undo",
+            "ui.chat.delete.undo",
             async move { engine.unhide_chat(&owned_id).await },
             |_, _| {},
             |_, _| {},
@@ -201,7 +210,7 @@ impl AppState {
         };
         let owned_id = chat_id.to_owned();
         self.run_chat_action(
-            "Leave chat",
+            "ui.chat.chat_actions.leave_chat",
             async move { engine.leave_chat(&owned_id).await },
             move |state, cx| state.restore_chat_locally(&chat, cx),
             |_, _| {},
@@ -229,7 +238,7 @@ impl AppState {
         };
         let (owned_chat_id, owned_user_id) = (chat_id.to_owned(), user_id.to_owned());
         self.run_chat_action(
-            "Remove from chat",
+            "ui.chat.members.remove_tooltip",
             async move {
                 engine
                     .remove_chat_member(&owned_chat_id, &owned_user_id)
@@ -264,7 +273,7 @@ impl AppState {
         };
         let owned_chat_id = chat_id.to_owned();
         self.run_chat_action(
-            "Add people",
+            "ui.chat.members.add_people",
             async move {
                 engine
                     .add_chat_members(&owned_chat_id, &people, share)
@@ -339,7 +348,7 @@ impl AppState {
         };
         let owned_id = chat_id.to_owned();
         self.run_chat_action(
-            "Remove chat history",
+            "ui.chat.remove_history.label",
             async move { engine.remove_chat_history(&owned_id).await },
             move |state, cx| state.restore_chat_locally(&chat, cx),
             |_, _| {},
@@ -379,7 +388,7 @@ impl AppState {
         };
         let owned_id = chat_id.to_owned();
         self.run_chat_action(
-            "Rename group chat",
+            "ui.chat.chat_actions.rename_group",
             async move { engine.rename_chat(&owned_id, &topic).await },
             move |state, cx| state.restore_chat_locally(&chat, cx),
             |_, _| {},
@@ -407,7 +416,7 @@ impl AppState {
         cx: &mut Context<Self>,
     ) -> Option<Option<std::sync::Arc<crate::backend::Engine>>> {
         if self.mode.read_only {
-            self.raise_notice("Read-only mode: chat not changed".to_owned(), None, cx);
+            self.raise_notice(tr("ui.chat.chat_actions.read_only"), None, cx);
             return None;
         }
         match self.engine.clone() {
@@ -493,13 +502,20 @@ impl AppState {
             let failure = match receiver.await {
                 Ok(Ok(())) => None,
                 Ok(Err(error)) => Some(short_error(&error)),
-                Err(_) => Some("cancelled".to_owned()),
+                Err(_) => Some(tr("ui.chat.chat_actions.cancelled")),
             };
             this.update(cx, |state, cx| match failure {
                 None => on_success(state, cx),
                 Some(reason) => {
                     revert(state, cx);
-                    state.raise_notice(format!("{label} failed: {reason}"), None, cx);
+                    state.raise_notice(
+                        tr_with(
+                            "ui.chat.chat_actions.failed",
+                            &[("action", &tr(label)), ("reason", &reason)],
+                        ),
+                        None,
+                        cx,
+                    );
                 }
             })
             .ok();

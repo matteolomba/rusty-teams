@@ -3,8 +3,10 @@ use gpui_kit::*;
 use teams_core::{JumpPlan, WindowDirection, WindowPage, jump_plan};
 
 use super::ConversationView;
+use crate::i18n::tr;
 use crate::notice::{is_location_lookup_failure, short_error};
 use crate::runtime;
+use app_base::ui_locale::tr_with;
 
 pub(super) struct DetachedWindow {
     pub(super) anchor_id: String,
@@ -99,9 +101,9 @@ impl ConversationView {
         let page = match result {
             Ok(Ok(page)) => page,
             Ok(Err(error)) => {
-                self.notice = Some(format!(
-                    "Could not load the message: {}",
-                    short_error(&error)
+                self.notice = Some(tr_with(
+                    "ui.chat.detached.load_message_failed",
+                    &[("detail", &short_error(&error))],
                 ));
                 cx.notify();
                 return;
@@ -109,7 +111,7 @@ impl ConversationView {
             Err(_) => return,
         };
         let (Some(oldest), Some(newest)) = (page.oldest, page.newest) else {
-            self.notice = Some("Could not find the message".to_owned());
+            self.notice = Some(tr("ui.chat.detached.not_found"));
             cx.notify();
             return;
         };
@@ -214,9 +216,12 @@ impl ConversationView {
                 if let Ok(Err(error)) = failure {
                     let reason = error.to_string();
                     self.notice = Some(if is_location_lookup_failure(&reason) {
-                        "Messages around this one are not available in this chat".to_owned()
+                        tr("ui.chat.detached.unavailable")
                     } else {
-                        format!("Could not load messages: {}", short_error(&error))
+                        tr_with(
+                            "ui.chat.detached.load_messages_failed",
+                            &[("detail", &short_error(&error))],
+                        )
                     });
                 }
                 self.rebuild(false, cx);

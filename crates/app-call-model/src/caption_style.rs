@@ -9,11 +9,11 @@ pub enum CaptionSize {
 impl CaptionSize {
     pub const ALL: [CaptionSize; 3] = [CaptionSize::Small, CaptionSize::Medium, CaptionSize::Large];
 
-    pub fn label(self) -> &'static str {
+    pub fn label(self) -> String {
         match self {
-            CaptionSize::Small => "Small",
-            CaptionSize::Medium => "Medium",
-            CaptionSize::Large => "Large",
+            CaptionSize::Small => app_base::ui_locale::tr("ui.calls.caption.small"),
+            CaptionSize::Medium => app_base::ui_locale::tr("ui.calls.caption.medium"),
+            CaptionSize::Large => app_base::ui_locale::tr("ui.calls.caption.large"),
         }
     }
 
@@ -52,10 +52,10 @@ pub enum CaptionPosition {
 impl CaptionPosition {
     pub const ALL: [CaptionPosition; 2] = [CaptionPosition::Bottom, CaptionPosition::Top];
 
-    pub fn label(self) -> &'static str {
+    pub fn label(self) -> String {
         match self {
-            CaptionPosition::Bottom => "Bottom",
-            CaptionPosition::Top => "Top",
+            CaptionPosition::Bottom => app_base::ui_locale::tr("ui.calls.caption.position_bottom"),
+            CaptionPosition::Top => app_base::ui_locale::tr("ui.calls.caption.position_top"),
         }
     }
 

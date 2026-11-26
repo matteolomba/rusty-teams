@@ -16,13 +16,14 @@ use super::reaction_picker::{DoneHandler, PickHandler, ReactionPicker};
 use super::toolbar_placement::{HoverChange, TOOLBAR_HEIGHT, toolbar_slot};
 use super::widgets::{icon, symbol};
 use crate::forward_selection::{FORWARD_LABEL, MULTIPLE_MESSAGES_LABEL, THIS_MESSAGE_LABEL};
+use crate::i18n::tr;
 use crate::post_follow::follow_label;
 use crate::rows::reaction_glyph;
 use crate::share_outlook::SHARE_TO_OUTLOOK_LABEL;
 use crate::theme::{self, ElevatedSurface as _};
 
-const TRANSLATION_LABEL: &str = "Translation";
-const AGENTS_LABEL: &str = "Agents";
+const TRANSLATION_LABEL: &str = "ui.chat.message.translation";
+const AGENTS_LABEL: &str = "ui.chat.message.agents";
 const BAR_BUTTON: f32 = 30.;
 const BAR_PADDING: f32 = 3.;
 const BAR_ICON: f32 = 16.;
@@ -50,7 +51,7 @@ pub struct MessageMenu {
     pub copy_link: Option<Action>,
     pub copy: Action,
     pub translate: Option<Action>,
-    pub translate_label: &'static str,
+    pub translate_label: String,
     pub share_to_outlook: Option<Action>,
     pub save: Option<Action>,
     pub saved: bool,
@@ -207,7 +208,7 @@ pub struct MenuActions {
     copy_link: Option<Action>,
     copy: Action,
     translate: Option<Action>,
-    translate_label: &'static str,
+    translate_label: String,
     save: Option<Action>,
     saved: bool,
     toggle_pinned: Option<Action>,
@@ -232,7 +233,7 @@ impl MenuActions {
             copy_link: menu.copy_link.clone(),
             copy: menu.copy.clone(),
             translate: menu.translate.clone(),
-            translate_label: menu.translate_label,
+            translate_label: menu.translate_label.clone(),
             save: menu.save.clone(),
             saved: menu.saved,
             toggle_pinned: menu.toggle_pinned.clone(),
@@ -261,7 +262,7 @@ impl MenuActions {
         if right_click {
             if let Some(reply) = self.reply.clone() {
                 popup = popup.item(
-                    PopupMenuItem::new("Reply")
+                    PopupMenuItem::new(tr("ui.chat.message.reply"))
                         .icon(IconName::Reply)
                         .on_click(move |_, window, cx| reply(window, cx)),
                 );
@@ -270,7 +271,7 @@ impl MenuActions {
                 let (entries, manage_agents) = (self.delegate.clone(), self.manage_agents.clone());
                 popup = popup.submenu_with_icon(
                     Some(IconName::Bot.into()),
-                    AGENTS_LABEL,
+                    tr(AGENTS_LABEL),
                     window,
                     cx,
                     move |submenu, _, _| delegate_entries(submenu, &entries, manage_agents.clone()),
@@ -288,7 +289,7 @@ impl MenuActions {
         cx: &mut Context<PopupMenu>,
     ) -> PopupMenu {
         let item = |label: &'static str, glyph: IconName, action: Action| {
-            PopupMenuItem::new(label)
+            PopupMenuItem::new(tr(label))
                 .icon(glyph)
                 .on_click(move |_, window, cx| action(window, cx))
         };
@@ -297,18 +298,18 @@ impl MenuActions {
             (Some(forward), Some(forward_multiple)) => {
                 popup = popup.submenu_with_icon(
                     Some(IconName::Forward.into()),
-                    FORWARD_LABEL,
+                    tr(FORWARD_LABEL),
                     window,
                     cx,
                     move |submenu, _, _| {
                         let (single, multiple) = (forward.clone(), forward_multiple.clone());
                         submenu
                             .item(
-                                PopupMenuItem::new(THIS_MESSAGE_LABEL)
+                                PopupMenuItem::new(tr(THIS_MESSAGE_LABEL))
                                     .on_click(move |_, window, cx| single(window, cx)),
                             )
                             .item(
-                                PopupMenuItem::new(MULTIPLE_MESSAGES_LABEL)
+                                PopupMenuItem::new(tr(MULTIPLE_MESSAGES_LABEL))
                                     .on_click(move |_, window, cx| multiple(window, cx)),
                             )
                     },
@@ -320,25 +321,29 @@ impl MenuActions {
             (None, _) => {}
         }
         if let Some(copy_link) = self.copy_link.clone() {
-            popup = popup.item(item("Copy link", IconName::Link, copy_link));
+            popup = popup.item(item("ui.chat.message.copy_link", IconName::Link, copy_link));
         }
-        popup = popup.item(item("Copy text", IconName::Copy, self.copy.clone()));
+        popup = popup.item(item(
+            "ui.chat.message.copy_text",
+            IconName::Copy,
+            self.copy.clone(),
+        ));
         if let Some(save) = self.save.clone() {
             popup = popup.item(if self.saved {
-                item("Unsave this message", IconName::BookmarkOff, save)
+                item("ui.chat.message.unsave", IconName::BookmarkOff, save)
             } else {
-                item("Save this message", IconName::Bookmark, save)
+                item("ui.chat.message.save", IconName::Bookmark, save)
             });
         }
         if let Some(toggle_pinned) = self.toggle_pinned.clone() {
             popup = popup.item(if self.pinned {
-                item("Unpin", IconName::PinOff, toggle_pinned)
+                item("ui.chat.message.unpin", IconName::PinOff, toggle_pinned)
             } else {
-                item("Pin for everyone", IconName::Pin, toggle_pinned)
+                item("ui.chat.message.pin_everyone", IconName::Pin, toggle_pinned)
             });
         }
         if let Some(edit) = self.edit.clone() {
-            popup = popup.item(item("Edit", IconName::Pencil, edit));
+            popup = popup.item(item("ui.chat.message.edit", IconName::Pencil, edit));
         }
         if let Some(toggle_follow) = self.toggle_follow.clone() {
             popup = popup.item(if self.followed {
@@ -348,11 +353,19 @@ impl MenuActions {
             });
         }
         if let Some(refresh_card) = self.refresh_card.clone() {
-            popup = popup.item(item("Refresh card", IconName::RefreshCw, refresh_card));
+            popup = popup.item(item(
+                "ui.chat.message.refresh_card",
+                IconName::RefreshCw,
+                refresh_card,
+            ));
         }
         popup = popup.separator();
         if let Some(mark_unread) = self.mark_unread.clone() {
-            popup = popup.item(item("Mark as unread", IconName::EyeOff, mark_unread));
+            popup = popup.item(item(
+                "ui.chat.message.mark_unread",
+                IconName::EyeOff,
+                mark_unread,
+            ));
         }
         if let Some(share_to_outlook) = self.share_to_outlook.clone() {
             popup = popup.item(item(
@@ -361,17 +374,17 @@ impl MenuActions {
                 share_to_outlook,
             ));
         }
-        let translate_label = self.translate_label;
+        let translate_label = self.translate_label.clone();
         if let Some(translate) = self.translate.clone() {
             popup = popup.submenu_with_icon(
                 Some(IconName::Languages.into()),
-                TRANSLATION_LABEL,
+                tr(TRANSLATION_LABEL),
                 window,
                 cx,
                 move |submenu, _, _| {
                     let translate = translate.clone();
                     submenu.item(
-                        PopupMenuItem::new(translate_label)
+                        PopupMenuItem::new(translate_label.clone())
                             .on_click(move |_, window, cx| translate(window, cx)),
                     )
                 },
@@ -380,7 +393,7 @@ impl MenuActions {
         if let Some(delete) = self.delete.clone() {
             popup = popup
                 .separator()
-                .item(item("Delete", IconName::Trash, delete));
+                .item(item("ui.chat.message.delete", IconName::Trash, delete));
         }
         popup
     }
@@ -415,7 +428,7 @@ fn delegate_entries(
             PopupMenuItem::element(|_, _| {
                 div()
                     .text_color(theme::text_muted())
-                    .child("Manage actions...")
+                    .child(tr("ui.chat.message.manage_actions"))
             })
             .on_click(move |_, window, cx| manage_agents(window, cx)),
         );

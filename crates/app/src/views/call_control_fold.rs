@@ -11,6 +11,7 @@ use super::call_view::reaction_glyph;
 use super::call_view_menu::view_items;
 use crate::app_state::AppState;
 use crate::call::CallModel;
+use crate::i18n::{tr, tr_with};
 
 pub(super) const TITLE_RESERVE: f32 = 280.;
 const LEAVE_WIDTH: f32 = 96.;
@@ -128,7 +129,7 @@ fn view_submenu(
     let model = model.clone();
     popup.submenu_with_icon(
         Some(Icon::new(IconName::LayoutGrid)),
-        "View",
+        tr("ui.calls.chrome.view"),
         window,
         cx,
         move |menu, _, _| view_items(menu, &app, &model, fullscreen),
@@ -146,7 +147,7 @@ fn reactions_submenu(
     let can_react = model.can_react();
     popup.submenu_with_icon(
         Some(Icon::new(IconName::FaceSlightlySmiling)),
-        "Reactions",
+        tr("ui.calls.chrome.reactions"),
         window,
         cx,
         move |mut menu, _, _| {
@@ -175,10 +176,14 @@ fn hand_item(popup: PopupMenu, app: &Entity<AppState>, model: &CallModel) -> Pop
     let app = app.clone();
     let raised = model.own_hand.is_some();
     popup.item(
-        PopupMenuItem::new(if raised { "Lower hand" } else { "Raise hand" })
-            .icon(IconName::Hand)
-            .disabled(!model.can_react())
-            .on_click(move |_, _, cx| app.update(cx, |state, cx| state.toggle_call_hand(cx))),
+        PopupMenuItem::new(if raised {
+            tr("calls.chrome.lower_hand")
+        } else {
+            tr("calls.chrome.raise_hand")
+        })
+        .icon(IconName::Hand)
+        .disabled(!model.can_react())
+        .on_click(move |_, _, cx| app.update(cx, |state, cx| state.toggle_call_hand(cx))),
     )
 }
 
@@ -186,9 +191,9 @@ fn people_item(popup: PopupMenu, app: &Entity<AppState>, open: bool) -> PopupMen
     let app = app.clone();
     popup.item(
         PopupMenuItem::new(if open {
-            "Close the people list"
+            tr("ui.calls.people.close_list")
         } else {
-            "Show people"
+            tr("ui.calls.people.show")
         })
         .icon(IconName::Users)
         .on_click(move |_, _, cx| app.update(cx, |state, cx| state.toggle_call_people(cx))),
@@ -198,9 +203,12 @@ fn people_item(popup: PopupMenu, app: &Entity<AppState>, open: bool) -> PopupMen
 fn chat_item(popup: PopupMenu, app: &Entity<AppState>, folded: &FoldedControls) -> PopupMenu {
     let app = app.clone();
     let label = match (folded.chat_open, folded.chat_unread) {
-        (true, _) => "Close the chat".to_owned(),
-        (false, 0) => "Open the chat".to_owned(),
-        (false, unread) => format!("Open the chat ({unread})"),
+        (true, _) => tr("calls.chrome.close_chat"),
+        (false, 0) => tr("calls.chrome.open_chat"),
+        (false, unread) => tr_with(
+            "ui.calls.chrome.open_chat_unread",
+            &[("count", &unread.to_string())],
+        ),
     };
     popup.item(
         PopupMenuItem::new(label)

@@ -7,6 +7,7 @@ use teams_core::{Draft, FormatState, LineKind, MarkKind, SizeStep, TypingStyle};
 
 use super::Composer;
 use super::FormatButton;
+use crate::i18n::tr;
 use crate::theme::{self, ElevatedSurface as _};
 
 const SWATCH: f32 = 24.;
@@ -36,87 +37,95 @@ pub(super) struct Swatch {
 /// Teams' font colour palette (`categoryColors`, shades in the compose bundle).
 pub(super) const FONT_COLORS: [Swatch; 8] = [
     Swatch {
-        name: "Red",
+        name: "ui.chat.format.color_red",
         color: 0xB6424C,
     },
     Swatch {
-        name: "Tuscan orange",
+        name: "ui.chat.format.color_tuscan_orange",
         color: 0xCD5937,
     },
     Swatch {
-        name: "Sunglow",
+        name: "ui.chat.format.color_sunglow",
         color: 0xFDC030,
     },
     Swatch {
-        name: "Pear",
+        name: "ui.chat.format.color_pear",
         color: 0xBDCB4C,
     },
     Swatch {
-        name: "Eucalyptus",
+        name: "ui.chat.format.color_eucalyptus",
         color: 0x2B9B62,
     },
     Swatch {
-        name: "Faded jade",
+        name: "ui.chat.format.color_faded_jade",
         color: 0x37797B,
     },
     Swatch {
-        name: "Fun blue",
+        name: "ui.chat.format.color_fun_blue",
         color: 0x1E53A3,
     },
     Swatch {
-        name: "Tyrian purple",
+        name: "ui.chat.format.color_tyrian_purple",
         color: 0xA5397A,
     },
 ];
 
 pub(super) const HIGHLIGHT_COLORS: [Swatch; 8] = [
     Swatch {
-        name: "Kobi red",
+        name: "ui.chat.format.color_kobi_red",
         color: 0xDF9299,
     },
     Swatch {
-        name: "Rose bud",
+        name: "ui.chat.format.color_rose_bud",
         color: 0xF4A593,
     },
     Swatch {
-        name: "Goldenrod",
+        name: "ui.chat.format.color_goldenrod",
         color: 0xFDD472,
     },
     Swatch {
-        name: "Primrose",
+        name: "ui.chat.format.color_primrose",
         color: 0xE5F18F,
     },
     Swatch {
-        name: "Mantis",
+        name: "ui.chat.format.color_mantis",
         color: 0x82CDA8,
     },
     Swatch {
-        name: "Regent St. blue",
+        name: "ui.chat.format.color_regent_st_blue",
         color: 0x9DD9DB,
     },
     Swatch {
-        name: "Periwinkle grey",
+        name: "ui.chat.format.color_periwinkle_grey",
         color: 0xC7D4E8,
     },
     Swatch {
-        name: "Pale rose",
+        name: "ui.chat.format.color_pale_rose",
         color: 0xEBD3E1,
     },
 ];
 
 pub(super) const PARAGRAPH_STYLES: [(Option<u8>, &str); 4] = [
-    (None, "Paragraph"),
-    (Some(1), "Heading 1"),
-    (Some(2), "Heading 2"),
-    (Some(3), "Heading 3"),
+    (None, "ui.chat.format.paragraph"),
+    (Some(1), "ui.chat.format.heading_1"),
+    (Some(2), "ui.chat.format.heading_2"),
+    (Some(3), "ui.chat.format.heading_3"),
 ];
 
 /// Teams' Font size menu (`compose_font_size`): Large is `x-large`, Medium removes the size,
 /// Small is `xx-small`.
 pub(super) const FONT_SIZES: [(Option<SizeStep>, FormatButton, &str); 3] = [
-    (Some(SizeStep::Large), FormatButton::SizeLarge, "Large"),
-    (None, FormatButton::SizeNormal, "Medium"),
-    (Some(SizeStep::Small), FormatButton::SizeSmall, "Small"),
+    (
+        Some(SizeStep::Large),
+        FormatButton::SizeLarge,
+        "ui.chat.format.size_large",
+    ),
+    (None, FormatButton::SizeNormal, "ui.chat.format.size_medium"),
+    (
+        Some(SizeStep::Small),
+        FormatButton::SizeSmall,
+        "ui.chat.format.size_small",
+    ),
 ];
 
 pub(super) fn paragraph_label(level: Option<u8>) -> &'static str {
@@ -136,8 +145,8 @@ impl FormatPopup {
 
     fn clear_label(self) -> &'static str {
         match self {
-            FormatPopup::FontColor => "Automatic",
-            _ => "No highlight",
+            FormatPopup::FontColor => "ui.chat.format.automatic",
+            _ => "ui.chat.format.no_highlight",
         }
     }
 
@@ -382,7 +391,7 @@ impl Composer {
                                 transparent_black()
                             })
                             .hover(|swatch| swatch.opacity(0.85))
-                            .tooltip(move |window, cx| Tooltip::new(name).build(window, cx)),
+                            .tooltip(move |window, cx| Tooltip::new(tr(name)).build(window, cx)),
                     )
                     .on_click(cx.listener(move |this, _, window, cx| {
                         this.apply_color(popup, Some(color), window, cx)
@@ -403,7 +412,7 @@ impl Composer {
                 .hover(|row| row.bg(theme::popup_hover())),
         )
         .on_click(cx.listener(move |this, _, window, cx| this.apply_color(popup, None, window, cx)))
-        .child(popup.clear_label());
+        .child(tr(popup.clear_label()));
         v_flex()
             .p(px(POPUP_PADDING))
             .gap(px(SWATCH_GAP))
@@ -430,7 +439,7 @@ impl Composer {
                     .hover(|row| row.bg(theme::popup_hover())),
             )
             .on_click(cx.listener(move |this, _, _, cx| this.apply_font_size(size, cx)))
-            .child(*label)
+            .child(tr(*label))
         });
         v_flex()
             .min_w(px(FONT_SIZE_MENU_WIDTH))
@@ -461,7 +470,7 @@ impl Composer {
                 .on_click(cx.listener(move |this, _, window, cx| {
                     this.set_paragraph_style(level, window, cx)
                 }))
-                .child(*label)
+                .child(tr(*label))
             });
         v_flex()
             .min_w(px(MENU_WIDTH))
@@ -475,11 +484,13 @@ mod tests {
     use teams_core::SizeStep;
 
     use super::{FONT_COLORS, FONT_SIZES, HIGHLIGHT_COLORS, PARAGRAPH_STYLES, paragraph_label};
+    use crate::i18n::tr;
 
     #[test]
     fn font_sizes_read_like_teams() {
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(
-            FONT_SIZES.map(|(_, _, label)| label),
+            FONT_SIZES.map(|(_, _, label)| tr(label)),
             ["Large", "Medium", "Small"]
         );
         assert_eq!(
@@ -490,19 +501,21 @@ mod tests {
 
     #[test]
     fn palettes_hold_the_eight_teams_colours_each() {
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(FONT_COLORS.len(), 8);
         assert_eq!(HIGHLIGHT_COLORS.len(), 8);
         assert_eq!(FONT_COLORS[0].color, 0xB6424C);
-        assert_eq!(HIGHLIGHT_COLORS[2].name, "Goldenrod");
+        assert_eq!(tr(HIGHLIGHT_COLORS[2].name), "Goldenrod");
     }
 
     #[test]
     fn paragraph_styles_read_like_teams() {
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(
-            PARAGRAPH_STYLES.map(|(_, label)| label),
+            PARAGRAPH_STYLES.map(|(_, label)| tr(label)),
             ["Paragraph", "Heading 1", "Heading 2", "Heading 3"]
         );
-        assert_eq!(paragraph_label(Some(2)), "Heading 2");
-        assert_eq!(paragraph_label(None), "Paragraph");
+        assert_eq!(tr(paragraph_label(Some(2))), "Heading 2");
+        assert_eq!(tr(paragraph_label(None)), "Paragraph");
     }
 }

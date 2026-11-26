@@ -14,7 +14,7 @@ use crate::i18n::tr;
 use crate::theme;
 
 const DIALOG_WIDTH: f32 = 480.;
-const TITLE: &str = "Add people";
+const TITLE: &str = "ui.misc.add_people";
 const FIELD_RADIUS: f32 = 6.;
 const DAYS_FIELD_WIDTH: f32 = 64.;
 const DEFAULT_DAYS: &str = "1";
@@ -170,10 +170,10 @@ impl AddPeopleForm {
 
     fn history_options(&self, cx: &mut Context<Self>) -> Div {
         let form = cx.entity();
-        let option = |id: &'static str, label: &'static str, choice: HistoryChoice| {
+        let option = |id: &'static str, label: &str, choice: HistoryChoice| {
             let form = form.clone();
             Radio::new(id)
-                .label(label)
+                .label(tr(label))
                 .checked(self.choice == choice)
                 .on_click(move |_, _, cx| form.update(cx, |form, cx| form.choose(choice, cx)))
         };
@@ -182,7 +182,7 @@ impl AddPeopleForm {
             .gap(px(OPTION_GAP))
             .child(option(
                 "add-people-no-history",
-                "Don't include chat history",
+                "ui.misc.dont_include_history",
                 HistoryChoice::None,
             ))
             .child(
@@ -191,7 +191,7 @@ impl AddPeopleForm {
                     .items_center()
                     .child(option(
                         "add-people-some-history",
-                        "Include history from the past number of days:",
+                        "ui.misc.include_history_days",
                         HistoryChoice::Days,
                     ))
                     .child(
@@ -203,7 +203,7 @@ impl AddPeopleForm {
             )
             .child(option(
                 "add-people-all-history",
-                "Include all chat history",
+                "ui.misc.include_all_history",
                 HistoryChoice::All,
             ))
     }
@@ -256,7 +256,7 @@ pub fn open_add_people(
                     }),
             );
         dialog
-            .title(TITLE)
+            .title(tr(TITLE))
             .w(px(DIALOG_WIDTH))
             .child(form.clone())
             .footer(footer)

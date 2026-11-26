@@ -6,8 +6,8 @@ use teams_core::PostFollowState;
 use crate::app_state::AppState;
 use crate::runtime;
 
-pub const TURN_OFF_NOTIFICATIONS: &str = "Turn off notifications";
-pub const TURN_ON_NOTIFICATIONS: &str = "Turn on notifications";
+pub const TURN_OFF_NOTIFICATIONS: &str = "ui.chat.post_follow.turn_off";
+pub const TURN_ON_NOTIFICATIONS: &str = "ui.chat.post_follow.turn_on";
 
 type PostKey = (String, String);
 
@@ -39,17 +39,17 @@ pub fn follow_label(followed: bool) -> &'static str {
 
 pub fn follow_notice(followed: bool) -> &'static str {
     if followed {
-        "Notifications turned on"
+        "ui.chat.post_follow.notice_on"
     } else {
-        "Notifications turned off"
+        "ui.chat.post_follow.notice_off"
     }
 }
 
 pub fn follow_failure(followed: bool) -> &'static str {
     if followed {
-        "Couldn't turn on notifications"
+        "ui.chat.post_follow.failure_on"
     } else {
-        "Couldn't turn off notifications"
+        "ui.chat.post_follow.failure_off"
     }
 }
 
@@ -126,7 +126,7 @@ impl AppState {
         self.post_follows.states.insert(key.clone(), next);
         cx.notify();
         let Some(engine) = engine_or_demo else {
-            self.raise_notice(follow_notice(followed).to_owned(), None, cx);
+            self.raise_notice(app_base::ui_locale::tr(follow_notice(followed)), None, cx);
             return;
         };
         let (channel, root) = (channel_id.to_owned(), root_id.to_owned());
@@ -173,11 +173,13 @@ mod tests {
 
     #[test]
     fn labels_and_notices_use_teams_strings() {
-        assert_eq!(follow_label(true), "Turn off notifications");
-        assert_eq!(follow_label(false), "Turn on notifications");
-        assert_eq!(follow_notice(false), "Notifications turned off");
-        assert_eq!(follow_notice(true), "Notifications turned on");
-        assert_eq!(follow_failure(false), "Couldn't turn off notifications");
-        assert_eq!(follow_failure(true), "Couldn't turn on notifications");
+        use app_base::ui_locale::{apply_locale, tr};
+        apply_locale("en");
+        assert_eq!(tr(follow_label(true)), "Turn off notifications");
+        assert_eq!(tr(follow_label(false)), "Turn on notifications");
+        assert_eq!(tr(follow_notice(false)), "Notifications turned off");
+        assert_eq!(tr(follow_notice(true)), "Notifications turned on");
+        assert_eq!(tr(follow_failure(false)), "Couldn't turn off notifications");
+        assert_eq!(tr(follow_failure(true)), "Couldn't turn on notifications");
     }
 }

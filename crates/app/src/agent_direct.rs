@@ -9,6 +9,7 @@ use store::{MessageRecord, OutboxTarget};
 
 use crate::agent_api::{self, ProposalEntry};
 use crate::app_state::AppState;
+use crate::i18n::tr;
 use crate::notice::short_error;
 use crate::outbox::{deliver, new_outbox_id, outbox_record};
 use crate::rows::{api_reaction, reaction_glyph, reply_excerpt};
@@ -120,7 +121,7 @@ fn send_message(state: &Entity<AppState>, entry: ProposalEntry, cx: &mut App) {
         author: record
             .sender_name
             .clone()
-            .unwrap_or_else(|| "Unknown".to_owned()),
+            .unwrap_or_else(|| tr("ui.misc.unknown_person")),
         excerpt: reply_excerpt(&record),
     });
     let outgoing = outgoing_for(&entry, quote);

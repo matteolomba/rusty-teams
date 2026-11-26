@@ -53,7 +53,7 @@ impl AppState {
         let url = self.github_issue_url_for_bundle(&bundle);
         let folder = bundle.directory.clone();
         crate::external_browser::open_url(cx, &self.store, &url);
-        let action = NoticeAction::new("Open folder", move |_, _| {
+        let action = NoticeAction::new("ui.notify.open_folder", move |_, _| {
             crate::downloads::reveal_in_file_manager(&folder);
         });
         self.raise_notice(

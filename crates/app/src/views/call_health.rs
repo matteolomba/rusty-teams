@@ -9,6 +9,7 @@ use super::call_view::{BANNER_HEIGHT, MENU_WIDTH};
 use super::widgets::symbol;
 use crate::app_state::AppState;
 use crate::call::{CallModel, HealthBanner, level_text, media_text, network_rows, transport_text};
+use crate::i18n::tr;
 use crate::theme;
 
 const BAR_WIDTH: f32 = 3.;
@@ -18,8 +19,6 @@ const INACTIVE_BAR: f32 = 0.3;
 const INDICATOR_HEIGHT: f32 = 28.;
 const POPOVER_PADDING: f32 = 12.;
 const BANNER_TEXT: f32 = 13.;
-const NETWORK_TEXT: &str = "Your network is unstable. Turning off incoming video may help.";
-const CPU_TEXT: &str = "Your computer is overloaded. Turning off video effects may help.";
 
 fn dark_text() -> Hsla {
     hsla(0., 0., 0.08, 1.)
@@ -61,7 +60,7 @@ fn signal_bars(level: NetworkLevel) -> Div {
         }))
 }
 
-fn section_title(title: &'static str) -> Div {
+fn section_title(title: String) -> Div {
     div()
         .text_size(theme::text_small())
         .font_weight(FontWeight::SEMIBOLD)
@@ -69,7 +68,7 @@ fn section_title(title: &'static str) -> Div {
         .child(title)
 }
 
-fn row(label: &'static str, value: String) -> Div {
+fn row(label: String, value: String) -> Div {
     h_flex()
         .w_full()
         .justify_between()
@@ -84,13 +83,16 @@ fn health_popover(model: &CallModel) -> Div {
     let network = match &health {
         Some(health) => v_flex()
             .gap(px(4.))
-            .child(row("Quality", level_text(level).to_owned()))
+            .child(row(tr("ui.calls.health.quality"), level_text(level)))
             .children(
                 network_rows(&health.sample)
                     .into_iter()
                     .map(|(label, value)| row(label, value)),
             ),
-        None => v_flex().child(row("Quality", "Measuring...".to_owned())),
+        None => v_flex().child(row(
+            tr("ui.calls.health.quality"),
+            tr("ui.calls.health.measuring"),
+        )),
     };
     let transport = health.iter().flat_map(|health| {
         [
@@ -109,23 +111,23 @@ fn health_popover(model: &CallModel) -> Div {
             div()
                 .text_size(px(15.))
                 .font_weight(FontWeight::SEMIBOLD)
-                .child("Call health"),
+                .child(tr("ui.calls.health.title")),
         )
         .child(
             v_flex()
                 .gap(px(6.))
-                .child(section_title("Network"))
+                .child(section_title(tr("ui.calls.health.network")))
                 .child(network),
         )
         .child(
             v_flex()
                 .gap(px(6.))
-                .child(section_title("Encryption"))
+                .child(section_title(tr("ui.calls.health.encryption")))
                 .child(
                     div()
                         .text_size(theme::text_label())
                         .font_weight(FontWeight::SEMIBOLD)
-                        .child("Secured by Teams encryption"),
+                        .child(tr("ui.calls.health.secured")),
                 )
                 .children(transport.map(|line| {
                     div()
@@ -167,8 +169,14 @@ pub fn health_indicator(model: &CallModel) -> Option<AnyElement> {
 pub fn health_banner(app: &Entity<AppState>, model: &CallModel) -> Option<AnyElement> {
     let banner = model.health_banner()?;
     let (text, action_label) = match banner {
-        HealthBanner::Network => (NETWORK_TEXT, "Turn off incoming video"),
-        HealthBanner::Cpu => (CPU_TEXT, "Turn off effects"),
+        HealthBanner::Network => (
+            tr("ui.calls.health.network_hint"),
+            tr("ui.calls.health.turn_off_incoming_video"),
+        ),
+        HealthBanner::Cpu => (
+            tr("ui.calls.health.cpu_hint"),
+            tr("ui.calls.health.turn_off_effects"),
+        ),
     };
     let (action_app, close_app) = (app.clone(), app.clone());
     Some(

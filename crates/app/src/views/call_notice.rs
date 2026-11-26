@@ -6,6 +6,7 @@ use gpui_kit::*;
 use super::message_row::{AVATAR_GAP, AVATAR_SIZE, RowAction, day_separator, new_marker};
 use super::widgets::symbol;
 use crate::data::Directory;
+use crate::i18n::{tr, tr_with};
 use crate::rows::{CallCard, CallIcon, CallNotice, MessageRow, RecapCard, RecordingCard};
 use crate::theme;
 
@@ -37,7 +38,6 @@ const BADGE_INSET_BOTTOM: f32 = 8.;
 const EXPIRY_SIZE: f32 = 10.;
 const EXPIRY_LINE: f32 = 24.;
 const EXPIRY_ICON_GAP: f32 = 4.;
-const CONTENT_LABEL: &str = "Content";
 
 pub struct RecapActions {
     pub view_recap: RowAction,
@@ -134,7 +134,7 @@ fn recap_header(recap: &RecapCard, index: usize, open: RowAction, share: RowActi
                         .text_size(px(VIEW_RECAP_SIZE))
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_color(theme::white())
-                        .child("View recap"),
+                        .child(tr("ui.calls.notice.view_recap")),
                 ),
         )
 }
@@ -159,7 +159,7 @@ fn transcript_chip(index: usize, transcript: RowAction) -> Stateful<Div> {
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme::text())
         .child(symbol("description", ICON_SIZE, theme::accent_text()))
-        .child("Transcript")
+        .child(tr("ui.calls.transcript.title"))
 }
 
 fn thumbnail_image(recording: &RecordingCard, directory: &Directory) -> AnyElement {
@@ -230,9 +230,12 @@ fn recording_thumbnail(
                 .text_color(theme::text_muted())
                 .child(symbol("schedule", EXPIRY_SIZE, theme::text_muted()))
                 .child(if days == 1 {
-                    "Expires in 1 day".to_owned()
+                    tr("ui.calls.notice.expires_one")
                 } else {
-                    format!("Expires in {days} days")
+                    tr_with(
+                        "ui.calls.notice.expires_many",
+                        &[("days", &days.to_string())],
+                    )
                 })
         }))
 }
@@ -274,7 +277,7 @@ fn recap_card(
                                 .line_height(px(16.))
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .text_color(theme::text_soft())
-                                .child(CONTENT_LABEL),
+                                .child(tr("ui.calls.notice.content")),
                         )
                         .child(
                             h_flex()

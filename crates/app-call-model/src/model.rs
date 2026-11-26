@@ -28,7 +28,6 @@ use super::stage_layout::{
 use super::transcript::{Transcript, TranscriptEntry};
 use super::view_settings::{CallLayout, ViewSettings};
 
-pub const TEST_CALL_TITLE: &str = "Test call";
 pub const ECHO_NAME: &str = "Teams echo";
 pub const ECHO_MRI: &str = calling::signaling::ECHO_BOT_MRI;
 const ORGID_PREFIX: &str = "8:orgid:";
@@ -109,10 +108,13 @@ impl ConsultCall {
 
     pub fn banner_text(&self) -> String {
         match self.transfer {
-            ConsultTransfer::Idle => format!("{} is on hold", self.held_name),
-            ConsultTransfer::Pending | ConsultTransfer::Done => {
-                format!("Transferring {} to {}...", self.held_name, self.target.1)
+            ConsultTransfer::Idle => {
+                app_base::ui_locale::tr_with("ui.calls.consult.held", &[("name", &self.held_name)])
             }
+            ConsultTransfer::Pending | ConsultTransfer::Done => app_base::ui_locale::tr_with(
+                "ui.calls.consult.transferring",
+                &[("name", &self.held_name), ("target", &self.target.1)],
+            ),
         }
     }
 }
@@ -424,7 +426,7 @@ impl CallModel {
     pub fn test() -> Self {
         Self::base(
             CallKind::Test,
-            TEST_CALL_TITLE,
+            &app_base::ui_locale::tr("ui.calls.test_call_title"),
             ECHO_NAME,
             vec![Tile::invited(ECHO_MRI, ECHO_NAME)],
         )
@@ -576,7 +578,7 @@ impl CallModel {
             return;
         }
         let speaker = if entry.display_name.is_empty() {
-            "Someone".to_owned()
+            app_base::ui_locale::tr("ui.calls.someone")
         } else {
             entry.display_name
         };
@@ -1103,26 +1105,34 @@ impl CallModel {
 
     pub fn sharing_label(&self) -> Option<String> {
         let sharer = self.screen_sharer.as_ref()?;
+        let fallback = app_base::ui_locale::tr("ui.calls.someone");
         let name = self
             .tiles
             .iter()
             .find(|tile| &tile.mri == sharer)
             .map(|tile| tile.name.as_str())
             .filter(|name| !name.is_empty())
-            .unwrap_or("Someone");
-        Some(format!("{name} is sharing"))
+            .unwrap_or(&fallback);
+        Some(app_base::ui_locale::tr_with(
+            "ui.calls.sharing_label",
+            &[("name", name)],
+        ))
     }
 
     pub fn whiteboard_label(&self) -> Option<String> {
         let share = self.whiteboard.as_ref()?;
+        let fallback = app_base::ui_locale::tr("ui.calls.someone");
         let name = share
             .presenter
             .as_deref()
             .and_then(|presenter| self.tiles.iter().find(|tile| tile.mri == presenter))
             .map(|tile| tile.name.as_str())
             .filter(|name| !name.is_empty())
-            .unwrap_or("Someone");
-        Some(format!("{name} is sharing a whiteboard"))
+            .unwrap_or(&fallback);
+        Some(app_base::ui_locale::tr_with(
+            "ui.calls.whiteboard_label",
+            &[("name", name)],
+        ))
     }
     pub fn whiteboard_url(&self) -> Option<&str> {
         self.whiteboard_link
@@ -1164,15 +1174,16 @@ impl CallModel {
         only_remote && tile.state != TileState::Left && self.remote_speaking
     }
 
-    pub fn tile_caption(&self, tile: &Tile) -> Option<&'static str> {
-        match tile.state {
-            TileState::Invited => Some(match self.progress {
-                Some(Progress::Ringing) => "Ringing",
-                _ => "Calling...",
-            }),
-            TileState::Left => Some("Left"),
-            TileState::Present | TileState::InLobby => None,
-        }
+    pub fn tile_caption(&self, tile: &Tile) -> Option<String> {
+        let key = match tile.state {
+            TileState::Invited => match self.progress {
+                Some(Progress::Ringing) => "ui.calls.tile.ringing",
+                _ => "ui.calls.tile.calling",
+            },
+            TileState::Left => "ui.calls.tile.left",
+            TileState::Present | TileState::InLobby => return None,
+        };
+        Some(app_base::ui_locale::tr(key))
     }
 
     pub fn elapsed(&self, now: Instant) -> Option<Duration> {
@@ -1180,13 +1191,13 @@ impl CallModel {
             .map(|since| now.saturating_duration_since(since))
     }
 
-    pub fn connecting_text(&self) -> &'static str {
-        match (self.kind, self.progress) {
-            (CallKind::Meeting, _) => "Joining...",
-            (_, _) if self.incoming => "Connecting...",
-            (_, Some(Progress::Ringing)) => "Ringing",
-            _ => "Calling...",
-        }
+    pub fn connecting_text(&self) -> String {
+        app_base::ui_locale::tr(match (self.kind, self.progress) {
+            (CallKind::Meeting, _) => "ui.calls.tile.joining",
+            (_, _) if self.incoming => "auth.banner.connecting",
+            (_, Some(Progress::Ringing)) => "ui.calls.tile.ringing",
+            _ => "ui.calls.tile.calling",
+        })
     }
 
     pub fn is_active(&self) -> bool {
@@ -1280,17 +1291,28 @@ pub fn format_elapsed(elapsed: Duration) -> String {
 
 pub fn ended_notice(reason: &EndReason, elapsed: Option<Duration>, peer_name: &str) -> String {
     let ended = || match elapsed {
-        Some(elapsed) => format!("Call ended {}", format_elapsed(elapsed)),
-        None => "Call ended".to_owned(),
+        Some(elapsed) => app_base::ui_locale::tr_with(
+            "ui.calls.notice.call_ended_after",
+            &[("time", &format_elapsed(elapsed))],
+        ),
+        None => app_base::ui_locale::tr("ui.calls.notice.call_ended"),
     };
     match reason {
-        EndReason::Cancelled => "Call cancelled".to_owned(),
-        EndReason::Dropped => "Call dropped".to_owned(),
-        EndReason::Failed(message) => format!("Call failed: {message}"),
+        EndReason::Cancelled => app_base::ui_locale::tr("ui.calls.notice.call_cancelled"),
+        EndReason::Dropped => app_base::ui_locale::tr("ui.calls.end.call_dropped"),
+        EndReason::Failed(message) => {
+            app_base::ui_locale::tr_with("ui.calls.notice.call_failed", &[("detail", message)])
+        }
         EndReason::LocalHangup => ended(),
-        EndReason::Remote(EndKind::Declined) => format!("{peer_name} declined"),
-        EndReason::Remote(EndKind::NoAnswer) => "No answer".to_owned(),
-        EndReason::Remote(EndKind::Unavailable) => format!("{peer_name} is not available"),
+        EndReason::Remote(EndKind::Declined) => {
+            app_base::ui_locale::tr_with("ui.calls.notice.peer_declined", &[("name", peer_name)])
+        }
+        EndReason::Remote(EndKind::NoAnswer) => {
+            app_base::ui_locale::tr("ui.calls.notice.no_answer")
+        }
+        EndReason::Remote(EndKind::Unavailable) => {
+            app_base::ui_locale::tr_with("ui.calls.notice.peer_unavailable", &[("name", peer_name)])
+        }
         EndReason::Remote(_) => ended(),
     }
 }
@@ -1494,9 +1516,15 @@ mod tests {
         let mut model = CallModel::people("Bea", &[("8:orgid:b".into(), "Bea".into())]);
         assert_eq!(model.kind, CallKind::Direct);
         assert_eq!(model.peer_name, "Bea");
-        assert_eq!(model.tile_caption(&model.tiles[0]), Some("Calling..."));
+        assert_eq!(
+            model.tile_caption(&model.tiles[0]),
+            Some("Calling...".to_owned())
+        );
         model.apply(CallUpdate::Progress(Progress::Ringing));
-        assert_eq!(model.tile_caption(&model.tiles[0]), Some("Ringing"));
+        assert_eq!(
+            model.tile_caption(&model.tiles[0]),
+            Some("Ringing".to_owned())
+        );
         model.apply(CallUpdate::Roster(vec![entry(
             "8:orgid:b",
             "Bea",
@@ -1578,7 +1606,7 @@ mod tests {
         )]));
         model.apply(CallUpdate::Roster(Vec::new()));
         assert_eq!(model.tiles[0].state, TileState::Left);
-        assert_eq!(model.tile_caption(&model.tiles[0]), Some("Left"));
+        assert_eq!(model.tile_caption(&model.tiles[0]), Some("Left".to_owned()));
     }
 
     #[test]

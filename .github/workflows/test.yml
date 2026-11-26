@@ -33,6 +33,20 @@ jobs:
       - name: Tests
         run: cd .github/scripts && python3 -m unittest -v
 
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --check
+
   # Fork: only the Windows tests run for now; the Linux job stays below, commented out.
 #   linux:
 #     name: Linux

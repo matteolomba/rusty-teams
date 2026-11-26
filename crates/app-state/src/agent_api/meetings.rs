@@ -26,7 +26,7 @@ pub fn announce(proposal: &MeetingProposal, cx: &mut App) {
         super::agent_label(proposal.agent.as_deref()),
         proposal.draft.subject
     );
-    let action = NoticeAction::new("Review", |state, cx| state.open_calendar(cx));
+    let action = NoticeAction::new("ui.notify.review", |state, cx| state.open_calendar(cx));
     handle
         .0
         .clone()

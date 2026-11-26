@@ -1670,6 +1670,8 @@ mod frames {
 
     #[gpui_kit::test]
     fn header_tabs_sit_above_the_header_line(cx: &mut TestAppContext) {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let (handle, state) = mount(cx);
         let mut visual = VisualTestContext::from_window(handle, cx);
         for (width, height) in SIZES {
@@ -1706,6 +1708,8 @@ mod frames {
 
     #[gpui_kit::test]
     fn recap_tab_stays_inside_the_main_island(cx: &mut TestAppContext) {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let (handle, state) = mount(cx);
         let mut visual = VisualTestContext::from_window(handle, cx);
         for (width, height) in SIZES {

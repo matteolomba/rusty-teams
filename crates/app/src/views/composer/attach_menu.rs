@@ -15,23 +15,25 @@ use teams_core::{CloudFile, FileKind, FileReference};
 
 use super::cloud_picker::{ATTACH_CLOUD_LABEL, CloudPicker, CloudPickerEvent};
 use super::{COMPOSER_BUTTON_SIZE, COMPOSER_ICON_SIZE, Composer};
+use crate::i18n::tr;
 use crate::runtime;
 use crate::theme::{self, ElevatedSurface as _};
 use crate::views::attachments::file_badge;
 use crate::views::widgets::symbol;
+use app_base::ui_locale::tr_with;
 
 pub const ATTACH_BUTTON_TAG: &str = "composer/actions/attach";
 pub const ATTACH_MENU_TAG: &str = "composer/attach-menu";
-const BUTTON_LABEL: &str = "Attach file";
-const SEARCH_PLACEHOLDER: &str = "Search cloud files";
-const RECENT_TITLE: &str = "Recent cloud files";
-const RESULTS_TITLE: &str = "Cloud files";
-const UPLOAD_LABEL: &str = "Upload from this device";
-const LOADING: &str = "Loading ...";
-const NO_RECENT: &str = "Your recent files will show up here.";
-const NO_RESULTS: &str = "No files found.";
-const FAILED: &str = "Couldn't load files.";
-const ATTACH_FAILED: &str = "Couldn't attach";
+const BUTTON_LABEL: &str = "ui.chat.attach.button_label";
+const SEARCH_PLACEHOLDER: &str = "ui.chat.attach.search_placeholder";
+const RECENT_TITLE: &str = "ui.chat.attach.recent_title";
+const RESULTS_TITLE: &str = "ui.chat.attach.results_title";
+const UPLOAD_LABEL: &str = "ui.chat.attach.upload_label";
+const LOADING: &str = "ui.chat.attach.loading";
+const NO_RECENT: &str = "ui.chat.attach.no_recent";
+const NO_RESULTS: &str = "ui.chat.attach.no_results";
+const FAILED: &str = "ui.chat.attach.failed";
+const ATTACH_FAILED: &str = "ui.chat.attach.attach_failed";
 const MENU_WIDTH: f32 = 316.;
 const LIST_MAX_HEIGHT: f32 = 300.;
 const ROW_HEIGHT: f32 = 48.;
@@ -73,15 +75,27 @@ enum Listing {
 
 pub fn opened_label(opened: DateTime<Utc>, now: DateTime<Utc>) -> String {
     let seconds = (now - opened).num_seconds().max(0);
-    let count = |value: i64, unit: &str| {
-        let plural = if value == 1 { "" } else { "s" };
-        format!("Opened {value} {unit}{plural} ago")
+    let count = |value: i64, one: &str, many: &str| {
+        let key = if value == 1 { one } else { many };
+        tr_with(key, &[("count", &value.to_string())])
     };
     match seconds {
-        0..MINUTE => "Opened just now".to_owned(),
-        MINUTE..HOUR => count(seconds / MINUTE, "minute"),
-        HOUR..DAY => count(seconds / HOUR, "hour"),
-        _ => count(seconds / DAY, "day"),
+        0..MINUTE => tr("ui.chat.attach.opened_just_now"),
+        MINUTE..HOUR => count(
+            seconds / MINUTE,
+            "ui.chat.attach.opened_minute",
+            "ui.chat.attach.opened_minutes",
+        ),
+        HOUR..DAY => count(
+            seconds / HOUR,
+            "ui.chat.attach.opened_hour",
+            "ui.chat.attach.opened_hours",
+        ),
+        _ => count(
+            seconds / DAY,
+            "ui.chat.attach.opened_day",
+            "ui.chat.attach.opened_days",
+        ),
     }
 }
 
@@ -119,7 +133,7 @@ impl Composer {
             .cursor_pointer()
             .when(open, |button| button.bg(theme::popup_hover()))
             .hover(|button| button.bg(theme::popup_hover()))
-            .popup_trigger_tooltip_text(open, BUTTON_LABEL)
+            .popup_trigger_tooltip_text(open, &tr(BUTTON_LABEL))
             .child(symbol(
                 "attach_file",
                 COMPOSER_ICON_SIZE,
@@ -177,7 +191,7 @@ impl Composer {
         if let Some(input) = &self.attach_menu.search_input {
             return input.clone();
         }
-        let input = cx.new(|cx| InputState::new(window, cx).placeholder(SEARCH_PLACEHOLDER));
+        let input = cx.new(|cx| InputState::new(window, cx).placeholder(tr(SEARCH_PLACEHOLDER)));
         let subscription =
             cx.subscribe_in(&input, window, |this, input, event: &InputEvent, _, cx| {
                 if matches!(event, InputEvent::Change) {
@@ -306,7 +320,7 @@ impl Composer {
                     }
                     _ => this
                         .tray
-                        .set_notice(format!("{ATTACH_FAILED} {}.", file.name)),
+                        .set_notice(tr_with(ATTACH_FAILED, &[("name", &file.name)])),
                 }
                 cx.notify();
             })
@@ -363,8 +377,8 @@ impl Composer {
                 )
         });
         let (title, listing) = match &self.attach_menu.found {
-            Some(found) => (RESULTS_TITLE, found),
-            None => (RECENT_TITLE, &self.attach_menu.recent),
+            Some(found) => (tr(RESULTS_TITLE), found),
+            None => (tr(RECENT_TITLE), &self.attach_menu.recent),
         };
         let now = Utc::now();
         let body = match listing {
@@ -398,7 +412,7 @@ impl Composer {
                 div()
                     .text_size(theme::text_label())
                     .text_color(theme::text())
-                    .child(ATTACH_CLOUD_LABEL),
+                    .child(tr(ATTACH_CLOUD_LABEL)),
             )
             .on_click(cx.listener(|this, _, window, cx| this.open_cloud_picker(window, cx)));
         let upload = h_flex()
@@ -416,7 +430,7 @@ impl Composer {
                 div()
                     .text_size(theme::text_label())
                     .text_color(theme::text())
-                    .child(UPLOAD_LABEL),
+                    .child(tr(UPLOAD_LABEL)),
             )
             .on_click(cx.listener(|this, _, window, cx| {
                 this.close_attach_menu(window, cx);
@@ -470,7 +484,7 @@ impl Composer {
             .py(px(10.))
             .text_size(theme::text_small())
             .text_color(theme::text_soft())
-            .child(text)
+            .child(tr(text))
             .into_any_element()
     }
 
@@ -526,6 +540,7 @@ mod tests {
 
     #[test]
     fn opened_reads_like_teams() {
+        app_base::ui_locale::apply_locale("en");
         let now = chrono::Utc.with_ymd_and_hms(2026, 11, 9, 20, 0, 0).unwrap();
         let ago = |seconds: i64| opened_label(now - chrono::Duration::seconds(seconds), now);
         assert_eq!(ago(20), "Opened just now");

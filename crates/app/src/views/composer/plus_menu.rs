@@ -9,7 +9,7 @@ use gpui_kit::*;
 
 use super::{COMPOSER_BUTTON_SIZE, COMPOSER_ICON_SIZE, Composer};
 use crate::app_state::AppState;
-use crate::delivery_options::DELIVERY_BUTTON_TITLE;
+use crate::i18n::tr;
 use crate::theme::{self, ElevatedSurface as _};
 use crate::views::new_chat::Pick;
 use crate::views::new_meeting_dialog::open_new_meeting_with;
@@ -17,7 +17,7 @@ use crate::views::widgets::symbol;
 
 pub const COMPOSER_PLUS_TAG: &str = "composer/actions/plus";
 pub const PLUS_MENU_TAG: &str = "composer-plus-menu";
-const PLUS_TITLE: &str = "Actions and apps";
+const PLUS_TITLE: &str = "ui.chat.plus.title";
 const MENU_WIDTH: f32 = 260.;
 const ITEM_ICON_SIZE: f32 = 20.;
 
@@ -37,9 +37,9 @@ impl PlusAction {
 
     pub fn label(self) -> &'static str {
         match self {
-            PlusAction::ScheduleMessage => "Schedule message",
-            PlusAction::DeliveryOptions => DELIVERY_BUTTON_TITLE,
-            PlusAction::ScheduleMeeting => "Schedule meeting",
+            PlusAction::ScheduleMessage => "ui.chat.plus.schedule_message",
+            PlusAction::DeliveryOptions => "ui.chat.plus.delivery_options",
+            PlusAction::ScheduleMeeting => "ui.chat.plus.schedule_meeting",
         }
     }
 
@@ -80,7 +80,7 @@ impl Composer {
                 .cursor_pointer()
                 .when(open, |button| button.bg(theme::popup_hover()))
                 .hover(|button| button.bg(theme::popup_hover()))
-                .popup_trigger_tooltip_text(open, PLUS_TITLE)
+                .popup_trigger_tooltip_text(open, &tr(PLUS_TITLE))
                 .child(symbol(
                     "add",
                     COMPOSER_ICON_SIZE,
@@ -159,7 +159,7 @@ impl Composer {
                 div()
                     .text_size(theme::text_label())
                     .text_color(theme::text())
-                    .child(action.label()),
+                    .child(tr(action.label())),
             )
             .on_click(
                 cx.listener(move |this, _, window, cx| this.run_plus_action(action, window, cx)),

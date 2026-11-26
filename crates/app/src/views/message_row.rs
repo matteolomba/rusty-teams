@@ -24,6 +24,7 @@ use super::widgets::{icon, symbol};
 use crate::agents::{AgentRun, run_chip};
 use crate::card_state::BotIdentity;
 use crate::data::Directory;
+use crate::i18n::tr;
 use crate::importance::importance_label;
 use crate::render::Block;
 use crate::restorable_deletes::{DELETED_TOMBSTONE, UNDO_DELETE_LABEL};
@@ -164,7 +165,8 @@ pub fn bubble_padding_y(compact: bool) -> f32 {
 
 const TOOLBAR_RIGHT_INSET: f32 = 0.;
 
-fn separator_pill(label: &str, fill: Hsla, text_color: Hsla) -> Div {
+fn separator_pill(label: impl Into<SharedString>, fill: Hsla, text_color: Hsla) -> Div {
+    let label: SharedString = label.into();
     h_flex()
         .w_full()
         .justify_center()
@@ -184,31 +186,30 @@ fn separator_pill(label: &str, fill: Hsla, text_color: Hsla) -> Div {
         )
 }
 
-pub(super) fn day_separator(label: &str) -> Div {
-    separator_pill(label, theme::row_hover(), theme::text_muted())
+pub(super) fn day_separator(label: impl Into<SharedString>) -> Div {
+    separator_pill(label.into(), theme::row_hover(), theme::text_muted())
 }
 
 pub(super) fn new_marker() -> Div {
     separator_pill(
-        "New",
+        tr("ui.chat.post.new"),
         theme::mention_background(false),
         theme::accent_text(),
     )
 }
 
 pub(super) fn deleted_tombstone(index: usize, undo_delete: SharedRowAction) -> Div {
-    let line =
-        h_flex()
-            .gap(px(8.))
-            .items_baseline()
-            .text_size(theme::text_label())
-            .child(div().italic().text_color(theme::text_muted()).child(
-                if undo_delete.is_some() {
-                    DELETED_TOMBSTONE
-                } else {
-                    DELETED_PREVIEW
-                },
-            ));
+    let line = h_flex()
+        .gap(px(8.))
+        .items_baseline()
+        .text_size(theme::text_label())
+        .child(div().italic().text_color(theme::text_muted()).child(tr(
+            if undo_delete.is_some() {
+                DELETED_TOMBSTONE
+            } else {
+                DELETED_PREVIEW
+            },
+        )));
     match undo_delete {
         Some(undo) => line.child(
             div()
@@ -217,7 +218,7 @@ pub(super) fn deleted_tombstone(index: usize, undo_delete: SharedRowAction) -> D
                 .font_weight(FontWeight::SEMIBOLD)
                 .text_color(theme::accent_text())
                 .hover(|link| link.underline())
-                .child(UNDO_DELETE_LABEL)
+                .child(tr(UNDO_DELETE_LABEL))
                 .on_click(move |_, _, cx| undo(cx)),
         ),
         None => line,
@@ -476,7 +477,7 @@ pub(super) fn forwarded_header() -> Div {
         .text_size(px(FORWARDED_SIZE))
         .text_color(theme::text_muted())
         .child(icon(IconName::Forward, FORWARDED_SIZE, theme::text_muted()))
-        .child("Forwarded")
+        .child(tr("ui.chat.message.forwarded"))
 }
 
 /// Every time and tick ends `META_RIGHT_INSET` from the bubble edge, inside a padded bubble or under a big emoji.
@@ -515,7 +516,7 @@ fn bubble_meta(row: &MessageRow, index: usize, own: bool, saved: bool) -> Div {
         .line_height(px(14.))
         .italic()
         .text_color(tint)
-        .when(row.edited, |meta| meta.child("Edited"))
+        .when(row.edited, |meta| meta.child(tr("ui.chat.message.edited")))
         .when(saved, |meta| {
             meta.child(icon(
                 IconName::Bookmark,
@@ -672,7 +673,7 @@ fn delivery_link(
         .cursor_pointer()
         .text_color(theme::red_tint())
         .underline()
-        .child(label)
+        .child(tr(label))
         .when_some(action, |link, action| {
             link.on_click(move |_, _, cx| action(cx))
         })
@@ -693,27 +694,52 @@ pub(super) fn delivery_note(
             .gap(px(4.))
             .text_size(theme::text_caption())
             .text_color(theme::red_soft())
-            .child(text)
+            .child(tr(text))
     };
     match &row.delivery {
         Delivery::Delivered | Delivery::Sending | Delivery::Scheduled(ScheduledState::Waiting) => {
             None
         }
         Delivery::Failed(_) => Some(
-            note("Failed to send.")
-                .child(delivery_link(index, "retry", "Retry", retry))
-                .child(delivery_link(index, "delete", "Delete", delete))
+            note("ui.chat.message.failed_to_send")
+                .child(delivery_link(
+                    index,
+                    "retry",
+                    "ui.chat.message.retry",
+                    retry,
+                ))
+                .child(delivery_link(
+                    index,
+                    "delete",
+                    "ui.chat.message.delete",
+                    delete,
+                ))
                 .into_any_element(),
         ),
         Delivery::Scheduled(ScheduledState::DeliveryFailed) => Some(
-            note("Couldn't send at the scheduled time.")
-                .child(delivery_link(index, "send-now", "Send now", send_now))
-                .child(delivery_link(index, "delete", "Delete", delete))
+            note("ui.chat.message.scheduled_failed")
+                .child(delivery_link(
+                    index,
+                    "send-now",
+                    "ui.chat.message.send_now",
+                    send_now,
+                ))
+                .child(delivery_link(
+                    index,
+                    "delete",
+                    "ui.chat.message.delete",
+                    delete,
+                ))
                 .into_any_element(),
         ),
         Delivery::Scheduled(ScheduledState::ChangeFailed) => Some(
-            note("Couldn't change the scheduled message.")
-                .child(delivery_link(index, "retry", "Retry", retry))
+            note("ui.chat.message.scheduled_change_failed")
+                .child(delivery_link(
+                    index,
+                    "retry",
+                    "ui.chat.message.retry",
+                    retry,
+                ))
                 .into_any_element(),
         ),
     }
@@ -952,7 +978,7 @@ fn selectable_body(select: RowSelect, index: usize, body: impl IntoElement) -> S
         .child(div().flex_1().min_w_0().child(body))
         .map(|row| match blocked {
             Some(reason) => row.tooltip(move |window, cx| {
-                gpui_kit::component::tooltip::Tooltip::new(reason).build(window, cx)
+                gpui_kit::component::tooltip::Tooltip::new(tr(reason)).build(window, cx)
             }),
             None => row.cursor_pointer().on_click(move |_, _, cx| {
                 cx.stop_propagation();

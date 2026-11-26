@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use app_base::ui_locale::tr_with;
 use chrono::{Local, Offset as _};
 use gpui_kit::assets::IconName;
 use gpui_kit::component::scroll::ScrollableElement as _;
@@ -33,8 +34,8 @@ const SIZE_WIDTH: f32 = 90.;
 const SKELETON_ROWS: usize = 6;
 const NEW_FOLDER_WIDTH: f32 = 220.;
 
-pub const EMPTY_LIBRARY: &str = "No files yet. Upload or drop files here.";
-pub const EMPTY_MESSAGES: &str = "No files or links shared in this channel yet.";
+pub const EMPTY_LIBRARY: &str = "ui.misc.empty_library";
+pub const EMPTY_MESSAGES: &str = "ui.misc.empty_shared_messages";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SharedScope {
@@ -85,14 +86,14 @@ pub struct MessagesView<'a> {
 pub fn download_label(state: Option<&DownloadState>) -> Option<String> {
     match state? {
         DownloadState::Saving(percent) => Some(percent_label(*percent)),
-        DownloadState::Saved(_) => Some("Saved".to_owned()),
-        DownloadState::Failed(_) => Some("Failed, click to retry".to_owned()),
+        DownloadState::Saved(_) => Some(tr("ui.misc.saved")),
+        DownloadState::Failed(_) => Some(tr("ui.misc.download_failed_retry")),
     }
 }
 
 fn segment(
     id: &'static str,
-    label: &'static str,
+    label: &str,
     active: bool,
     command: SharedCommand,
     run: &SharedRun,
@@ -117,7 +118,7 @@ fn segment(
         })
         .when(active, |segment| segment.bg(theme::border_strong()))
         .on_click(move |_, window, cx| run(command, window, cx))
-        .child(label)
+        .child(tr(label))
 }
 
 fn switch(scope: SharedScope, run: &SharedRun) -> Div {
@@ -128,14 +129,14 @@ fn switch(scope: SharedScope, run: &SharedRun) -> Div {
         .bg(theme::surface_raised())
         .child(segment(
             "shared-in-library",
-            "In library",
+            "ui.misc.in_library",
             scope == SharedScope::Library,
             SharedCommand::Scope(SharedScope::Library),
             run,
         ))
         .child(segment(
             "shared-in-messages",
-            "In messages",
+            "ui.misc.in_messages",
             scope == SharedScope::Messages,
             SharedCommand::Scope(SharedScope::Messages),
             run,
@@ -144,7 +145,7 @@ fn switch(scope: SharedScope, run: &SharedRun) -> Div {
 
 fn tool_button(
     id: &'static str,
-    label: &'static str,
+    label: &str,
     glyph: IconName,
     command: SharedCommand,
     run: &SharedRun,
@@ -154,7 +155,7 @@ fn tool_button(
         .ghost()
         .compact()
         .icon(glyph)
-        .label(label)
+        .label(tr(label))
         .on_click(move |_, window, cx| run(command, window, cx))
 }
 
@@ -235,10 +236,14 @@ fn column_header() -> Div {
         .text_size(theme::text_caption())
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme::text_faint())
-        .child(column(None).pl(px(BADGE_SIZE + 8.)).child("Name"))
-        .child(column(Some(MODIFIED_WIDTH)).child("Modified"))
-        .child(column(Some(MODIFIED_BY_WIDTH)).child("Modified by"))
-        .child(column(Some(SIZE_WIDTH)).child("Size"))
+        .child(
+            column(None)
+                .pl(px(BADGE_SIZE + 8.))
+                .child(tr("ui.misc.column_name")),
+        )
+        .child(column(Some(MODIFIED_WIDTH)).child(tr("ui.misc.column_modified")))
+        .child(column(Some(MODIFIED_BY_WIDTH)).child(tr("ui.misc.column_modified_by")))
+        .child(column(Some(SIZE_WIDTH)).child(tr("ui.misc.column_size")))
 }
 
 pub(crate) fn entry_badge(entry: &DriveEntry) -> Div {
@@ -307,14 +312,14 @@ fn entry_row(
         .child(column(Some(MODIFIED_BY_WIDTH)).child(entry.modified_by.clone().unwrap_or_default()))
         .child(column(Some(SIZE_WIDTH)).child(size_label(entry)))
         .context_menu(move |popup, _, _| {
-            let item = |label: &'static str, glyph: IconName, command: SharedCommand| {
+            let item = |label: &str, glyph: IconName, command: SharedCommand| {
                 let run = menu_run.clone();
-                PopupMenuItem::new(label)
+                PopupMenuItem::new(tr(label))
                     .icon(menu_icon(glyph))
                     .on_click(move |_, window, cx| run(command, window, cx))
             };
             let popup = popup.item(item(
-                "Open in browser",
+                "ui.misc.open_in_browser",
                 IconName::ExternalLink,
                 SharedCommand::OpenInBrowser(index),
             ));
@@ -322,13 +327,13 @@ fn entry_row(
                 popup
             } else {
                 popup.item(item(
-                    "Download",
+                    "ui.misc.download",
                     IconName::Download,
                     SharedCommand::Download(index),
                 ))
             };
             popup.item(item(
-                "Copy link",
+                "ui.misc.copy_link",
                 IconName::Link,
                 SharedCommand::CopyLink(index),
             ))
@@ -385,8 +390,8 @@ fn centered() -> Div {
         .text_color(theme::text_muted())
 }
 
-fn centered_note(text: &'static str) -> Div {
-    centered().child(text)
+fn centered_note(text: &str) -> Div {
+    centered().child(tr(text))
 }
 
 fn new_folder_row(input: &Entity<InputState>) -> Div {
@@ -415,7 +420,7 @@ fn new_folder_row(input: &Entity<InputState>) -> Div {
             div()
                 .text_size(theme::text_caption())
                 .text_color(theme::text_faint())
-                .child("Enter to create, Esc to cancel"),
+                .child(tr("ui.misc.new_folder_hint")),
         )
 }
 
@@ -429,21 +434,21 @@ pub fn render_library(view: LibraryView, run: &SharedRun) -> AnyElement {
             .child(crumb_trail(path, run))
             .child(tool_button(
                 "library-new-folder",
-                "New folder",
+                "ui.misc.new_folder",
                 IconName::Plus,
                 SharedCommand::ToggleNewFolder,
                 run,
             ))
             .child(tool_button(
                 "library-upload",
-                "Upload",
+                "ui.misc.upload",
                 IconName::Upload,
                 SharedCommand::Upload,
                 run,
             ))
             .child(tool_button(
                 "library-open-sharepoint",
-                "Open in SharePoint \u{2197}",
+                "ui.misc.open_in_sharepoint",
                 IconName::ExternalLink,
                 SharedCommand::OpenSharePoint,
                 run,
@@ -460,7 +465,7 @@ pub fn render_library(view: LibraryView, run: &SharedRun) -> AnyElement {
                 .child(
                     div()
                         .text_color(theme::red_soft())
-                        .child(format!("Could not load the files: {reason}")),
+                        .child(tr_with("ui.misc.files_load_failed", &[("reason", reason)])),
                 )
                 .child(
                     Button::new("library-retry")
@@ -508,7 +513,7 @@ pub fn render_library(view: LibraryView, run: &SharedRun) -> AnyElement {
 
 fn chip(
     id: &'static str,
-    label: &'static str,
+    label: &str,
     active: bool,
     command: SharedCommand,
     run: &SharedRun,
@@ -532,7 +537,7 @@ fn chip(
             theme::text_soft()
         })
         .on_click(move |_, window, cx| run(command, window, cx))
-        .child(label)
+        .child(tr(label))
 }
 
 fn chips(filter: MessageFilter, run: &SharedRun) -> AnyElement {
@@ -540,21 +545,21 @@ fn chips(filter: MessageFilter, run: &SharedRun) -> AnyElement {
         .gap(px(8.))
         .child(chip(
             "shared-filter-all",
-            "All",
+            "ui.misc.filter_all",
             filter == MessageFilter::All,
             SharedCommand::Filter(MessageFilter::All),
             run,
         ))
         .child(chip(
             "shared-filter-files",
-            "Files",
+            "ui.misc.filter_files",
             filter == MessageFilter::Files,
             SharedCommand::Filter(MessageFilter::Files),
             run,
         ))
         .child(chip(
             "shared-filter-links",
-            "Links",
+            "ui.misc.filter_links",
             filter == MessageFilter::Links,
             SharedCommand::Filter(MessageFilter::Links),
             run,
@@ -590,7 +595,7 @@ pub fn item_row(
         .gap(px(4.))
         .text_size(theme::text_small())
         .text_color(theme::text_muted())
-        .child(format!("{} in", item.author))
+        .child(tr_with("ui.misc.author_in", &[("name", &item.author)]))
         .children(post.map(|label| {
             div()
                 .id(ElementId::NamedInteger("shared-post".into(), index as u64))

@@ -60,23 +60,23 @@ impl Filter {
 
     pub fn label(self) -> &'static str {
         match self {
-            Filter::All => "All",
-            Filter::Mentions => "@Mentions",
-            Filter::Unread => "Unread",
-            Filter::Replies => "Replies",
-            Filter::Reactions => "Reactions",
-            Filter::MissedCalls => "Missed calls",
+            Filter::All => "ui.chat.activity.filter_all",
+            Filter::Mentions => "ui.chat.activity.filter_mentions",
+            Filter::Unread => "ui.chat.activity.filter_unread",
+            Filter::Replies => "ui.chat.activity.filter_replies",
+            Filter::Reactions => "ui.chat.activity.filter_reactions",
+            Filter::MissedCalls => "ui.chat.activity.filter_missed_calls",
         }
     }
 
     pub fn empty_label(self) -> &'static str {
         match self {
-            Filter::All => "No activity yet",
-            Filter::Mentions => "No mentions",
-            Filter::Unread => "Nothing unread",
-            Filter::Replies => "No replies",
-            Filter::Reactions => "No reactions",
-            Filter::MissedCalls => "No missed calls",
+            Filter::All => "ui.chat.activity.empty_all",
+            Filter::Mentions => "ui.chat.activity.empty_mentions",
+            Filter::Unread => "ui.chat.activity.empty_unread",
+            Filter::Replies => "ui.chat.activity.empty_replies",
+            Filter::Reactions => "ui.chat.activity.empty_reactions",
+            Filter::MissedCalls => "ui.chat.activity.empty_missed_calls",
         }
     }
 
@@ -111,9 +111,9 @@ impl Bucket {
 
     pub fn label(self) -> &'static str {
         match self {
-            Bucket::Today => "Today",
-            Bucket::Yesterday => "Yesterday",
-            Bucket::Earlier => "Earlier",
+            Bucket::Today => "ui.chat.activity.bucket_today",
+            Bucket::Yesterday => "ui.chat.activity.bucket_yesterday",
+            Bucket::Earlier => "ui.chat.activity.bucket_earlier",
         }
     }
 }

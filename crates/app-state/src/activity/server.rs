@@ -1,3 +1,4 @@
+use app_base::ui_locale::{tr, tr_with};
 use chrono::{DateTime, Utc};
 use teams_core::{ActivityItem, ActivitySnapshot};
 
@@ -6,15 +7,8 @@ use crate::rows::reaction_glyph;
 
 const ORG_USER_PREFIX: &str = "8:orgid:";
 const CHANNEL_THREAD_TYPES: [&str; 2] = ["topic", "space"];
-const APP_TEMPLATES: [(&str, &str); 4] = [
-    ("recapIsReady", "Meeting recap is ready"),
-    ("recapIsReadyForFollowedMeetings", "Meeting recap is ready"),
-    ("recapIsReadyV2", "Recap ready: {subject}"),
-    (
-        "recapIsReadyForFollowedMeetingsV2",
-        "Recap ready: {subject}",
-    ),
-];
+const RECAP_READY: &str = "ui.notify.activity.recap_ready";
+const RECAP_READY_SUBJECT: &str = "ui.notify.activity.recap_ready_subject";
 
 pub fn feed_of(snapshot: &ActivitySnapshot, seen_locally_ms: i64) -> Feed {
     Feed::new(
@@ -86,19 +80,14 @@ fn entry_of(item: &ActivityItem) -> Entry {
 }
 
 fn app_title(item: &ActivityItem) -> Option<String> {
-    let (_, template) = APP_TEMPLATES
-        .iter()
-        .find(|(subtype, _)| *subtype == item.activity_subtype)?;
-    let mut title = String::new();
-    let mut rest = *template;
-    while let Some(open) = rest.find('{') {
-        let close = open + rest[open..].find('}')?;
-        title.push_str(&rest[..open]);
-        title.push_str(item.template_parameters.get(&rest[open + 1..close])?.trim());
-        rest = &rest[close + 1..];
+    match item.activity_subtype.as_str() {
+        "recapIsReady" | "recapIsReadyForFollowedMeetings" => Some(tr(RECAP_READY)),
+        "recapIsReadyV2" | "recapIsReadyForFollowedMeetingsV2" => item
+            .template_parameters
+            .get("subject")
+            .map(|subject| tr_with(RECAP_READY_SUBJECT, &[("subject", subject.trim())])),
+        _ => None,
     }
-    title.push_str(rest);
-    Some(title.trim().to_owned())
 }
 
 pub fn kind_of(item: &ActivityItem) -> Kind {
@@ -148,15 +137,19 @@ fn jump_target(item: &ActivityItem, kind: Kind) -> String {
 }
 
 fn preview_of(item: &ActivityItem) -> String {
-    let fixed = match item.preview_template.as_str() {
-        "sentAFile" => "Sent a file",
-        "sentAnImage" => "Sent an image",
-        "sentACard" => "Sent a card",
-        "previewUnavailable" if item.preview.is_empty() => "Preview Unavailable",
-        "deleted" => "This message has been deleted.",
-        "forwardedMessage" => "Forwarded message",
-        "isMeeting" => "Teams Meeting",
-        "replyWithQuote" if item.preview.is_empty() => "Replied with quote",
+    match item.preview_template.as_str() {
+        "sentAFile" => return tr("ui.notify.activity.sent_file"),
+        "sentAnImage" => return tr("ui.notify.activity.sent_image"),
+        "sentACard" => return tr("ui.notify.activity.sent_card"),
+        "previewUnavailable" if item.preview.is_empty() => {
+            return tr("ui.notify.activity.preview_unavailable");
+        }
+        "deleted" => return tr("ui.notify.activity.deleted"),
+        "forwardedMessage" => return tr("ui.notify.activity.forwarded"),
+        "isMeeting" => return tr("ui.notify.activity.meeting"),
+        "replyWithQuote" if item.preview.is_empty() => {
+            return tr("ui.notify.activity.replied_with_quote");
+        }
         _ => {
             return item
                 .preview
@@ -164,8 +157,7 @@ fn preview_of(item: &ActivityItem) -> String {
                 .collect::<Vec<_>>()
                 .join(" ");
         }
-    };
-    fixed.to_owned()
+    }
 }
 
 #[cfg(test)]

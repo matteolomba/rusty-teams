@@ -25,16 +25,20 @@ impl RingEntry {
         &self.ring.caller.display_name
     }
 
-    pub fn subtitle(&self) -> &'static str {
-        match (self.ring.video, self.ring.is_group) {
-            (true, _) => "Incoming video call",
-            (false, true) => "Incoming group audio call",
-            (false, false) => "Incoming audio call",
-        }
+    pub fn subtitle(&self) -> String {
+        app_base::ui_locale::tr(match (self.ring.video, self.ring.is_group) {
+            (true, _) => "ui.calls.ring.subtitle_video",
+            (false, true) => "ui.calls.ring.subtitle_group_audio",
+            (false, false) => "ui.calls.ring.subtitle_audio",
+        })
     }
 
-    pub fn accept_label(&self) -> &'static str {
-        if self.ring.video { "Audio" } else { "Accept" }
+    pub fn accept_label(&self) -> String {
+        app_base::ui_locale::tr(if self.ring.video {
+            "notify.audio"
+        } else {
+            "notify.accept"
+        })
     }
 }
 

@@ -11,6 +11,7 @@ use super::ConversationView;
 use crate::app_state::Selection;
 use crate::data::Directory;
 use crate::find_in_chat::FIND_IN_CHAT;
+use crate::i18n::tr;
 use crate::theme;
 use crate::views::avatar::status_glyph;
 use crate::views::chat_menu::{ChatMenuTarget, MenuContext, chat_menu};
@@ -21,7 +22,7 @@ use crate::views::widgets::{icon, menu_icon, symbol};
 
 pub const CHAT_HEADER_MORE_TAG: &str = "chat-header-more";
 pub const CHANNEL_HEADER_MORE_TAG: &str = "channel-header-more";
-const SCHEDULE_MEETING_LABEL: &str = "Schedule meeting";
+const SCHEDULE_MEETING_LABEL: &str = "ui.chat.header.schedule_meeting";
 const BUTTON_SIZE: f32 = 32.;
 const HEADER_COMPACT_WIDTH: f32 = 480.;
 const COUNT_GLYPH: f32 = 16.;
@@ -42,7 +43,7 @@ impl ConversationView {
                 .ghost()
                 .size(px(BUTTON_SIZE))
                 .rounded(px(8.))
-                .tooltip(FIND_IN_CHAT)
+                .tooltip(tr(FIND_IN_CHAT))
                 .on_click(cx.listener(|this, _, window, cx| this.open_find(window, cx)))
                 .into_any_element(),
         )
@@ -75,7 +76,7 @@ impl ConversationView {
                 .ghost()
                 .size(px(BUTTON_SIZE))
                 .rounded(px(8.))
-                .tooltip("More channel options")
+                .tooltip(tr("ui.chat.header.more_channel_options"))
                 .debug_selector(|| CHANNEL_HEADER_MORE_TAG.into())
                 .dropdown_menu(move |popup, window, cx| {
                     channel_menu(popup, window, cx, state.clone(), &channel_id, notifications)
@@ -117,7 +118,7 @@ impl ConversationView {
                 .ghost()
                 .size(px(BUTTON_SIZE))
                 .rounded(px(8.))
-                .tooltip("More chat options")
+                .tooltip(tr("ui.chat.header.more_chat_options"))
                 .debug_selector(|| CHAT_HEADER_MORE_TAG.into())
                 .dropdown_menu(move |popup, window, cx| {
                     let popup = if overflow {
@@ -146,7 +147,7 @@ fn overflow_items(
     let (find_view, details_view) = (view.clone(), view.clone());
     popup
         .item(
-            PopupMenuItem::new(FIND_IN_CHAT)
+            PopupMenuItem::new(tr(FIND_IN_CHAT))
                 .icon(menu_icon(IconName::Search))
                 .on_click(move |_, window, cx| {
                     find_view
@@ -163,7 +164,7 @@ fn overflow_items(
                 }),
         )
         .item(
-            PopupMenuItem::new(details_label)
+            PopupMenuItem::new(tr(details_label))
                 .icon(menu_icon(IconName::PanelRight))
                 .on_click(move |_, _, cx| {
                     details_view
@@ -178,7 +179,7 @@ fn schedule_meeting_item(popup: PopupMenu, context: &MenuContext, chat_id: &str)
     let (state, chat_id) = (context.state.clone(), chat_id.to_owned());
     popup
         .item(
-            PopupMenuItem::new(SCHEDULE_MEETING_LABEL)
+            PopupMenuItem::new(tr(SCHEDULE_MEETING_LABEL))
                 .icon(menu_icon(IconName::Calendar))
                 .on_click(move |_, window, cx| {
                     let invitees = chat_invitees(state.read(cx), &chat_id);
@@ -209,7 +210,7 @@ pub fn external_badge() -> Div {
         .text_size(px(11.))
         .line_height(px(18.))
         .text_color(theme::text_soft())
-        .child("External")
+        .child(tr("ui.chat.header.external"))
 }
 
 pub const EXTERNAL_BADGE: &str = "chat-header/external";

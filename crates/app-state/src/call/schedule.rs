@@ -1,3 +1,4 @@
+use app_base::ui_locale::tr;
 use chatsvc::{Attendee, CalendarEvent, Repeat, Reply, ResponseType};
 use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Timelike, Utc};
 use gpui_kit::Context;
@@ -11,11 +12,11 @@ use crate::runtime;
 const AGENDA_KEYS: [&str; 4] = ["body", "bodyContent", "bodyContentType", "bodyPreview"];
 const HALF_HOUR_MINUTES: i64 = 30;
 const DEFAULT_LENGTH_MINUTES: i64 = 30;
-const READ_ONLY_MESSAGE: &str = "Meetings cannot be scheduled in read-only mode.";
-const PERSON_CALENDAR_READ_ONLY_MESSAGE: &str = "Other people's calendars are read-only";
-const RESPONSE_FAILED_NOTICE: &str = "Could not send your response";
-const DELETE_FAILED_NOTICE: &str = "Could not delete the meeting";
-const DELETE_READ_ONLY_NOTICE: &str = "Meetings cannot be deleted in read-only mode.";
+const READ_ONLY_MESSAGE: &str = "ui.calls.notice.schedule_read_only";
+const PERSON_CALENDAR_READ_ONLY_MESSAGE: &str = "ui.calls.notice.person_calendar_read_only";
+const RESPONSE_FAILED_NOTICE: &str = "ui.calls.notice.response_failed";
+const DELETE_FAILED_NOTICE: &str = "ui.calls.notice.delete_failed";
+const DELETE_READ_ONLY_NOTICE: &str = "ui.calls.notice.delete_read_only";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Invitee {
@@ -73,15 +74,17 @@ pub fn draft_from_form(
 ) -> Result<MeetingDraft, String> {
     let subject = values.subject.trim();
     if subject.is_empty() {
-        return Err("Add a title.".to_owned());
+        return Err(tr("ui.calls.meeting.title_required"));
     }
-    let date = values.date.ok_or_else(|| "Pick a date.".to_owned())?;
+    let date = values
+        .date
+        .ok_or_else(|| tr("ui.calls.meeting.pick_date"))?;
     let start = utc_of(zone, date, values.start)
-        .ok_or_else(|| "That start time does not exist.".to_owned())?;
+        .ok_or_else(|| tr("ui.calls.meeting.invalid_start_time"))?;
     let end =
-        utc_of(zone, date, values.end).ok_or_else(|| "That end time does not exist.".to_owned())?;
+        utc_of(zone, date, values.end).ok_or_else(|| tr("ui.calls.meeting.invalid_end_time"))?;
     if end <= start {
-        return Err("The end must be after the start.".to_owned());
+        return Err(tr("ui.calls.meeting.end_after_start"));
     }
     Ok(MeetingDraft {
         subject: subject.to_owned(),
@@ -174,11 +177,11 @@ impl AppState {
             return receiver;
         }
         if self.mode.read_only {
-            let _ = sender.send(Err(READ_ONLY_MESSAGE.to_owned()));
+            let _ = sender.send(Err(tr(READ_ONLY_MESSAGE)));
             return receiver;
         }
         let Some(launcher) = self.call_launcher.clone() else {
-            let _ = sender.send(Err(NOT_CONNECTED_NOTICE.to_owned()));
+            let _ = sender.send(Err(tr(NOT_CONNECTED_NOTICE)));
             return receiver;
         };
         let accounts = store::load_calendar_accounts(&self.store);
@@ -189,7 +192,7 @@ impl AppState {
         cx.spawn(async move |this, cx| {
             let created = created
                 .await
-                .unwrap_or_else(|_| Err("The request was cancelled.".to_owned()));
+                .unwrap_or_else(|_| Err(tr("ui.calls.notice.request_cancelled")));
             this.update(cx, |state, cx| match &created {
                 Ok(outcome) => {
                     if let Some(notice) = &outcome.notice {
@@ -340,12 +343,8 @@ impl AppState {
                         let _ = store::save_calendar_accounts(&store, &accounts);
                         result
                     }
-                    chatsvc::CalendarSource::Ics => {
-                        Err("Read-only ICS subscriptions cannot delete events".into())
-                    }
-                    chatsvc::CalendarSource::Person => {
-                        Err(PERSON_CALENDAR_READ_ONLY_MESSAGE.to_owned())
-                    }
+                    chatsvc::CalendarSource::Ics => Err(tr("ui.calls.notice.ics_delete_read_only")),
+                    chatsvc::CalendarSource::Person => Err(tr(PERSON_CALENDAR_READ_ONLY_MESSAGE)),
                 }
             }
         });
@@ -592,12 +591,8 @@ impl AppState {
                         let _ = store::save_calendar_accounts(&store, &accounts);
                         result
                     }
-                    chatsvc::CalendarSource::Ics => {
-                        Err("Read-only ICS subscriptions cannot RSVP".into())
-                    }
-                    chatsvc::CalendarSource::Person => {
-                        Err(PERSON_CALENDAR_READ_ONLY_MESSAGE.to_owned())
-                    }
+                    chatsvc::CalendarSource::Ics => Err(tr("ui.calls.notice.ics_rsvp_read_only")),
+                    chatsvc::CalendarSource::Person => Err(tr(PERSON_CALENDAR_READ_ONLY_MESSAGE)),
                 }
             }
         });

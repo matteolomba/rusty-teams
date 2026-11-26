@@ -18,9 +18,10 @@ use crate::runtime;
 use crate::views::channel_tabs::ChannelPane;
 use crate::views::composer::{Composer, ComposerEvent, ReplyPreview};
 use crate::views::post_card::{PostAction, post_in_channel_card};
+use app_base::ui_locale::tr_with;
 
 const FEED_CARD_TOP: f32 = 12.;
-const REPLY_PLACEHOLDER: &str = "Reply in thread";
+const REPLY_PLACEHOLDER: &str = "ui.chat.feed.reply_placeholder";
 
 pub(super) struct FeedStash {
     pub(super) scroller: Entity<MessageScrollerState>,
@@ -33,7 +34,7 @@ pub(super) fn subject_input(
     cx: &mut Context<ConversationView>,
 ) -> Entity<InputState> {
     cx.new(|cx| {
-        InputState::new(window, cx).placeholder(crate::views::composer::SUBJECT_PLACEHOLDER)
+        InputState::new(window, cx).placeholder(tr(crate::views::composer::SUBJECT_PLACEHOLDER))
     })
 }
 
@@ -187,7 +188,7 @@ impl ConversationView {
         };
         composer.update(cx, |composer, cx| {
             composer.set_conversation(&conversation_id, window, cx);
-            composer.set_placeholder(REPLY_PLACEHOLDER, window, cx);
+            composer.set_placeholder(&tr(REPLY_PLACEHOLDER), window, cx);
             composer.set_text("", window, cx);
             composer.set_reply(None, cx);
         });
@@ -496,7 +497,10 @@ impl ConversationView {
             Err(error) => Some(short_error(&error)),
         };
         if let Some(failure) = failure {
-            self.notice = Some(format!("Could not load all replies: {failure}"));
+            self.notice = Some(tr_with(
+                "ui.chat.feed.replies_failed",
+                &[("detail", &failure)],
+            ));
         }
         self.rebuild(false, cx);
     }

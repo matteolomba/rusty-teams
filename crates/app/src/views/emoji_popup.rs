@@ -8,6 +8,7 @@ use gpui_kit::*;
 use super::widgets::symbol;
 use crate::emoji::Match;
 use crate::emoticons;
+use crate::i18n::tr;
 use crate::theme::{self, ElevatedSurface as _};
 
 pub const LIMIT: usize = 40;
@@ -159,12 +160,12 @@ fn hint() -> Div {
         .text_size(theme::text_caption())
         .text_color(theme::text_muted())
         .child(key("↑↓"))
-        .child("select")
+        .child(tr("ui.misc.hint_select"))
         .child(key("Tab"))
         .child(key("Enter"))
-        .child("insert")
+        .child(tr("ui.misc.hint_insert"))
         .child(key("Esc"))
-        .child("close")
+        .child(tr("ui.misc.hint_close"))
 }
 
 /// Bottom-left corner sits above `anchor`, the colon's top-left in window coordinates.

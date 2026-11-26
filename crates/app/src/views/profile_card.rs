@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use app_base::ui_locale::tr_with;
 use chrono::Utc;
 use gpui_kit::assets::IconName;
 use gpui_kit::base::GlobalState;
@@ -15,8 +16,8 @@ use super::new_meeting_dialog::open_new_meeting_with;
 use super::widgets::icon;
 use crate::app_state::{AppHandle, AppState};
 use crate::data::{Presence, PresenceKind, presence_kind_of};
+use crate::i18n::tr;
 use crate::people::resolve_names;
-use crate::presence_follow::{NOTIFY_WHEN_AVAILABLE, TURN_OFF_NOTIFICATIONS};
 use crate::profile_model::{
     ContactKind, ContactRow, StatusBox, contact_rows, has_organization, local_time_label,
     mailto_url, status_box, status_line, work_location_label,
@@ -35,9 +36,9 @@ const STATUS_LINES: usize = 3;
 const REPORTS_MAX_HEIGHT: f32 = 168.;
 const ACTION_HEIGHT: f32 = 30.;
 const SKELETON_HEIGHT: f32 = 10.;
-const SCHEDULE_MEETING: &str = "Schedule meeting";
-const EMAIL: &str = "Email";
-const COPY_EMAIL: &str = "Copy email";
+const SCHEDULE_MEETING: &str = "ui.misc.schedule_meeting";
+const EMAIL: &str = "ui.misc.email";
+const COPY_EMAIL: &str = "ui.misc.copy_email";
 
 pub enum ProfileCardEvent {
     Close,
@@ -156,7 +157,7 @@ impl ProfileCard {
                 resolve_names(self.app.read(cx), std::slice::from_ref(&self.user_id))
                     .remove(&self.user_id)
             })
-            .unwrap_or_else(|| "Unknown person".to_owned())
+            .unwrap_or_else(|| tr("ui.misc.unknown_person"))
     }
 
     fn presence(&self, profile: Option<&PersonProfile>, cx: &App) -> Presence {
@@ -285,14 +286,18 @@ impl ProfileCard {
             .gap(px(8.))
             .when(!is_me, |row| {
                 row.child(
-                    action_button("profile-chat", "Chat", IconName::MessageSquare, true).on_click(
-                        cx.listener(move |this, _, _, cx| {
-                            let user_id = chat_id.clone();
-                            this.app
-                                .update(cx, |state, cx| state.open_chat_with(&user_id, cx));
-                            cx.emit(ProfileCardEvent::Close);
-                        }),
-                    ),
+                    action_button(
+                        "profile-chat",
+                        tr("ui.misc.chat"),
+                        IconName::MessageSquare,
+                        true,
+                    )
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        let user_id = chat_id.clone();
+                        this.app
+                            .update(cx, |state, cx| state.open_chat_with(&user_id, cx));
+                        cx.emit(ProfileCardEvent::Close);
+                    })),
                 )
                 .child(
                     icon_action(
@@ -324,7 +329,7 @@ impl ProfileCard {
                     icon_action(
                         "profile-schedule-meeting",
                         IconName::Calendar,
-                        SCHEDULE_MEETING.to_owned(),
+                        tr(SCHEDULE_MEETING),
                     )
                     .on_click(cx.listener(move |this, _, window, cx| {
                         open_new_meeting_with(this.app.clone(), vec![invitee.clone()], window, cx);
@@ -340,11 +345,10 @@ impl ProfileCard {
                             IconName::BellRing
                         },
                         if followed {
-                            TURN_OFF_NOTIFICATIONS
+                            tr("ui.misc.turn_off_notifications")
                         } else {
-                            NOTIFY_WHEN_AVAILABLE
-                        }
-                        .to_owned(),
+                            tr("ui.misc.notify_when_available")
+                        },
                     )
                     .on_click(cx.listener(move |this, _, _, cx| {
                         let (user_id, name) = (follow_id.clone(), follow_name.clone());
@@ -356,22 +360,23 @@ impl ProfileCard {
             })
             .when_some(mail_email, |row, address| {
                 row.child(
-                    icon_action("profile-email", IconName::Mail, EMAIL.to_owned()).on_click(
-                        cx.listener(move |_, _, _, cx| {
+                    icon_action("profile-email", IconName::Mail, tr(EMAIL)).on_click(cx.listener(
+                        move |_, _, _, cx| {
                             cx.open_url(&mailto_url(&address));
                             cx.emit(ProfileCardEvent::Close);
-                        }),
-                    ),
+                        },
+                    )),
                 )
             })
             .when_some(copy_email, |row, address| {
                 row.child(
-                    icon_action("profile-copy-email", IconName::Copy, COPY_EMAIL.to_owned())
-                        .on_click(cx.listener(move |this, _, _, cx| {
+                    icon_action("profile-copy-email", IconName::Copy, tr(COPY_EMAIL)).on_click(
+                        cx.listener(move |this, _, _, cx| {
                             this.app
                                 .update(cx, |state, cx| state.copy_profile_email(&address, cx));
                             cx.emit(ProfileCardEvent::Close);
-                        })),
+                        }),
+                    ),
                 )
             })
     }
@@ -379,7 +384,7 @@ impl ProfileCard {
     fn section_header(
         &self,
         id: &'static str,
-        label: &'static str,
+        label: &str,
         open: bool,
         cx: &mut Context<Self>,
     ) -> Stateful<Div> {
@@ -400,7 +405,7 @@ impl ProfileCard {
                 14.,
                 theme::text_muted(),
             ))
-            .child(label)
+            .child(tr(label))
             .on_click(cx.listener(move |this, _, _, cx| {
                 match id {
                     "profile-contact-header" => this.contact_open = !this.contact_open,
@@ -414,7 +419,7 @@ impl ProfileCard {
         let open = self.contact_open;
         v_flex()
             .gap(px(6.))
-            .child(self.section_header("profile-contact-header", "Contact", open, cx))
+            .child(self.section_header("profile-contact-header", "ui.misc.contact", open, cx))
             .when(open, |section| {
                 section.children(rows.into_iter().map(contact_row))
             })
@@ -424,12 +429,12 @@ impl ProfileCard {
         &self,
         id: String,
         person: &OrgPerson,
-        caption: Option<&'static str>,
+        caption: Option<&str>,
         cx: &mut Context<Self>,
     ) -> Stateful<Div> {
         let name = person.display_name.clone().unwrap_or_default();
         let subtitle = caption
-            .map(str::to_owned)
+            .map(tr)
             .or_else(|| person.job_title.clone())
             .filter(|text| !text.is_empty());
         let target = person.id.clone();
@@ -466,7 +471,7 @@ impl ProfileCard {
         let open = self.organization_open;
         let mut section = v_flex().gap(px(4.)).child(self.section_header(
             "profile-organization-header",
-            "Organization",
+            "ui.misc.organization",
             open,
             cx,
         ));
@@ -477,15 +482,16 @@ impl ProfileCard {
             section = section.child(self.person_row(
                 "profile-manager".to_owned(),
                 manager,
-                Some("Manager"),
+                Some("ui.misc.manager"),
                 cx,
             ));
         }
         let count = profile.direct_reports.len();
         if count > 0 {
-            let label = match count {
-                1 => "1 direct report".to_owned(),
-                count => format!("{count} direct reports"),
+            let label = if count == 1 {
+                tr("ui.misc.one_direct_report")
+            } else {
+                tr_with("ui.misc.direct_reports", &[("count", &count.to_string())])
             };
             let reports_open = self.reports_open;
             section = section.child(
@@ -547,14 +553,14 @@ impl ProfileCard {
             .gap(px(6.))
             .text_size(theme::text_small())
             .text_color(theme::red_soft())
-            .child("Profile details could not be loaded.")
+            .child(tr("ui.misc.profile_load_failed"))
             .child(
                 div()
                     .id("profile-retry")
                     .cursor_pointer()
                     .underline()
                     .text_color(theme::red_tint())
-                    .child("Retry")
+                    .child(tr("ui.misc.retry"))
                     .on_click(cx.listener(|this, _, _, cx| {
                         let id = this.user_id.clone();
                         this.app
@@ -641,11 +647,11 @@ fn contact_row(row: ContactRow) -> Div {
 }
 
 pub fn video_call_tooltip(name: &str) -> String {
-    format!("Start a video call with {name}")
+    tr_with("ui.misc.start_video_call_with", &[("name", name)])
 }
 
 pub fn audio_call_tooltip(name: &str) -> String {
-    format!("Start an audio call with {name}")
+    tr_with("ui.misc.start_audio_call_with", &[("name", name)])
 }
 
 fn icon_action(id: &'static str, glyph: IconName, tooltip: String) -> Stateful<Div> {
@@ -664,12 +670,7 @@ fn icon_action(id: &'static str, glyph: IconName, tooltip: String) -> Stateful<D
         .tooltip(move |window, cx| Tooltip::new(tooltip.clone()).build(window, cx))
 }
 
-fn action_button(
-    id: &'static str,
-    label: &'static str,
-    glyph: IconName,
-    filled: bool,
-) -> Stateful<Div> {
+fn action_button(id: &'static str, label: String, glyph: IconName, filled: bool) -> Stateful<Div> {
     let (foreground, background) = if filled {
         (theme::on_accent(), theme::accent())
     } else {
@@ -721,7 +722,7 @@ impl Render for ProfileCard {
                 .text_color(theme::text_muted())
                 .hover(|button| button.text_color(theme::text()))
                 .child(icon(IconName::ArrowLeft, 14., theme::text_muted()))
-                .child("Back")
+                .child(tr("ui.misc.back"))
                 .on_click(cx.listener(|this, _, _, cx| this.go_back(cx)))
         });
         let card = v_flex()
@@ -778,6 +779,8 @@ mod tests {
 
     #[test]
     fn call_tooltips_use_the_teams_wording() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(video_call_tooltip("Ann"), "Start a video call with Ann");
         assert_eq!(audio_call_tooltip("Ann"), "Start an audio call with Ann");
     }

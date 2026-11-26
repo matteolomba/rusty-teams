@@ -15,10 +15,10 @@ use super::share_overlay::{
     minimize_on_share_start, overlay_plan,
 };
 use crate::app_state::AppState;
-use crate::i18n::tr;
+use crate::i18n::{tr, tr_with};
 use crate::notify::platform::{self, NativeHandle, ScreenRect, ShareGeometry, WorkArea};
 use crate::views::call_mini_window::MiniWindowView;
-use crate::views::call_pop_out::{POP_OUT_SIZE, POP_OUT_TITLE, SharePopOutView};
+use crate::views::call_pop_out::{POP_OUT_SIZE, SharePopOutView, pop_out_title};
 use crate::views::call_share_gallery::ShareGalleryView;
 use crate::views::call_window::{
     CALL_WINDOW_MIN_SIZE, CALL_WINDOW_SIZE, CallWindowView, call_window_title,
@@ -288,14 +288,11 @@ impl CallWindows {
         let Some(session) = &self.share else {
             return String::new();
         };
-        let what = match session.source.as_ref().map(|source| source.kind) {
-            Some(ShareKind::Window) => "window",
-            _ => "screen",
+        let key = match session.source.as_ref().map(|source| source.kind) {
+            Some(ShareKind::Window) => "ui.calls.share.sharing_window",
+            _ => "ui.calls.share.sharing_screen",
         };
-        format!(
-            "Sharing {what} {}",
-            format_elapsed(session.started.elapsed())
-        )
+        tr_with(key, &[("time", &format_elapsed(session.started.elapsed()))])
     }
 
     pub fn toggle_pin(&mut self, cx: &mut Context<Self>) {
@@ -682,7 +679,7 @@ impl CallWindows {
                 cx,
             ))),
             titlebar: Some(TitlebarOptions {
-                title: Some(POP_OUT_TITLE.into()),
+                title: Some(pop_out_title().into()),
                 ..Default::default()
             }),
             ..Default::default()

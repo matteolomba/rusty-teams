@@ -6,6 +6,7 @@ use gpui_kit::*;
 use teams_core::NOTES_CHAT_ID;
 
 use super::{Composer, ComposerEvent};
+use crate::i18n::tr;
 use crate::schedule_time::{
     DayChoice, Preset, PresetKind, ScheduleError, custom_time, day_choices, default_custom_time,
     format_time, parse_time, presets, step_time, validate,
@@ -19,7 +20,7 @@ const ROW_HEIGHT: f32 = 32.;
 const ICON_SIZE: f32 = 18.;
 const DISABLED_OPACITY: f32 = 0.4;
 const TIME_FIELD_WIDTH: f32 = 84.;
-const BAD_TIME: &str = "Enter a time like 14:30.";
+const BAD_TIME: &str = "ui.chat.schedule.bad_time";
 
 pub(super) enum Stage {
     Menu,
@@ -75,23 +76,23 @@ impl Composer {
         let conversation_id = self.conversation_id.as_deref().unwrap_or_default();
         let outgoing = self.compose(cx);
         if state.mode.read_only && !state.mode.demo {
-            Some("Read-only mode")
+            Some("ui.chat.schedule.blocked_read_only")
         } else if self.inline {
-            Some("Open the conversation to schedule a reply")
+            Some("ui.chat.schedule.blocked_inline")
         } else if conversation_id == NOTES_CHAT_ID {
-            Some("Not available in your notes")
+            Some("ui.chat.schedule.blocked_notes")
         } else if conversation_id.is_empty() {
-            Some("Not available in a new chat yet")
+            Some("ui.chat.schedule.blocked_new_chat")
         } else if self.editing.is_some() {
-            Some("Can't schedule while editing")
+            Some("ui.chat.schedule.blocked_editing")
         } else if !outgoing.mentions.is_empty() {
-            Some("Can't schedule messages with mentions yet")
+            Some("ui.chat.schedule.blocked_mentions")
         } else if outgoing.has_attachments() || self.has_attachments(cx) {
-            Some("Can't schedule messages with images or files yet")
+            Some("ui.chat.schedule.blocked_attachments")
         } else if self.reply.is_some() {
-            Some("Can't schedule replies yet")
+            Some("ui.chat.schedule.blocked_reply")
         } else if self.current_draft(cx).is_blank() {
-            Some("Nothing to schedule yet")
+            Some("ui.chat.schedule.blocked_empty")
         } else {
             None
         }
@@ -229,18 +230,19 @@ impl Composer {
         field.update(cx, |field, cx| field.set_value(&stepped, window, cx));
     }
 
-    fn custom_choice(&self, cx: &App) -> Result<DateTime<Local>, &'static str> {
+    fn custom_choice(&self, cx: &App) -> Result<DateTime<Local>, String> {
         let custom = self
             .schedule
             .as_ref()
             .and_then(|popover| popover.custom.as_ref())
-            .ok_or(BAD_TIME)?;
+            .ok_or_else(|| BAD_TIME.to_owned())?;
         let now = Local::now();
         let day = day_choices(now.date_naive())
             .get(custom.day_index)
             .map(|choice| choice.date)
-            .ok_or(BAD_TIME)?;
-        let at = custom_time(day, &custom.time_field.read(cx).value()).ok_or(BAD_TIME)?;
+            .ok_or_else(|| BAD_TIME.to_owned())?;
+        let at = custom_time(day, &custom.time_field.read(cx).value())
+            .ok_or_else(|| BAD_TIME.to_owned())?;
         validate(at, now).map_err(ScheduleError::message)?;
         Ok(at)
     }
@@ -334,12 +336,12 @@ impl Composer {
         let blocker = self.schedule_blocker(cx);
         let row = menu_row("schedule-send-entry".into(), true)
             .child(symbol("schedule_send", ICON_SIZE, theme::text_soft()))
-            .child("Schedule send");
+            .child(tr("ui.chat.schedule.schedule_send"));
         let row = match blocker {
             Some(reason) => row
                 .opacity(DISABLED_OPACITY)
                 .cursor_default()
-                .tooltip(move |window, cx| Tooltip::new(reason).build(window, cx)),
+                .tooltip(move |window, cx| Tooltip::new(tr(reason)).build(window, cx)),
             None => row.on_click(cx.listener(|this, _, _, cx| this.open_schedule_picker(cx))),
         };
         v_flex().child(row)
@@ -358,7 +360,7 @@ impl Composer {
                     ICON_SIZE,
                     theme::text_soft(),
                 ))
-                .child(div().flex_1().child(preset.label))
+                .child(div().flex_1().child(preset.label.clone()))
                 .child(
                     div()
                         .text_size(theme::text_small())
@@ -384,7 +386,7 @@ impl Composer {
                     popover.highlighted == popover.custom_index() && popover.custom.is_none(),
                 )
                 .child(symbol("event", ICON_SIZE, theme::text_soft()))
-                .child("Custom...")
+                .child(tr("ui.chat.schedule.custom"))
                 .on_click(cx.listener(|this, _, window, cx| this.expand_custom(window, cx))),
             );
         if let Some(custom) = popover.custom.as_ref() {
@@ -463,7 +465,7 @@ impl Composer {
                             .text_color(theme::on_accent())
                             .text_size(theme::text_label())
                             .font_weight(FontWeight::SEMIBOLD)
-                            .child("Schedule")
+                            .child(tr("ui.chat.schedule.schedule"))
                             .when(!valid, |button| button.opacity(DISABLED_OPACITY))
                             .when(valid, |button| {
                                 button.cursor_pointer().on_click(cx.listener(

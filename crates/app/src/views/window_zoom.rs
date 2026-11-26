@@ -6,12 +6,13 @@ use super::widgets::symbol;
 use crate::active_appearance;
 use crate::app_state::AppState;
 use crate::appearance::{self, DEFAULT_ZOOM};
+use crate::i18n::tr;
 use crate::theme;
 
-const ZOOM_LABEL: &str = "Zoom";
-const ZOOM_IN_LABEL: &str = "Zoom in";
-const ZOOM_OUT_LABEL: &str = "Zoom out";
-const ZOOM_RESET_LABEL: &str = "Reset zoom";
+const ZOOM_LABEL: &str = "ui.misc.zoom";
+const ZOOM_IN_LABEL: &str = "ui.misc.zoom_in";
+const ZOOM_OUT_LABEL: &str = "ui.misc.zoom_out";
+const ZOOM_RESET_LABEL: &str = "ui.misc.zoom_reset";
 const DEFAULT_PERCENT: u32 = 100;
 const MINIMUM_TOAST_PERCENT: u32 = 60;
 const MAXIMUM_TOAST_PERCENT: u32 = 400;
@@ -40,15 +41,15 @@ impl WindowZoom {
 
 pub fn toast_text(previous_percent: u32, percent: u32) -> String {
     let state = if percent == DEFAULT_PERCENT {
-        "Default size"
+        tr("ui.misc.zoom_default_size")
     } else if percent <= MINIMUM_TOAST_PERCENT {
-        "Minimum zoom"
+        tr("ui.misc.zoom_minimum")
     } else if percent >= MAXIMUM_TOAST_PERCENT {
-        "Maximum zoom"
+        tr("ui.misc.zoom_maximum")
     } else if percent > previous_percent {
-        "Zoomed in"
+        tr("ui.misc.zoomed_in")
     } else {
-        "Zoomed out"
+        tr("ui.misc.zoomed_out")
     };
     format!("{percent}% \u{b7} {state}")
 }
@@ -91,7 +92,7 @@ fn zoom_button(
         .justify_center()
         .rounded(px(BUTTON_RADIUS))
         .child(symbol(glyph, BUTTON_ICON, theme::text()))
-        .tooltip(move |window, cx| Tooltip::new(label).build(window, cx))
+        .tooltip(move |window, cx| Tooltip::new(tr(label)).build(window, cx))
         .when(!enabled, |button| button.opacity(DISABLED_OPACITY))
         .when(enabled, |button| {
             button
@@ -114,7 +115,7 @@ pub fn menu_row(app: &Entity<AppState>, cx: &App) -> Div {
         .gap(px(8.))
         .items_center()
         .justify_between()
-        .child(div().text_color(theme::text()).child(ZOOM_LABEL))
+        .child(div().text_color(theme::text()).child(tr(ZOOM_LABEL)))
         .child(
             h_flex()
                 .flex_none()
@@ -159,6 +160,8 @@ mod tests {
 
     #[test]
     fn toast_texts_follow_the_teams_zoom_toast() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(toast_text(100, 110), "110% \u{b7} Zoomed in");
         assert_eq!(toast_text(110, 100), "100% \u{b7} Default size");
         assert_eq!(toast_text(90, 80), "80% \u{b7} Zoomed out");

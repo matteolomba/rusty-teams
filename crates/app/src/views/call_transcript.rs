@@ -13,13 +13,12 @@ use super::scroll_edge::with_top_edge;
 use super::widgets::icon;
 use crate::app_state::AppState;
 use crate::call::clock_label;
+use crate::i18n::tr;
 use crate::theme;
 
 const TRANSCRIPT_SCROLL_DIVIDER: &str = "shell/islands/main/call-transcript/divider-scroll";
 const SEARCH_HEIGHT: f32 = 34.;
 const AT_BOTTOM_SLACK: f32 = 4.;
-const EMPTY_TEXT: &str = "Nothing said yet. Spoken words appear here.";
-const NO_MATCH_TEXT: &str = "No entry matches the search.";
 
 pub struct TranscriptPanel {
     app: Entity<AppState>,
@@ -32,7 +31,9 @@ pub struct TranscriptPanel {
 
 impl TranscriptPanel {
     pub fn new(app: Entity<AppState>, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let search = cx.new(|cx| InputState::new(window, cx).placeholder("Search transcript"));
+        let search = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(tr("ui.calls.transcript.search_placeholder"))
+        });
         let subscriptions = vec![
             cx.observe(&app, |_, _, cx| cx.notify()),
             cx.subscribe_in(&search, window, |_, _, event: &InputEvent, _, cx| {
@@ -86,7 +87,7 @@ impl TranscriptPanel {
                     .font_weight(FontWeight::SEMIBOLD)
                     .cursor_pointer()
                     .child(icon(IconName::ArrowDown, 13., theme::white()))
-                    .child("Jump to latest")
+                    .child(tr("ui.calls.transcript.jump_latest"))
                     .on_click(cx.listener(|this, _, _, cx| this.jump_to_latest(cx))),
             )
     }
@@ -139,9 +140,11 @@ impl Render for TranscriptPanel {
                     .into_any_element()
             })
             .collect();
-        let hint = rows
-            .is_empty()
-            .then_some(if empty { EMPTY_TEXT } else { NO_MATCH_TEXT });
+        let hint = rows.is_empty().then_some(if empty {
+            tr("ui.calls.transcript.empty")
+        } else {
+            tr("ui.calls.transcript.no_match")
+        });
         let app = self.app.clone();
         let search = h_flex()
             .h(px(SEARCH_HEIGHT))
@@ -193,8 +196,8 @@ impl Render for TranscriptPanel {
             );
         side_panel(
             "call-transcript-panel",
-            "Transcript",
-            "Close the transcript",
+            tr("ui.calls.transcript.title"),
+            tr("ui.calls.transcript.close"),
             move |cx| app.update(cx, |state, cx| state.close_call_transcript(cx)),
             body,
         )

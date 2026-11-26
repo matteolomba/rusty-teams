@@ -19,11 +19,13 @@ use super::ring_view::toast_radius;
 use super::rules::ChatKind;
 use super::stack::{ReplyState, ToastModel};
 use super::text::{ToastText, describe, mention_ranges};
+use crate::i18n::tr;
 use crate::sidebar_model::{AvatarSpec, Face};
 use crate::theme;
 use crate::views::avatar::{spec_avatar, with_presence};
 use crate::views::composer::submitted_text;
 use crate::views::widgets::symbol;
+use app_base::ui_locale::tr_with;
 
 const CLOSE_SIZE: f32 = 24.;
 
@@ -47,7 +49,7 @@ impl ToastView {
             TextareaState::new(window, cx)
                 .auto_grow(1, 1)
                 .submit_on_enter(true)
-                .placeholder("Reply ...")
+                .placeholder(tr("ui.settings.toast.reply_placeholder"))
         });
         let subscriptions = vec![
             cx.subscribe_in(
@@ -123,7 +125,8 @@ impl ToastView {
 }
 
 fn flat_button(
-    label: &'static str,
+    id: &'static str,
+    label: impl Into<SharedString>,
     symbol_name: &'static str,
     accent: bool,
     mention: bool,
@@ -139,7 +142,7 @@ fn flat_button(
         theme::border_strong()
     };
     h_flex()
-        .id(label)
+        .id(id)
         .h(px(ACTION_BUTTON))
         .px(px(10.))
         .gap(px(6.))
@@ -151,7 +154,7 @@ fn flat_button(
         .text_color(color)
         .hover(move |button| button.bg(hover_fill))
         .child(symbol(symbol_name, 15., color))
-        .child(label)
+        .child(label.into())
 }
 
 fn keep_clicks_in_toast(area: Stateful<Div>) -> Stateful<Div> {
@@ -263,10 +266,17 @@ impl ToastView {
                 .into_any_element();
         }
         if model.mentions_me {
-            return side_chip("Mention".to_owned(), true).into_any_element();
+            return side_chip(tr("ui.settings.toast.mention"), true).into_any_element();
         }
         if model.count > 1 {
-            return side_chip(format!("{} new", model.count), false).into_any_element();
+            return side_chip(
+                tr_with(
+                    "ui.settings.toast.new_messages",
+                    &[("count", &model.count.to_string())],
+                ),
+                false,
+            )
+            .into_any_element();
         }
         div()
             .text_size(theme::text_small())
@@ -342,18 +352,25 @@ impl ToastView {
             .gap(px(4.))
             .justify_end()
             .child(
-                flat_button("Mark as read", "done", false, mention).on_click(move |_, _, cx| {
+                flat_button(
+                    "toast-mark-read",
+                    tr("notify.mark_read"),
+                    "done",
+                    false,
+                    mention,
+                )
+                .on_click(move |_, _, cx| {
                     cx.stop_propagation();
                     center.update(cx, |center, cx| center.mark_read(id, cx));
                 }),
             )
             .child(
-                flat_button("Reply", "reply", true, mention).on_click(cx.listener(
-                    |this, _, window, cx| {
+                flat_button("toast-reply", tr("notify.reply"), "reply", true, mention).on_click(
+                    cx.listener(|this, _, window, cx| {
                         cx.stop_propagation();
                         this.open_reply(window, cx);
-                    },
-                )),
+                    }),
+                ),
             )
     }
 
@@ -379,7 +396,7 @@ impl ToastView {
                         this.submit(window, cx);
                     }))
             });
-        let hint = |keys: &'static str, action: &'static str| {
+        let hint = |keys: &'static str, action: SharedString| {
             h_flex()
                 .gap(px(4.))
                 .child(div().text_color(theme::text_soft()).child(keys))
@@ -420,18 +437,21 @@ impl ToastView {
                     .justify_end()
                     .text_size(theme::text_caption())
                     .text_color(theme::text_muted())
-                    .child(hint("Enter", "send"))
-                    .child(hint("Shift+Enter", "new line"))
-                    .child(hint("Esc", "close")),
+                    .child(hint("Enter", tr("ui.settings.toast.send").into()))
+                    .child(hint("Shift+Enter", tr("ui.settings.toast.new_line").into()))
+                    .child(hint("Esc", tr("ui.settings.toast.close").into())),
             )
     }
 
     fn confirmation(&self, model: &ToastModel, cx: &mut Context<Self>) -> Div {
         let sent = model.reply == ReplyState::Sent;
         let label = if sent {
-            format!("Sent to {}", target_name(model))
+            tr_with(
+                "ui.settings.toast.sent_to",
+                &[("target", &target_name(model))],
+            )
         } else {
-            "Couldn't send".to_owned()
+            tr("ui.settings.toast.send_failed")
         };
         let (icon_name, tone) = if sent {
             ("check_circle", theme::green())
@@ -463,12 +483,12 @@ impl ToastView {
             })
             .when(!sent, |row| {
                 row.child(
-                    flat_button("Retry", "reply", true, false).on_click(cx.listener(
-                        |this, _, _, cx| {
+                    flat_button("toast-retry", tr("common.retry"), "reply", true, false).on_click(
+                        cx.listener(|this, _, _, cx| {
                             cx.stop_propagation();
                             this.retry(cx);
-                        },
-                    )),
+                        }),
+                    ),
                 )
             })
     }
@@ -612,13 +632,12 @@ impl Render for PillView {
             .text_size(theme::text_small())
             .font_weight(FontWeight::SEMIBOLD)
             .text_color(theme::text_soft())
-            .child("Hide all")
+            .child(tr("ui.settings.toast.hide_all"))
             .when(queued > 0, |bar| {
-                bar.child(
-                    div()
-                        .text_color(theme::text_muted())
-                        .child(format!("{queued} more waiting")),
-                )
+                bar.child(div().text_color(theme::text_muted()).child(tr_with(
+                    "ui.settings.toast.more_waiting",
+                    &[("count", &queued.to_string())],
+                )))
             })
             .on_click(move |_, _, cx| {
                 center.update(cx, |center, cx| center.hide_all(cx));

@@ -30,8 +30,8 @@ pub fn filter_close_box() -> String {
     app_base::ui_locale::tr("sidebar.filter.close_box")
 }
 
-pub const MORE_FILTERS: &str = "More filters";
-pub const FEWER_FILTERS: &str = "Fewer filters";
+pub const MORE_FILTERS: &str = "ui.chat.activity.more_filters";
+pub const FEWER_FILTERS: &str = "ui.chat.activity.fewer_filters";
 const MEETING_KIND: &str = "meeting";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

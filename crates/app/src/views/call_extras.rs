@@ -1,4 +1,4 @@
-use crate::i18n::{tr, tr_args};
+use crate::i18n::{tr, tr_args, tr_with};
 use crate::views::image_memory::bounded;
 use std::path::PathBuf;
 
@@ -85,14 +85,11 @@ pub fn hold_panel(app: &Entity<AppState>, model: &CallModel) -> Option<AnyElemen
         HoldState::Active => return None,
         HoldState::Local => (
             tr("calls.chrome.on_hold"),
-            format!(
-                "{} cannot hear you and you cannot hear them.",
-                model.peer_name
-            ),
+            tr_with("ui.calls.hold.local_detail", &[("name", &model.peer_name)]),
         ),
         HoldState::Remote => (
             tr("calls.chrome.you_on_hold"),
-            format!("{} put the call on hold.", model.peer_name),
+            tr_with("ui.calls.hold.remote_detail", &[("name", &model.peer_name)]),
         ),
     };
     let resume = (model.hold == HoldState::Local).then(|| {
@@ -178,8 +175,7 @@ pub fn consult_banner(app: &Entity<AppState>, state: &AppState) -> Option<AnyEle
         .held_name
         .split_whitespace()
         .next()
-        .unwrap_or("call")
-        .to_owned();
+        .map_or_else(|| tr("ui.calls.someone"), str::to_owned);
     let (transfer_app, resume_app) = (app.clone(), app.clone());
     let transfer = pill("call-consult-transfer", tr("calls.chrome.transfer"), true)
         .debug_selector(|| "shell/islands/main/call-header/call-consult/transfer".into());
@@ -304,14 +300,19 @@ pub fn confirm_record_action(
     let app = app.clone();
     window.open_alert_dialog(cx, move |alert, _, _| {
         let app = app.clone();
-        let cancel = Button::new("recording-cancel").label(tr("common.cancel")).on_click(|_, window, cx| window.close_dialog(cx));
-        let stop = Button::new("recording-stop").label(tr("common.stop")).danger().on_click(move |_, window, cx| {
-            app.update(cx, |state, cx| state.run_call_record_action(action, cx));
-            window.close_dialog(cx);
-        });
+        let cancel = Button::new("recording-cancel")
+            .label(tr("common.cancel"))
+            .on_click(|_, window, cx| window.close_dialog(cx));
+        let stop = Button::new("recording-stop")
+            .label(tr("common.stop"))
+            .danger()
+            .on_click(move |_, window, cx| {
+                app.update(cx, |state, cx| state.run_call_record_action(action, cx));
+                window.close_dialog(cx);
+            });
         alert
-            .title(title)
-            .description("The file is saved to the organizer's OneDrive and the link arrives in the meeting chat.")
+            .title(title.clone())
+            .description(tr("ui.calls.record.saved_detail"))
             .footer(DialogFooter::new().child(cancel).child(stop))
             .on_ok(|_, _, _| false)
     });

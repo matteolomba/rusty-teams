@@ -26,6 +26,7 @@ use super::card_widgets::{
 use super::widgets::symbol;
 use crate::app_state::{AppHandle, AppState};
 use crate::card_state::{ActionPhase, CardScope, CardState};
+use crate::i18n::tr;
 use crate::render::{layout_card_blocks, render_blocks};
 use crate::theme;
 
@@ -40,7 +41,7 @@ const ACTION_GAP: f32 = 8.;
 const ACTION_RADIUS: f32 = 6.;
 const ACTION_TEXT_SIZE: f32 = 13.;
 const ACTION_DISABLED_OPACITY: f32 = 0.5;
-const ACTION_DISABLED_TOOLTIP: &str = "Not supported in this app";
+const ACTION_DISABLED_TOOLTIP: &str = "ui.misc.action_not_supported";
 const ACTION_BUSY_OPACITY: f32 = 0.6;
 const ACTION_CHECK_SIZE: f32 = 14.;
 const ACTION_ICON_GAP: f32 = 4.;
@@ -58,7 +59,7 @@ const MEDIUM_IMAGE: f32 = 80.;
 const LARGE_IMAGE: f32 = 160.;
 const EXTERNAL_IMAGE_SCHEMES: [&str; 2] = ["https://", "http://"];
 const ACTION_OVERFLOW_LABEL: &str = "...";
-const ACTION_OVERFLOW_TOOLTIP: &str = "More actions";
+const ACTION_OVERFLOW_TOOLTIP: &str = "ui.misc.more_actions";
 const OVERFLOW_PANEL_PADDING: f32 = 4.;
 const SELECT_TINT: f32 = 0.07;
 
@@ -811,7 +812,7 @@ fn overflow_button(overflow_key: &str, open: bool, context: &CardContext) -> Sta
         .cursor_pointer()
         .hover(|button| button.bg(theme::row_hover()))
         .when(open, |button| button.bg(theme::row_hover()))
-        .popup_trigger_tooltip_text(open, ACTION_OVERFLOW_TOOLTIP)
+        .popup_trigger_tooltip_text(open, tr(ACTION_OVERFLOW_TOOLTIP))
         .child(ACTION_OVERFLOW_LABEL)
         .on_click(move |_, _, cx| {
             cx.stop_propagation();
@@ -863,7 +864,7 @@ fn action_button(
     if !action.is_clickable() {
         let hint = match action.kind {
             CardActionKind::Unavailable(reason) if action.enabled => Some(reason.to_owned()),
-            _ if action.enabled => Some(ACTION_DISABLED_TOOLTIP.to_owned()),
+            _ if action.enabled => Some(tr(ACTION_DISABLED_TOOLTIP)),
             _ => action.tooltip.clone(),
         };
         return button

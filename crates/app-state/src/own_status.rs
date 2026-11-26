@@ -87,7 +87,7 @@ where
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StateSummary {
-    pub label: &'static str,
+    pub label: String,
     pub presence: PresenceKind,
     pub until: Option<String>,
 }
@@ -110,8 +110,8 @@ where
         },
         None => StateSummary {
             label: match live.label() {
-                "" => "Set status",
-                label => label,
+                "" => "Set status".to_owned(),
+                label => label.to_owned(),
             },
             presence: live,
             until: None,
@@ -358,8 +358,8 @@ mod tests {
 
     use super::{
         NOTE_LIMIT, NoteDuration, STATUS_CHOICES, StateSummary, StatusDuration, choice_label,
-        clamp_note, duration_target, end_of_day, end_of_week, state_summary, until_label,
-        with_forced, work_location_label,
+        clamp_note, duration_target, end_of_day, end_of_week, state_label, state_summary,
+        until_label, with_forced, work_location_label,
     };
     use crate::data::PresenceKind;
 
@@ -443,13 +443,13 @@ mod tests {
         assert_eq!(
             state_summary(&status, PresenceKind::Available, &now),
             StateSummary {
-                label: "Do not disturb",
+                label: state_label(ForcedKind::DoNotDisturb),
                 presence: PresenceKind::DoNotDisturb,
                 until: Some("until 15:30".into()),
             }
         );
         let automatic = state_summary(&PresenceStatus::default(), PresenceKind::Away, &now);
-        assert_eq!(automatic.label, "Away");
+        assert_eq!(automatic.label, state_label(ForcedKind::Away));
         assert_eq!(automatic.until, None);
         let unknown = state_summary(&PresenceStatus::default(), PresenceKind::Unknown, &now);
         assert_eq!(unknown.label, "Set status");
@@ -516,19 +516,19 @@ mod tests {
 
     #[test]
     fn labels_follow_the_teams_menu() {
-        let labels: Vec<&str> = STATUS_CHOICES
+        let labels: Vec<String> = STATUS_CHOICES
             .iter()
             .map(|kind| choice_label(*kind))
             .collect();
         assert_eq!(
             labels,
             [
-                "Available",
-                "Busy",
-                "Do not disturb",
-                "Be right back",
-                "Appear away",
-                "Appear offline"
+                choice_label(ForcedKind::Available),
+                choice_label(ForcedKind::Busy),
+                choice_label(ForcedKind::DoNotDisturb),
+                choice_label(ForcedKind::BeRightBack),
+                choice_label(ForcedKind::Away),
+                choice_label(ForcedKind::Offline)
             ]
         );
         assert_eq!(NoteDuration::DEFAULT, NoteDuration::Today);

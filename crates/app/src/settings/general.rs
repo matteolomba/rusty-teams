@@ -538,7 +538,7 @@ fn translation_rows(app: &Entity<AppState>, cx: &App) -> Vec<AnyElement> {
     vec![
         control_row(
             tr("settings.general.translate_into"),
-            "Read from your Teams account",
+            tr("ui.settings.chats.account_detail"),
             select(
                 "settings-translation-target",
                 translation.language_name(&target),

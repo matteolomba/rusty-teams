@@ -10,6 +10,7 @@ use super::ring_view::{RING_AVATAR, answer_button, toast_radius};
 use crate::app_state::AppState;
 use crate::call::ReminderPhase;
 use crate::call::meeting_subtitle;
+use crate::i18n::tr;
 use crate::theme;
 use crate::views::widgets::icon;
 
@@ -55,7 +56,7 @@ impl Render for MeetingToastView {
         let dismiss_app = self.app.clone();
         let snooze = answer_button(
             "meeting-snooze",
-            "Snooze",
+            &tr("notify.snooze"),
             IconName::AlarmClock,
             theme::popup_hover(),
             theme::text(),
@@ -83,7 +84,7 @@ impl Render for MeetingToastView {
             });
         let join = answer_button(
             "meeting-join",
-            "Join",
+            &tr("notify.join"),
             IconName::Video,
             theme::accent(),
             theme::on_accent(),

@@ -7,13 +7,14 @@ use store::{AttachmentImage, DraftRecord, Store};
 use teams_core::Draft;
 
 use super::{Composer, Outgoing};
+use crate::i18n::tr;
 use crate::local_previews::load_local_previews;
 use crate::notice::truncated;
 use crate::stored_outgoing::{decode, encode};
 
 const DRAFT_SAVE_DELAY: Duration = Duration::from_millis(500);
 const DRAFT_PREVIEW_CHARS: usize = 200;
-const IMAGE_ONLY_PREVIEW: &str = "Image";
+const IMAGE_ONLY_PREVIEW: &str = "ui.chat.composer.image_only_preview";
 
 pub(super) type ImageFingerprint = (String, Vec<(String, usize, Option<u32>, Option<u32>)>);
 
@@ -43,7 +44,7 @@ fn draft_preview(outgoing: &Outgoing) -> String {
         .or_else(|| outgoing.subject.clone())
         .or_else(|| outgoing.banner.as_ref().map(|banner| banner.title.clone()));
     let Some(text) = text else {
-        return IMAGE_ONLY_PREVIEW.to_owned();
+        return tr(IMAGE_ONLY_PREVIEW);
     };
     truncated(&text, DRAFT_PREVIEW_CHARS)
 }

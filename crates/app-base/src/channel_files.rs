@@ -74,9 +74,13 @@ impl LibraryPath {
 }
 
 pub fn count_label(child_count: u64) -> String {
-    match child_count {
-        1 => "1 item".to_owned(),
-        count => format!("{count} items"),
+    if child_count == 1 {
+        crate::ui_locale::tr("ui.settings.files.item_one")
+    } else {
+        crate::ui_locale::tr_with(
+            "ui.settings.files.item_many",
+            &[("count", &child_count.to_string())],
+        )
     }
 }
 
@@ -149,11 +153,11 @@ pub enum SharedGroup {
 }
 
 impl SharedGroup {
-    pub fn label(self) -> &'static str {
-        match self {
-            SharedGroup::ThisWeek => "This week",
-            SharedGroup::Earlier => "Earlier",
-        }
+    pub fn label(self) -> String {
+        crate::ui_locale::tr(match self {
+            SharedGroup::ThisWeek => "ui.settings.files.this_week",
+            SharedGroup::Earlier => "ui.settings.files.earlier",
+        })
     }
 }
 
@@ -347,9 +351,15 @@ mod tests {
 
     #[test]
     fn sizes_and_item_counts_read_like_teams() {
-        assert_eq!(size_label(&entry("a", Some(0), 0)), "0 items");
-        assert_eq!(size_label(&entry("a", Some(1), 0)), "1 item");
-        assert_eq!(size_label(&entry("a", Some(12), 0)), "12 items");
+        let many = |count: &str| {
+            crate::ui_locale::tr_with("ui.settings.files.item_many", &[("count", count)])
+        };
+        assert_eq!(size_label(&entry("a", Some(0), 0)), many("0"));
+        assert_eq!(
+            size_label(&entry("a", Some(1), 0)),
+            crate::ui_locale::tr("ui.settings.files.item_one")
+        );
+        assert_eq!(size_label(&entry("a", Some(12), 0)), many("12"));
         assert_eq!(size_label(&entry("a.pdf", None, 48_213)), "47 KB");
     }
 

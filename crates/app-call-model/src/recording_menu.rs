@@ -7,27 +7,36 @@ pub enum RecordAction {
 }
 
 impl RecordAction {
-    pub fn label(self) -> &'static str {
-        match self {
-            RecordAction::Start(RecordingKind::Video) => "Start recording",
-            RecordAction::Start(RecordingKind::AudioOnly) => "Record audio only",
-            RecordAction::Start(RecordingKind::TranscriptOnly) => "Start transcription only",
-            RecordAction::Stop(StopScope::Both | StopScope::RecordingOnly) => "Stop recording",
-            RecordAction::Stop(StopScope::TranscriptionOnly) => "Stop transcription",
-        }
+    pub fn label(self) -> String {
+        app_base::ui_locale::tr(match self {
+            RecordAction::Start(RecordingKind::Video) => "ui.calls.record.start_recording",
+            RecordAction::Start(RecordingKind::AudioOnly) => "ui.calls.record.record_audio_only",
+            RecordAction::Start(RecordingKind::TranscriptOnly) => {
+                "ui.calls.record.start_transcription"
+            }
+            RecordAction::Stop(StopScope::Both | StopScope::RecordingOnly) => {
+                "ui.calls.record.stop_recording"
+            }
+            RecordAction::Stop(StopScope::TranscriptionOnly) => {
+                "ui.calls.record.stop_transcription"
+            }
+        })
     }
 
-    pub fn confirm_title(self) -> Option<&'static str> {
-        match self {
-            RecordAction::Start(_) => None,
-            RecordAction::Stop(StopScope::Both) => Some("Stop recording and transcription?"),
-            RecordAction::Stop(StopScope::RecordingOnly) => Some("Stop recording?"),
-            RecordAction::Stop(StopScope::TranscriptionOnly) => Some("Stop transcription?"),
-        }
+    pub fn confirm_title(self) -> Option<String> {
+        let key = match self {
+            RecordAction::Start(_) => return None,
+            RecordAction::Stop(StopScope::Both) => "ui.calls.record.confirm_both",
+            RecordAction::Stop(StopScope::RecordingOnly) => "ui.calls.record.confirm_recording",
+            RecordAction::Stop(StopScope::TranscriptionOnly) => {
+                "ui.calls.record.confirm_transcription"
+            }
+        };
+        Some(app_base::ui_locale::tr(key))
     }
 }
 
-pub fn record_actions(recording: bool, transcribing: bool) -> Vec<(RecordAction, &'static str)> {
+pub fn record_actions(recording: bool, transcribing: bool) -> Vec<(RecordAction, String)> {
     let labelled = |action: RecordAction| (action, action.label());
     match (recording, transcribing) {
         (false, false) => vec![
@@ -38,7 +47,10 @@ pub fn record_actions(recording: bool, transcribing: bool) -> Vec<(RecordAction,
         (true, true) => vec![
             labelled(RecordAction::Stop(StopScope::RecordingOnly)),
             labelled(RecordAction::Stop(StopScope::TranscriptionOnly)),
-            (RecordAction::Stop(StopScope::Both), "Stop both"),
+            (
+                RecordAction::Stop(StopScope::Both),
+                app_base::ui_locale::tr("ui.calls.record.stop_both"),
+            ),
         ],
         (true, false) => vec![labelled(RecordAction::Stop(StopScope::Both))],
         (false, true) => vec![labelled(RecordAction::Stop(StopScope::TranscriptionOnly))],
@@ -53,12 +65,12 @@ pub enum RecordingChip {
 }
 
 impl RecordingChip {
-    pub fn label(self) -> &'static str {
-        match self {
-            RecordingChip::Recording => "Recording",
-            RecordingChip::RecordingAudio => "Recording audio",
-            RecordingChip::Transcribing => "Transcribing",
-        }
+    pub fn label(self) -> String {
+        app_base::ui_locale::tr(match self {
+            RecordingChip::Recording => "ui.calls.record.chip_recording",
+            RecordingChip::RecordingAudio => "ui.calls.record.chip_recording_audio",
+            RecordingChip::Transcribing => "ui.calls.record.chip_transcribing",
+        })
     }
 }
 
@@ -79,7 +91,7 @@ pub fn recording_chip(
 mod tests {
     use super::*;
 
-    fn labels(recording: bool, transcribing: bool) -> Vec<&'static str> {
+    fn labels(recording: bool, transcribing: bool) -> Vec<String> {
         record_actions(recording, transcribing)
             .into_iter()
             .map(|(_, label)| label)
@@ -91,9 +103,9 @@ mod tests {
         assert_eq!(
             labels(false, false),
             [
-                "Start recording",
-                "Record audio only",
-                "Start transcription only"
+                "Start recording".to_owned(),
+                "Record audio only".to_owned(),
+                "Start transcription only".to_owned()
             ]
         );
     }
@@ -109,7 +121,11 @@ mod tests {
         assert_eq!(actions[2].0, RecordAction::Stop(StopScope::Both));
         assert_eq!(
             labels(true, true),
-            ["Stop recording", "Stop transcription", "Stop both"]
+            [
+                "Stop recording".to_owned(),
+                "Stop transcription".to_owned(),
+                "Stop both".to_owned()
+            ]
         );
     }
 
@@ -117,13 +133,16 @@ mod tests {
     fn a_single_running_part_offers_the_one_matching_stop() {
         assert_eq!(
             record_actions(true, false),
-            [(RecordAction::Stop(StopScope::Both), "Stop recording")]
+            [(
+                RecordAction::Stop(StopScope::Both),
+                "Stop recording".to_owned()
+            )]
         );
         assert_eq!(
             record_actions(false, true),
             [(
                 RecordAction::Stop(StopScope::TranscriptionOnly),
-                "Stop transcription"
+                "Stop transcription".to_owned()
             )]
         );
     }
@@ -136,15 +155,15 @@ mod tests {
         );
         assert_eq!(
             RecordAction::Stop(StopScope::Both).confirm_title(),
-            Some("Stop recording and transcription?")
+            Some("Stop recording and transcription?".to_owned())
         );
         assert_eq!(
             RecordAction::Stop(StopScope::RecordingOnly).confirm_title(),
-            Some("Stop recording?")
+            Some("Stop recording?".to_owned())
         );
         assert_eq!(
             RecordAction::Stop(StopScope::TranscriptionOnly).confirm_title(),
-            Some("Stop transcription?")
+            Some("Stop transcription?".to_owned())
         );
     }
 

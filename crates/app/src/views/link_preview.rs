@@ -10,6 +10,7 @@ use teams_core::{LinkPreview, first_public_link};
 use super::widgets::icon;
 use crate::app_state::AppHandle;
 use crate::data::Directory;
+use crate::i18n::tr;
 use crate::theme;
 
 const CARD_WIDTH: f32 = 360.;
@@ -182,7 +183,7 @@ pub fn meeting_join_chip(id: String, url: String) -> AnyElement {
         .cursor_pointer()
         .hover(|chip| chip.opacity(0.85))
         .child(icon(IconName::Video, 13., theme::on_accent()))
-        .child("Join")
+        .child(tr("common.join"))
         .on_click(move |_, _, cx| {
             cx.stop_propagation();
             let Some(handle) = cx.try_global::<AppHandle>() else {

@@ -12,6 +12,7 @@ use crate::app_state::AppState;
 use crate::i18n::tr;
 use crate::team_admin::{can_create_channel, channel_name_problem};
 use crate::theme;
+use app_base::ui_locale::tr_with;
 
 const DIALOG_WIDTH: f32 = 480.;
 const FIELD_GAP: f32 = 12.;
@@ -37,11 +38,10 @@ impl CreateChannelForm {
         cx: &mut Context<Self>,
     ) -> Self {
         let name = cx.new(|cx| {
-            InputState::new(window, cx).placeholder("Letters, numbers, and spaces are allowed")
+            InputState::new(window, cx).placeholder(tr("ui.chat.channel.name_placeholder"))
         });
         let description = cx.new(|cx| {
-            InputState::new(window, cx)
-                .placeholder("Help others find the right channel by providing a description")
+            InputState::new(window, cx).placeholder(tr("ui.chat.channel.description_placeholder"))
         });
         let subscriptions = vec![
             cx.subscribe_in(&name, window, Self::on_input),
@@ -98,7 +98,7 @@ impl CreateChannelForm {
         let option = |id: &'static str, label: &'static str, privacy: ChannelPrivacy| {
             let form = form.clone();
             Radio::new(id)
-                .label(label)
+                .label(tr(label))
                 .checked(self.privacy == privacy)
                 .on_click(move |_, _, cx| form.update(cx, |form, cx| form.choose(privacy, cx)))
         };
@@ -107,13 +107,13 @@ impl CreateChannelForm {
             .gap(px(OPTION_GAP))
             .child(option(
                 "create-channel-standard",
-                "Standard: Everyone on the team has access",
+                "ui.chat.channel.privacy_standard",
                 ChannelPrivacy::Standard,
             ))
             .when(self.private_allowed, |options| {
                 options.child(option(
                     "create-channel-private",
-                    "Private: Specific teammates have access",
+                    "ui.chat.channel.privacy_private",
                     ChannelPrivacy::Private,
                 ))
             })
@@ -126,20 +126,26 @@ impl Render for CreateChannelForm {
         v_flex()
             .debug_selector(|| "create-channel".into())
             .gap(px(FIELD_GAP))
-            .child(labeled("Channel name", Input::new(&self.name)))
+            .child(labeled(
+                &tr("ui.chat.channel.name_label"),
+                Input::new(&self.name),
+            ))
             .when_some(problem, |form, problem| {
                 form.child(
                     div()
                         .text_size(px(ERROR_SIZE))
                         .text_color(theme::red_soft())
-                        .child(problem),
+                        .child(tr(problem)),
                 )
             })
             .child(labeled(
-                "Description (optional)",
+                &tr("ui.chat.channel.description_optional"),
                 Input::new(&self.description),
             ))
-            .child(labeled("Choose a channel type", self.privacy_options(cx)))
+            .child(labeled(
+                &tr("ui.chat.channel.choose_type"),
+                self.privacy_options(cx),
+            ))
     }
 }
 
@@ -156,7 +162,7 @@ pub fn open_create_channel_dialog(
             app.team_rights(team_id),
         )
     };
-    let title = format!("Create a channel for \"{team_name}\" team");
+    let title = tr_with("ui.chat.channel.create_title", &[("team", &team_name)]);
     let team_id = team_id.to_owned();
     let form =
         cx.new(|cx| CreateChannelForm::new(state, team_id, rights.add_private_channel, window, cx));

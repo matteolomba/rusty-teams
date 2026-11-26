@@ -39,10 +39,11 @@ mod format_menus;
 pub(crate) mod plus_menu;
 mod post;
 mod rewrite;
+pub use post::SUBJECT_PLACEHOLDER;
+#[cfg(test)]
 pub use post::{
     POST_ANNOUNCEMENT_TAG, POST_ANNOUNCEMENT_TOGGLE_TAG, POST_AUDIENCE_TAG, POST_CARD_DIVIDER_TAG,
     POST_CARD_FOOTER_TAG, POST_CARD_HEADER_TAG, POST_CARD_SEND_TAG, POST_CARD_SUBJECT_TAG,
-    SUBJECT_PLACEHOLDER,
 };
 mod rule;
 mod schedule;
@@ -72,12 +73,14 @@ use super::widgets::{icon, symbol};
 use crate::app_state::AppState;
 use crate::data::Directory;
 use crate::emoji;
+use crate::i18n::tr;
 pub use crate::outgoing::{EditPreview, Outgoing, ReplyPreview};
 use crate::remote_image::RemoteImage;
 use crate::runtime;
 use crate::scheduled_rows::scheduled_label;
 use crate::theme::{self, ElevatedSurface as _};
 use crate::typing::OutgoingTyping;
+use app_base::ui_locale::tr_with;
 use format_menus::{FormatPopup, paragraph_label};
 use rule::{is_rule_token, render_rule_token};
 use slash::SlashPopup;
@@ -96,7 +99,7 @@ const POPUP_PADDING: f32 = 6.;
 const POPUP_GAP: f32 = 6.;
 pub const MENTION_POPUP_TAG: &str = "composer/mention-popup";
 const DEMO_UPLOAD_STEPS: u8 = 10;
-const COMPOSER_PLACEHOLDER: &str = "Type a message";
+const COMPOSER_PLACEHOLDER: &str = "ui.chat.composer.placeholder";
 const SEND_DIVIDER_HEIGHT: f32 = 20.;
 const COMPOSER_ICON_SIZE: f32 = 20.;
 const COMPOSER_BUTTON_SIZE: f32 = 32.;
@@ -352,9 +355,9 @@ fn candidate_subtitle(candidate: &MentionCandidate) -> String {
             .filter(|title| !title.trim().is_empty())
             .or_else(|| person.mail.clone())
             .unwrap_or_default(),
-        MentionCandidate::Channel { .. } => "Channel".to_owned(),
-        MentionCandidate::Team { .. } => "Team".to_owned(),
-        MentionCandidate::Tag { .. } => "Tag".to_owned(),
+        MentionCandidate::Channel { .. } => tr("ui.chat.composer.mention_channel"),
+        MentionCandidate::Team { .. } => tr("ui.chat.composer.mention_team"),
+        MentionCandidate::Tag { .. } => tr("ui.chat.composer.mention_tag"),
         MentionCandidate::Everyone { .. } => String::new(),
     }
 }
@@ -460,7 +463,7 @@ impl Composer {
             TextareaState::new(window, cx)
                 .auto_grow(MIN_ROWS, MAX_ROWS)
                 .submit_on_enter(true)
-                .placeholder("Type a message")
+                .placeholder(tr(COMPOSER_PLACEHOLDER))
         });
         let subscription = cx.subscribe_in(&input, window, Self::on_input_event);
         let observer = cx.observe_in(&input, window, |this, _, window, cx| {
@@ -1289,7 +1292,7 @@ impl Composer {
             .unwrap_or_default();
         let field = cx.new(|cx| {
             InputState::new(window, cx)
-                .placeholder("Paste or type a link")
+                .placeholder(tr("ui.chat.composer.link_placeholder"))
                 .default_value(prefill)
         });
         field.update(cx, |state, cx| {
@@ -2873,7 +2876,7 @@ impl Composer {
                 .items_center()
                 .text_size(theme::text_small())
                 .text_color(theme::text_muted())
-                .child("Formatted from Markdown")
+                .child(tr("ui.chat.composer.paste_hint"))
                 .child(
                     div()
                         .px(px(4.))
@@ -2884,7 +2887,7 @@ impl Composer {
                         .text_color(theme::text())
                         .child("Ctrl+Z"),
                 )
-                .child("plain text"),
+                .child(tr("ui.chat.composer.plain_text")),
         )
     }
 
@@ -2917,11 +2920,11 @@ impl Composer {
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .text_color(theme::accent_text())
                                 .child(match edit.scheduled {
-                                    Some(send_at) => format!(
-                                        "Editing scheduled message - {}",
-                                        scheduled_label(send_at, Utc::now())
+                                    Some(send_at) => tr_with(
+                                        "ui.chat.composer.editing_scheduled",
+                                        &[("time", &scheduled_label(send_at, Utc::now()))],
                                     ),
-                                    None => "Editing message".to_owned(),
+                                    None => tr("ui.chat.composer.editing_message"),
                                 }),
                         )
                         .child(
@@ -2972,7 +2975,10 @@ impl Composer {
                                 .text_size(theme::text_small())
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .text_color(theme::accent_text())
-                                .child(format!("Replying to {}", reply.author)),
+                                .child(tr_with(
+                                    "ui.chat.composer.replying_to",
+                                    &[("author", &reply.author)],
+                                )),
                         )
                         .child(
                             div()
@@ -3044,7 +3050,7 @@ impl Render for Composer {
                         .rounded(px(8.))
                         .with_size(px(COMPOSER_ICON_SIZE / BUTTON_ICON_SCALE))
                         .size(px(COMPOSER_BUTTON_SIZE))
-                        .tooltip("Emoji, GIFs und Sticker")
+                        .tooltip(tr("ui.chat.composer.emoji_gif_stickers"))
                         .icon(symbol("mood", COMPOSER_ICON_SIZE, theme::text_muted())),
                 )
                 .on_open_change(move |open, window, cx| {

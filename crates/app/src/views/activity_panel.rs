@@ -24,8 +24,10 @@ use crate::app_state::{AppState, chat_title};
 use crate::chat_filter::{FEWER_FILTERS, MORE_FILTERS};
 use crate::data::is_one_on_one;
 use crate::format;
+use crate::i18n::tr;
 use crate::people::resolve_names;
 use crate::theme;
+use app_base::ui_locale::tr_with;
 
 const AVATAR_SIZE: f32 = 32.;
 const KIND_MARKER_SIZE: f32 = 16.;
@@ -42,7 +44,7 @@ const EMPTY_HEIGHT: f32 = 84.;
 const FALLBACK_VIEWPORT: f32 = 900.;
 const VIEWPORT_MARGIN: f32 = 300.;
 const FILTER_KEY: &str = "activity_filter";
-const PROPOSALS_LABEL: &str = "Agent proposals";
+const PROPOSALS_LABEL: &str = "ui.chat.activity.proposals";
 pub const ACTIVITY_PROPOSALS_TAG: &str = "shell/islands/sidebar/activity-proposals";
 
 pub enum ActivityPanelEvent {
@@ -126,7 +128,7 @@ impl ActivityPanel {
         let selected = filter == self.filter;
         div()
             .id(ElementId::Name(
-                format!("activity-filter-{}", filter.label()).into(),
+                format!("activity-filter-{}", filter.key()).into(),
             ))
             .h(px(24.))
             .px(px(12.))
@@ -144,7 +146,7 @@ impl ActivityPanel {
                     .text_color(theme::text_soft())
                     .hover(|pill| pill.bg(theme::border_strong()))
             })
-            .child(filter.label())
+            .child(tr(filter.label()))
             .on_click(cx.listener(move |this, _, _, cx| {
                 this.filter = filter;
                 let _ = this.app.read(cx).store.set_meta(FILTER_KEY, filter.key());
@@ -166,7 +168,7 @@ impl ActivityPanel {
             .cursor_pointer()
             .bg(theme::surface_raised())
             .hover(|pill| pill.bg(theme::border_strong()))
-            .tooltip(move |window, cx| Tooltip::new(label).build(window, cx))
+            .tooltip(move |window, cx| Tooltip::new(tr(label)).build(window, cx))
             .child(icon(
                 if open {
                     IconName::ChevronUp
@@ -213,7 +215,7 @@ impl ActivityPanel {
                             .text_size(theme::text_heading())
                             .font_weight(FontWeight::BOLD)
                             .text_color(theme::text())
-                            .child("Activity"),
+                            .child(tr("ui.chat.activity.title")),
                     )
                     .child(
                         div()
@@ -227,7 +229,7 @@ impl ActivityPanel {
                             .text_size(theme::text_small())
                             .text_color(theme::accent_text())
                             .hover(|button| button.bg(theme::surface_raised()))
-                            .child("Mark all as read")
+                            .child(tr("ui.chat.activity.mark_all_read"))
                             .on_click(cx.listener(|this, _, _, cx| {
                                 this.activity
                                     .update(cx, |activity, cx| activity.mark_all_read(cx));
@@ -511,7 +513,9 @@ fn status_slot(element_id: String, unread: bool, group: SharedString, mark_read:
                 .bg(theme::surface_raised())
                 .cursor_pointer()
                 .child(icon(IconName::Check, 12., theme::text()))
-                .tooltip(|window, cx| Tooltip::new("Mark as read").build(window, cx))
+                .tooltip(|window, cx| {
+                    Tooltip::new(tr("ui.chat.activity.mark_read_tooltip")).build(window, cx)
+                })
                 .on_click(move |_, _, cx| {
                     cx.stop_propagation();
                     mark_read(cx);
@@ -575,38 +579,62 @@ fn headline(entry: &Entry, sidebar: &Sidebar, resolved_names: &HashMap<String, S
         .map(|actor| actor.display_name(resolved_names).to_owned())
         .unwrap_or_default();
     let names = if entry.count > 1 && matches!(entry.kind, Kind::Reaction | Kind::Reply) {
-        format!("{actor} +{}", entry.count - 1)
+        tr_with(
+            "ui.chat.activity.plus_count",
+            &[("actor", &actor), ("count", &(entry.count - 1).to_string())],
+        )
     } else {
         actor.clone()
     };
     let channel = channel_of(sidebar, &entry.conversation_id);
     let verb = match (entry.kind, entry.subtype.as_str()) {
-        (Kind::Mention, "everyone") => format!("{names} mentioned Everyone"),
+        (Kind::Mention, "everyone") => {
+            tr_with("ui.chat.activity.mention_everyone", &[("names", &names)])
+        }
         (Kind::Mention, "channel") => match channel {
-            Some((_, channel_name)) => format!("{names} mentioned {channel_name}"),
-            None => format!("{names} mentioned the channel"),
+            Some((_, channel_name)) => tr_with(
+                "ui.chat.activity.mention_channel",
+                &[("names", &names), ("channel", channel_name)],
+            ),
+            None => tr_with(
+                "ui.chat.activity.mention_channel_generic",
+                &[("names", &names)],
+            ),
         },
         (Kind::Mention, "team") => match channel {
-            Some((team_name, _)) => format!("{names} mentioned {team_name}"),
-            None => format!("{names} mentioned the team"),
+            Some((team_name, _)) => tr_with(
+                "ui.chat.activity.mention_team",
+                &[("names", &names), ("team", team_name)],
+            ),
+            None => tr_with(
+                "ui.chat.activity.mention_team_generic",
+                &[("names", &names)],
+            ),
         },
-        (Kind::Mention, _) => format!("{names} mentioned you"),
+        (Kind::Mention, _) => tr_with("ui.chat.activity.mention_you", &[("names", &names)]),
         (Kind::Reply, _) => reply_headline(entry, &names),
-        (Kind::Reaction, _) => format!("{names} reacted to your message"),
-        (Kind::MissedCall, _) => format!("Missed call from {actor}"),
-        (Kind::Call, "voicemail") => format!("Voicemail from {actor}"),
-        (Kind::Call, "missedMeetingNudge") => format!("{actor} asked you to join a meeting"),
+        (Kind::Reaction, _) => tr_with("ui.chat.activity.reacted", &[("names", &names)]),
+        (Kind::MissedCall, _) => tr_with("ui.chat.activity.missed_call", &[("actor", &actor)]),
+        (Kind::Call, "voicemail") => tr_with("ui.chat.activity.voicemail", &[("actor", &actor)]),
+        (Kind::Call, "missedMeetingNudge") => {
+            tr_with("ui.chat.activity.join_meeting", &[("actor", &actor)])
+        }
         (Kind::Call, _) => actor,
-        (Kind::Posted, "channelReplyMessage") => format!("{names} replied"),
-        (Kind::Posted, _) => format!("{names} posted a new message"),
+        (Kind::Posted, "channelReplyMessage") => {
+            tr_with("ui.chat.activity.replied", &[("names", &names)])
+        }
+        (Kind::Posted, _) => tr_with("ui.chat.activity.posted", &[("names", &names)]),
         (Kind::Team, "promotedToTeamAdmin") => {
-            return format!(
-                "{actor} made you an owner of {}",
-                team_label(entry, channel)
+            return tr_with(
+                "ui.chat.activity.made_owner",
+                &[("actor", &actor), ("team", &team_label(entry, channel))],
             );
         }
         (Kind::Team, _) => {
-            return format!("{actor} added you to {}", team_label(entry, channel));
+            return tr_with(
+                "ui.chat.activity.added_to_team",
+                &[("actor", &actor), ("team", &team_label(entry, channel))],
+            );
         }
         (Kind::App, _) => match &entry.title {
             Some(title) => return title.clone(),
@@ -634,9 +662,9 @@ where
 
 fn reply_headline(entry: &Entry, names: &str) -> String {
     match entry.activity_type.as_str() {
-        "reply" => format!("{names} replied to your post"),
-        "replyInChat" => format!("{names} replied to message"),
-        _ => format!("{names} replied"),
+        "reply" => tr_with("ui.chat.activity.replied_to_post", &[("names", names)]),
+        "replyInChat" => tr_with("ui.chat.activity.replied_to_message", &[("names", names)]),
+        _ => tr_with("ui.chat.activity.replied_generic", &[("names", names)]),
     }
 }
 
@@ -644,7 +672,7 @@ fn team_label(entry: &Entry, channel: Option<(&str, &str)>) -> String {
     channel
         .map(|(team_name, _)| team_name.to_owned())
         .or_else(|| entry.source_label.clone())
-        .unwrap_or_else(|| "a team".to_owned())
+        .unwrap_or_else(|| tr("ui.chat.activity.a_team"))
 }
 
 fn channel_of<'a>(sidebar: &'a Sidebar, conversation_id: &str) -> Option<(&'a str, &'a str)> {
@@ -658,10 +686,17 @@ fn channel_of<'a>(sidebar: &'a Sidebar, conversation_id: &str) -> Option<(&'a st
 
 fn detail(entry: &Entry) -> String {
     match entry.kind {
-        Kind::Reaction if !entry.glyphs.is_empty() => {
-            format!("{} to: {}", entry.glyphs.join(" "), entry.preview)
-        }
-        Kind::MissedCall if entry.count > 1 => format!("{} missed calls", entry.count),
+        Kind::Reaction if !entry.glyphs.is_empty() => tr_with(
+            "ui.chat.activity.reaction_detail",
+            &[
+                ("glyphs", &entry.glyphs.join(" ")),
+                ("preview", &entry.preview),
+            ],
+        ),
+        Kind::MissedCall if entry.count > 1 => tr_with(
+            "ui.chat.activity.missed_calls_count",
+            &[("count", &entry.count.to_string())],
+        ),
         _ => entry.preview.clone(),
     }
 }
@@ -670,7 +705,10 @@ fn conversation_label(sidebar: &Sidebar, conversation_id: &str) -> Option<String
     if let Some(chat) = sidebar.chats.iter().find(|chat| chat.id == conversation_id) {
         return match (is_one_on_one(chat), chat.title.trim().is_empty()) {
             (true, _) => None,
-            (false, true) => Some(format!("Chat with {}", chat_title(chat))),
+            (false, true) => Some(tr_with(
+                "ui.chat.activity.chat_with",
+                &[("title", &chat_title(chat))],
+            )),
             (false, false) => Some(chat_title(chat)),
         };
     }
@@ -682,7 +720,7 @@ fn conversation_label(sidebar: &Sidebar, conversation_id: &str) -> Option<String
     })
 }
 
-fn group_header(label: &'static str) -> Div {
+fn group_header(label: &str) -> Div {
     div()
         .h(px(HEADER_HEIGHT - 4.))
         .mt(px(4.))
@@ -693,7 +731,7 @@ fn group_header(label: &'static str) -> Div {
         .text_size(theme::text_caption())
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme::text_muted())
-        .child(label)
+        .child(label.to_owned())
 }
 
 struct RowText {
@@ -769,7 +807,7 @@ fn location_line(entry: &Entry, sidebar: &Sidebar) -> Option<String> {
 
 enum Slot<'a> {
     Proposals(Vec<PendingProposal>),
-    Header(&'static str),
+    Header(String),
     Row(&'a Entry, RowText),
     Empty,
 }
@@ -849,7 +887,7 @@ impl Render for ActivityPanel {
             slots.push(Slot::Proposals(proposals));
         }
         for section in &sections {
-            slots.push(Slot::Header(section.bucket.label()));
+            slots.push(Slot::Header(tr(section.bucket.label())));
             slots.extend(section.entries.iter().map(|entry| {
                 let text = headline(entry, &state.sidebar, &self.resolved_names);
                 let wraps = headline_wraps(text, text_width, window);
@@ -896,12 +934,12 @@ impl Render for ActivityPanel {
             rows.push(match slot {
                 Slot::Proposals(proposals) => v_flex()
                     .debug_selector(|| ACTIVITY_PROPOSALS_TAG.into())
-                    .child(group_header(PROPOSALS_LABEL))
+                    .child(group_header(&tr(PROPOSALS_LABEL)))
                     .children(proposals.iter().map(|pending| {
                         self.proposal_row(pending, &state.sidebar, today, offset, panel.clone())
                     }))
                     .into_any_element(),
-                Slot::Header(label) => group_header(label).into_any_element(),
+                Slot::Header(label) => group_header(&label).into_any_element(),
                 Slot::Row(entry, text) => self.row(
                     entry,
                     text,
@@ -919,7 +957,7 @@ impl Render for ActivityPanel {
                     .justify_center()
                     .text_size(theme::text_label())
                     .text_color(theme::text_muted())
-                    .child(self.filter.empty_label())
+                    .child(tr(self.filter.empty_label()))
                     .into_any_element(),
             });
         }
@@ -1013,6 +1051,7 @@ mod tests {
 
     #[test]
     fn detail_follows_the_kind() {
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(detail(&entry(Kind::Mention, 1)), "hello");
         assert_eq!(detail(&entry(Kind::Reaction, 1)), "A B to: hello");
         assert_eq!(detail(&entry(Kind::MissedCall, 3)), "3 missed calls");
@@ -1037,6 +1076,7 @@ mod tests {
 
     #[test]
     fn headline_uses_the_teams_activity_texts() {
+        app_base::ui_locale::apply_locale("en");
         let sidebar = Sidebar {
             chats: vec![ChatRecord {
                 id: "chat".into(),

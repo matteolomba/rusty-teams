@@ -2,12 +2,28 @@ use chatsvc::{Occurrence, RecordingDetails, TranscriptTurn};
 use chrono::{DateTime, FixedOffset, NaiveDate, Utc};
 
 use crate::format;
+use crate::ui_locale::{tr, tr_with};
 
-pub const EMPTY_RECAP: &str = "No recording or transcript for this meeting.";
-pub const NO_TRANSCRIPT: &str = "No transcript for this recording.";
-pub const ATTENDANCE_OFF: &str = "Attendance reports are turned off for your organization.";
-pub const ATTENDANCE_FAILED: &str = "Attendance could not be loaded.";
-pub const DELETE_QUESTION: &str = "Delete this recording for everyone?";
+pub fn empty_recap() -> String {
+    tr("ui.settings.recap.empty")
+}
+
+pub fn no_transcript() -> String {
+    tr("ui.settings.recap.no_transcript")
+}
+
+pub fn attendance_off() -> String {
+    tr("ui.settings.recap.attendance_off")
+}
+
+pub fn attendance_failed() -> String {
+    tr("ui.settings.recap.attendance_failed")
+}
+
+pub fn delete_question() -> String {
+    tr("ui.settings.recap.delete_question")
+}
+
 const URGENT_EXPIRY_DAYS: i64 = 7;
 const SECONDS_PER_MINUTE: u64 = 60;
 const SECONDS_PER_HOUR: u64 = 3600;
@@ -36,9 +52,12 @@ pub fn shows_recording(details: &Load<RecordingDetails>) -> bool {
 
 pub fn expiry_label(days: i64) -> String {
     match days {
-        0 => "Expires today".to_owned(),
-        1 => "Expires in 1 day".to_owned(),
-        days => format!("Expires in {days} days"),
+        0 => tr("ui.settings.recap.expires_today"),
+        1 => tr("ui.settings.recap.expires_in_one_day"),
+        days => tr_with(
+            "ui.settings.recap.expires_in_days",
+            &[("days", &days.to_string())],
+        ),
     }
 }
 
@@ -61,10 +80,19 @@ pub fn span_label(seconds: u64) -> String {
     let hours = seconds / SECONDS_PER_HOUR;
     let minutes = seconds % SECONDS_PER_HOUR / SECONDS_PER_MINUTE;
     match (hours, minutes) {
-        (0, 0) => "< 1 min".to_owned(),
-        (0, minutes) => format!("{minutes} min"),
-        (hours, 0) => format!("{hours} h"),
-        (hours, minutes) => format!("{hours} h {minutes} min"),
+        (0, 0) => tr("ui.settings.recap.under_one_minute"),
+        (0, minutes) => tr_with(
+            "ui.settings.recap.minutes",
+            &[("minutes", &minutes.to_string())],
+        ),
+        (hours, 0) => tr_with("ui.settings.recap.hours", &[("hours", &hours.to_string())]),
+        (hours, minutes) => tr_with(
+            "ui.settings.recap.hours_minutes",
+            &[
+                ("hours", &hours.to_string()),
+                ("minutes", &minutes.to_string()),
+            ],
+        ),
     }
 }
 
@@ -206,9 +234,12 @@ mod tests {
 
     #[test]
     fn expiry_wording_and_urgency() {
-        assert_eq!(expiry_label(0), "Expires today");
-        assert_eq!(expiry_label(1), "Expires in 1 day");
-        assert_eq!(expiry_label(42), "Expires in 42 days");
+        assert_eq!(expiry_label(0), tr("ui.settings.recap.expires_today"));
+        assert_eq!(expiry_label(1), tr("ui.settings.recap.expires_in_one_day"));
+        assert_eq!(
+            expiry_label(42),
+            tr_with("ui.settings.recap.expires_in_days", &[("days", "42")])
+        );
         assert!(expiry_is_urgent(6));
         assert!(!expiry_is_urgent(7));
     }
@@ -217,10 +248,22 @@ mod tests {
     fn clocks_and_spans() {
         assert_eq!(clock_label(1832), "30:32");
         assert_eq!(clock_label(3723), "1:02:03");
-        assert_eq!(span_label(20), "< 1 min");
-        assert_eq!(span_label(1500), "25 min");
-        assert_eq!(span_label(3600), "1 h");
-        assert_eq!(span_label(3900), "1 h 5 min");
+        assert_eq!(span_label(20), tr("ui.settings.recap.under_one_minute"));
+        assert_eq!(
+            span_label(1500),
+            tr_with("ui.settings.recap.minutes", &[("minutes", "25")])
+        );
+        assert_eq!(
+            span_label(3600),
+            tr_with("ui.settings.recap.hours", &[("hours", "1")])
+        );
+        assert_eq!(
+            span_label(3900),
+            tr_with(
+                "ui.settings.recap.hours_minutes",
+                &[("hours", "1"), ("minutes", "5")]
+            )
+        );
     }
 
     #[test]

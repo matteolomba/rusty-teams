@@ -12,6 +12,7 @@ use crate::delivery_options::{
     DeliveryOption, URGENT_TOO_MANY_MEMBERS, UrgentAvailability, allowed_importance,
     delivery_options, urgent_banner,
 };
+use crate::i18n::tr;
 use crate::importance::importance_label;
 use crate::theme::{self, ElevatedSurface as _};
 use crate::views::widgets::symbol;
@@ -235,7 +236,9 @@ impl Composer {
                         .rounded(px(6.))
                         .cursor_pointer()
                         .hover(|button| button.bg(theme::red().opacity(BANNER_TINT)))
-                        .tooltip(|window, cx| Tooltip::new("Send as standard").build(window, cx))
+                        .tooltip(|window, cx| {
+                            Tooltip::new(tr("ui.chat.delivery.send_as_standard")).build(window, cx)
+                        })
                         .child(symbol("close", BANNER_ICON_SIZE, theme::red_tint()))
                         .on_click(cx.listener(|this, _, window, cx| {
                             this.choose_importance(MessageImportance::Normal, window, cx)

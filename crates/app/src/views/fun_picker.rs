@@ -2,6 +2,7 @@ use crate::views::image_memory::bounded;
 use std::rc::Rc;
 use std::time::Duration;
 
+use app_base::ui_locale::tr_with;
 use gpui_kit::base::PopoverState;
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::{
@@ -18,6 +19,7 @@ use crate::app_state::AppState;
 use crate::emoji;
 use crate::emoticons;
 use crate::gifs::{self, GifError};
+use crate::i18n::tr;
 use crate::remote_image::{RemoteImage, image_source};
 use crate::stickers::{self, Sticker};
 use crate::theme;
@@ -40,7 +42,7 @@ const GIF_MAX_HEIGHT: f32 = 200.;
 const GIF_PLACEHOLDER_HEIGHTS: [f32; 9] = [90., 70., 110., 80., 100., 70., 100., 90., 80.];
 const STICKER_COLUMNS: usize = 4;
 const STICKER_GAP: f32 = 6.;
-const POPULAR_LABEL: &str = "Beliebt";
+
 const TILE_RADIUS: f32 = 6.;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -65,19 +67,19 @@ impl Tab {
         Tab::ALL.into_iter().find(|tab| tab.key() == key)
     }
 
-    fn label(self) -> &'static str {
+    fn label(self) -> String {
         match self {
-            Tab::Emoji => "Emoji",
-            Tab::Gif => "GIF",
-            Tab::Sticker => "Sticker",
+            Tab::Emoji => tr("ui.misc.emoji"),
+            Tab::Gif => "GIF".to_owned(),
+            Tab::Sticker => tr("ui.misc.sticker"),
         }
     }
 
-    fn placeholder(self) -> &'static str {
+    fn placeholder(self) -> String {
         match self {
-            Tab::Emoji => "Emoji suchen",
-            Tab::Gif => "GIFs suchen",
-            Tab::Sticker => "Sticker suchen",
+            Tab::Emoji => tr("ui.misc.search_emoji"),
+            Tab::Gif => tr("ui.misc.search_gifs"),
+            Tab::Sticker => tr("ui.misc.search_stickers"),
         }
     }
 }
@@ -96,7 +98,7 @@ enum GifState {
 }
 
 enum EmojiRow {
-    Header(&'static str),
+    Header(String),
     Cells(Vec<String>),
 }
 
@@ -143,10 +145,10 @@ fn emoji_rows(query: &str, recent: &[String]) -> Vec<EmojiRow> {
     }
     let mut rows = Vec::new();
     if !recent.is_empty() {
-        rows.push(EmojiRow::Header("Zuletzt verwendet"));
+        rows.push(EmojiRow::Header(tr("ui.misc.recently_used")));
         rows.extend(chunked(recent.to_vec()));
     }
-    rows.push(EmojiRow::Header("Alle Emojis"));
+    rows.push(EmojiRow::Header(tr("ui.misc.all_emojis")));
     rows.extend(chunked(emoji::glyphs().map(str::to_owned).collect()));
     rows
 }
@@ -448,7 +450,7 @@ impl FunPicker {
                     .pb(px(4.))
                     .text_size(theme::text_caption())
                     .text_color(theme::text_muted())
-                    .child(*title)
+                    .child(title.clone())
                     .into_any_element();
             }
             EmojiRow::Cells(glyphs) => glyphs,
@@ -494,7 +496,8 @@ impl FunPicker {
 
     fn render_emoji(&self, cx: &mut Context<Self>) -> AnyElement {
         if self.emoji_rows.is_empty() {
-            return Self::message(format!("Keine Emojis zu \"{}\"", self.query)).into_any_element();
+            return Self::message(tr_with("ui.misc.no_emojis_for", &[("query", &self.query)]))
+                .into_any_element();
         }
         uniform_list(
             "fun-picker-emoji-list",
@@ -573,9 +576,9 @@ impl FunPicker {
             }
             GifState::Ready(found) if found.is_empty() => {
                 let text = if self.query.is_empty() {
-                    "Keine GIFs gefunden".to_owned()
+                    tr("ui.misc.no_gifs_found")
                 } else {
-                    format!("Keine GIFs zu \"{}\"", self.query)
+                    tr_with("ui.misc.no_gifs_for", &[("query", &self.query)])
                 };
                 return Self::message(text).into_any_element();
             }
@@ -595,7 +598,7 @@ impl FunPicker {
                 )
             }
             GifState::Failed => {
-                return Self::message("GIFs konnten nicht geladen werden.".to_owned())
+                return Self::message(tr("ui.misc.gifs_load_failed"))
                     .child(
                         div()
                             .id("fun-picker-gif-retry")
@@ -608,14 +611,13 @@ impl FunPicker {
                             .text_color(theme::text())
                             .cursor_pointer()
                             .hover(|button| button.bg(theme::border_strong()))
-                            .child("Erneut versuchen")
+                            .child(tr("ui.misc.retry"))
                             .on_click(cx.listener(|this, _, _, cx| this.refresh(false, cx))),
                     )
                     .into_any_element();
             }
             GifState::Disabled => {
-                return Self::message("GIFs sind in deiner Organisation deaktiviert.".to_owned())
-                    .into_any_element();
+                return Self::message(tr("ui.misc.gifs_disabled_by_org")).into_any_element();
             }
         };
         div()
@@ -660,7 +662,7 @@ impl FunPicker {
 
     fn chip_button(&self, chip: StickerChip, cx: &mut Context<Self>) -> Stateful<Div> {
         let (label, id) = match chip {
-            StickerChip::Popular => (POPULAR_LABEL.to_owned(), "popular"),
+            StickerChip::Popular => (tr("ui.misc.popular"), "popular"),
             StickerChip::Category(category) => (stickers::category_label(category), category),
         };
         let selected = self.query.is_empty() && chip == self.chip;
@@ -699,7 +701,11 @@ impl FunPicker {
             .map(|chip| self.chip_button(chip, cx))
             .collect::<Vec<_>>();
         let grid = if self.sticker_rows.is_empty() {
-            Self::message(format!("Keine Sticker zu \"{}\"", self.query)).into_any_element()
+            Self::message(tr_with(
+                "ui.misc.no_stickers_for",
+                &[("query", &self.query)],
+            ))
+            .into_any_element()
         } else {
             uniform_list(
                 "fun-picker-sticker-list",
@@ -765,6 +771,7 @@ impl Render for FunPicker {
 #[cfg(test)]
 mod tests {
     use super::{EmojiRow, STICKER_COLUMNS, StickerChip, Tab, emoji_rows, masonry, sticker_rows};
+    use crate::i18n::tr;
 
     #[test]
     fn tabs_round_trip_through_their_keys() {
@@ -784,7 +791,9 @@ mod tests {
     fn emoji_rows_lead_with_recent_and_filter_by_query() {
         let recent = vec!["\u{1F44D}".to_owned()];
         let rows = emoji_rows("", &recent);
-        assert!(matches!(rows[0], EmojiRow::Header("Zuletzt verwendet")));
+        assert!(
+            matches!(rows[0], EmojiRow::Header(ref text) if text == &tr("ui.misc.recently_used"))
+        );
         assert!(matches!(&rows[1], EmojiRow::Cells(cells) if cells == &recent));
         let found = emoji_rows("thumbs", &recent);
         assert!(!found.is_empty());

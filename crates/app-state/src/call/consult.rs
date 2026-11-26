@@ -38,7 +38,7 @@ impl AppState {
             })
         };
         let Some(handle) = handle else {
-            self.raise_notice("Not connected to Teams yet".to_owned(), None, cx);
+            self.raise_notice("calls.notice.not_connected".to_owned(), None, cx);
             return;
         };
         self.begin_consult(target, handle, cx);

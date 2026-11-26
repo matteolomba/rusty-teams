@@ -10,6 +10,7 @@ pub mod agents;
 pub mod call;
 mod i18n;
 mod inline_video;
+mod labels;
 #[cfg(test)]
 mod layout_guard;
 #[cfg(any(target_os = "linux", target_os = "macos"))]

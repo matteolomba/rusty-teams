@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::time::Duration;
 
+use app_base::ui_locale::localize_notice;
 use gpui_kit::*;
 
 use crate::app_state::AppState;
@@ -17,9 +18,12 @@ pub struct NoticeAction {
 }
 
 impl NoticeAction {
-    pub fn new(label: &str, run: impl Fn(&mut AppState, &mut Context<AppState>) + 'static) -> Self {
+    pub fn new(
+        label: impl Into<String>,
+        run: impl Fn(&mut AppState, &mut Context<AppState>) + 'static,
+    ) -> Self {
         NoticeAction {
-            label: label.to_owned(),
+            label: localize_notice(&label.into()),
             run: Rc::new(run),
         }
     }
@@ -60,6 +64,7 @@ impl AppState {
     ) {
         self.notice_count += 1;
         let id = self.notice_count;
+        let text = localize_notice(&text);
         self.notice = Some(Notice { id, text, action });
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(NOTICE_DURATION).await;

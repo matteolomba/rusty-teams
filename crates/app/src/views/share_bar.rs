@@ -6,6 +6,7 @@ use gpui_kit::*;
 use super::call_view::{camera_button, mute_button, round_control};
 use crate::app_state::AppState;
 use crate::call::CallWindows;
+use crate::i18n::tr;
 use crate::theme;
 
 const BUTTON_SIZE: f32 = 26.;
@@ -49,7 +50,7 @@ fn stop_button(app: &Entity<AppState>) -> Stateful<Div> {
         .font_weight(FontWeight::SEMIBOLD)
         .cursor_pointer()
         .hover(|button| button.opacity(0.85))
-        .child("Stop sharing")
+        .child(tr("calls.chrome.stop_sharing"))
         .on_click(move |_, _, cx| app.update(cx, |state, cx| state.stop_call_share(cx)))
 }
 
@@ -65,11 +66,9 @@ fn sound_button(app: &Entity<AppState>, active: bool, wanted: bool) -> Stateful<
         (IconName::VolumeOff, theme::surface(), theme::text())
     };
     let label = if active {
-        "Sound on"
-    } else if wanted {
-        "Sound off"
+        tr("ui.calls.share.sound_on")
     } else {
-        "Sound off"
+        tr("ui.calls.share.sound_off")
     };
     h_flex()
         .id("share-bar-sound")
@@ -89,11 +88,11 @@ fn sound_button(app: &Entity<AppState>, active: bool, wanted: bool) -> Stateful<
         .child(label)
         .tooltip(move |window, cx| {
             Tooltip::new(if active {
-                "Computer sound is being shared. Click to turn it off."
+                tr("ui.calls.share.sound_tip_active")
             } else if wanted {
-                "Computer sound is not being shared. The call could not start it. Click to try again."
+                tr("ui.calls.share.sound_tip_failed")
             } else {
-                "Computer sound is not being shared. Click to include it."
+                tr("ui.calls.share.sound_tip_off")
             })
             .build(window, cx)
         })
@@ -113,9 +112,9 @@ fn pin_button(windows: &Entity<CallWindows>, pinned: bool) -> Stateful<Div> {
         .size(px(BUTTON_SIZE))
         .tooltip(move |window, cx| {
             Tooltip::new(if pinned {
-                "Unpin the bar"
+                tr("ui.calls.share.unpin_bar")
             } else {
-                "Keep the bar visible"
+                tr("ui.calls.share.keep_visible")
             })
             .build(window, cx)
         })

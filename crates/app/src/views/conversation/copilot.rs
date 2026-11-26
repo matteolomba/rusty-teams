@@ -9,16 +9,18 @@ use gpui_kit::*;
 use super::ConversationView;
 use crate::agents::message_context;
 use crate::app_state::Selection;
+use crate::i18n::tr;
 use crate::render::{layout_card_blocks, render_blocks};
 use crate::runtime;
 use crate::theme;
 use crate::views::scroll_edge::with_top_edge;
 use crate::views::widgets::symbol;
+use app_base::ui_locale::tr_with;
 
 pub const COPILOT_PANE_TAG: &str = "shell/islands/copilot";
 const COPILOT_SCROLL_DIVIDER: &str = "shell/islands/copilot/divider-scroll";
 const COPILOT_NAME: &str = "Copilot";
-const GREETING: &str = "Hi, how can I help?";
+const GREETING: &str = "ui.chat.copilot.greeting";
 const LOGO_ASSET: &str = "symbols/copilot_color.svg";
 const LOCAL_ICON: &str = "smart_toy";
 const LOGO_BUTTON: f32 = 18.;
@@ -27,9 +29,9 @@ const INPUT_MIN_HEIGHT: f32 = 72.;
 const INPUT_RADIUS: f32 = 12.;
 const CHIP_RADIUS: f32 = 8.;
 const SUGGESTIONS: [&str; 3] = [
-    "Summarize this chat",
-    "What are open items?",
-    "What decisions were made?",
+    "ui.chat.copilot.suggestion_summarize",
+    "ui.chat.copilot.suggestion_open_items",
+    "ui.chat.copilot.suggestion_decisions",
 ];
 const PANE_WIDTH: f32 = 400.;
 const ISLAND_RADIUS: f32 = 10.;
@@ -71,9 +73,9 @@ impl ConversationView {
     pub(super) fn copilot_label(&self, cx: &App) -> String {
         let name = writer_display_name(cx);
         if self.copilot.open {
-            format!("Close {name}")
+            tr_with("ui.chat.copilot.close", &[("name", &name)])
         } else {
-            format!("Open {name}")
+            tr_with("ui.chat.copilot.open", &[("name", &name)])
         }
     }
 
@@ -98,7 +100,10 @@ impl ConversationView {
     pub(super) fn toggle_copilot(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.copilot.open = !self.copilot.open;
         if self.copilot.open && self.copilot.input.is_none() {
-            let placeholder = format!("Message {}", writer_display_name(cx));
+            let placeholder = tr_with(
+                "ui.chat.copilot.message_named",
+                &[("name", &writer_display_name(cx))],
+            );
             let input = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
             let subscription = cx.subscribe_in(
                 &input,
@@ -264,6 +269,7 @@ impl ConversationView {
                     .w_full()
                     .gap(px(8.))
                     .children(SUGGESTIONS.iter().enumerate().map(|(index, prompt)| {
+                        let prompt_text = tr(prompt);
                         div()
                             .id(("copilot-suggestion", index))
                             .w_full()
@@ -276,9 +282,9 @@ impl ConversationView {
                             .text_color(theme::text())
                             .cursor_pointer()
                             .hover(|chip| chip.bg(theme::row_hover()))
-                            .child(*prompt)
+                            .child(prompt_text.clone())
                             .on_click(cx.listener(move |this, _, _, cx| {
-                                this.ask_copilot((*prompt).to_owned(), cx)
+                                this.ask_copilot(prompt_text.clone(), cx)
                             }))
                     }));
             v_flex()
@@ -293,7 +299,7 @@ impl ConversationView {
                         .px(px(4.))
                         .text_size(px(24.))
                         .text_color(theme::text())
-                        .child(GREETING),
+                        .child(tr(GREETING)),
                 )
                 .children(input_box)
                 .child(suggestions)
@@ -374,7 +380,10 @@ impl ConversationView {
                                         .ghost()
                                         .size(px(BUTTON_SIZE))
                                         .rounded(px(8.))
-                                        .tooltip(format!("Close {}", writer_display_name(cx)))
+                                        .tooltip(tr_with(
+                                            "ui.chat.copilot.close",
+                                            &[("name", &writer_display_name(cx))],
+                                        ))
                                         .on_click(cx.listener(|this, _, _, cx| {
                                             this.copilot.open = false;
                                             cx.notify();
@@ -395,15 +404,15 @@ fn writer_display_name(cx: &App) -> String {
 }
 
 fn working_message(name: &str) -> String {
-    format!("{name} is reading the chat ...")
+    tr_with("ui.chat.copilot.reading", &[("name", name)])
 }
 
 fn failed_answer(name: &str) -> String {
-    format!("{name} could not answer:")
+    tr_with("ui.chat.copilot.failed", &[("name", name)])
 }
 
 fn unavailable_message(name: &str) -> String {
-    format!("{name} needs a signed-in account.")
+    tr_with("ui.chat.copilot.unavailable", &[("name", name)])
 }
 
 fn identity_mark(local: bool, size: f32, color: Hsla) -> AnyElement {

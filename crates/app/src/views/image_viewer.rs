@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
+use app_base::ui_locale::tr_with;
 use gpui_kit::component::{h_flex, tooltip::Tooltip, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
@@ -16,6 +17,7 @@ use super::shortcuts::{ZoomIn, ZoomOut, ZoomReset};
 use super::widgets::symbol;
 use crate::app_state::AppState;
 use crate::downloads;
+use crate::i18n::tr;
 use crate::image_clipboard::ClipboardImage;
 use crate::image_view_gallery::{GalleryItem, ViewerRequest};
 use crate::image_view_math::{
@@ -195,7 +197,7 @@ fn control_button(
                 .hover(|button| button.bg(white().opacity(0.12)))
         })
         .when(!enabled, |button| button.opacity(DISABLED_OPACITY))
-        .tooltip(move |window, cx| Tooltip::new(tooltip).build(window, cx))
+        .tooltip(move |window, cx| Tooltip::new(tr(tooltip)).build(window, cx))
         .child(symbol(glyph, BUTTON_ICON_SIZE, white()))
         .on_click(move |event, window, cx| {
             cx.stop_propagation();
@@ -553,7 +555,7 @@ impl ImageViewer {
                     }
                     None => {
                         this.quarter_turns = 0;
-                        this.show_notice("Could not rotate", cx);
+                        this.show_notice(tr("ui.misc.could_not_rotate"), cx);
                     }
                 }
                 cx.notify();
@@ -598,7 +600,7 @@ impl ImageViewer {
             return;
         };
         if self.rotation_pending() {
-            self.show_notice("Rotating", cx);
+            self.show_notice(tr("ui.misc.rotating"), cx);
             return;
         }
         let quarter_turns = self.quarter_turns;
@@ -610,13 +612,13 @@ impl ImageViewer {
             this.update(cx, |this, cx| match item {
                 Some(image) => {
                     image.write(cx);
-                    this.show_notice("Image copied", cx);
+                    this.show_notice(tr("ui.misc.image_copied"), cx);
                 }
                 None => {
                     cx.write_to_clipboard(ClipboardItem::new_string(
                         fallback.display().to_string(),
                     ));
-                    this.show_notice("Copied file path", cx);
+                    this.show_notice(tr("ui.misc.copied_file_path"), cx);
                 }
             })
             .ok();
@@ -629,7 +631,7 @@ impl ImageViewer {
             return;
         };
         if self.rotation_pending() {
-            self.show_notice("Rotating", cx);
+            self.show_notice(tr("ui.misc.rotating"), cx);
             return;
         }
         let quarter_turns = self.quarter_turns;
@@ -657,9 +659,9 @@ impl ImageViewer {
                         .file_name()
                         .map(|name| name.to_string_lossy().into_owned())
                         .unwrap_or_default();
-                    this.show_notice(format!("Saved {name}"), cx)
+                    this.show_notice(tr_with("ui.misc.saved_file", &[("name", &name)]), cx)
                 }
-                Err(_) => this.show_notice("Could not save the image", cx),
+                Err(_) => this.show_notice(tr("ui.misc.could_not_save_image"), cx),
             })
             .ok();
         })
@@ -672,7 +674,7 @@ impl ImageViewer {
         };
         let message_key = item.message_key.clone();
         if self.app.read(cx).mode.read_only {
-            self.show_notice("Read-only mode: message not forwarded", cx);
+            self.show_notice(tr("ui.misc.read_only_not_forwarded"), cx);
             return;
         }
         let conversation_id = self.conversation_id.clone();
@@ -769,7 +771,7 @@ impl ImageViewer {
                     .child(control_button(
                         "viewer-zoom-out",
                         "zoom_out",
-                        "Zoom out (Ctrl -)",
+                        "ui.misc.zoom_out_shortcut",
                         can_zoom_out,
                         cx.listener(|this, _, window, cx| this.zoom_step(-1, window, cx)),
                     ))
@@ -785,56 +787,56 @@ impl ImageViewer {
                     .child(control_button(
                         "viewer-zoom-in",
                         "zoom_in",
-                        "Zoom in (Ctrl +)",
+                        "ui.misc.zoom_in_shortcut",
                         can_zoom_in,
                         cx.listener(|this, _, window, cx| this.zoom_step(1, window, cx)),
                     ))
                     .child(control_button(
                         "viewer-rotate",
                         "rotate_right",
-                        "Rotate (R)",
+                        "ui.misc.rotate_shortcut",
                         loaded,
                         cx.listener(|this, _, window, cx| this.rotate(window, cx)),
                     ))
                     .child(control_button(
                         "viewer-copy",
                         "content_copy",
-                        "Copy image (Ctrl C)",
+                        "ui.misc.copy_image_shortcut",
                         loaded,
                         cx.listener(|this, _, _, cx| this.copy_image(cx)),
                     ))
                     .child(control_button(
                         "viewer-save",
                         "download",
-                        "Save as (Ctrl S)",
+                        "ui.misc.save_as_shortcut",
                         loaded,
                         cx.listener(|this, _, _, cx| this.save_as(cx)),
                     ))
                     .child(control_button(
                         "viewer-forward",
                         "forward",
-                        "Forward",
+                        "ui.misc.forward",
                         true,
                         cx.listener(|this, _, _, cx| this.forward(cx)),
                     ))
                     .child(control_button(
                         "viewer-fullscreen",
                         "fullscreen",
-                        "Full screen (F11)",
+                        "ui.misc.full_screen_shortcut",
                         true,
                         cx.listener(|this, _, window, _| this.toggle_fullscreen(window)),
                     ))
                     .child(control_button(
                         "viewer-open",
                         "open_in_new",
-                        "Open in Photos",
+                        "ui.misc.open_in_photos",
                         loaded,
                         cx.listener(|this, _, _, cx| this.open_externally(cx)),
                     ))
                     .child(control_button(
                         "viewer-close",
                         "close",
-                        "Close (Esc)",
+                        "ui.misc.close_shortcut",
                         true,
                         cx.listener(|_, _, _, cx| cx.emit(ImageViewerEvent::Close)),
                     )),
@@ -1017,7 +1019,7 @@ impl ImageViewer {
     }
 }
 
-fn status_placeholder(text: &'static str) -> AnyElement {
+fn status_placeholder(text: String) -> AnyElement {
     v_flex()
         .size_full()
         .gap(px(6.))
@@ -1034,7 +1036,7 @@ fn status_placeholder(text: &'static str) -> AnyElement {
 }
 
 fn loading_placeholder() -> AnyElement {
-    status_placeholder("Loading image")
+    status_placeholder(tr("ui.misc.loading_image"))
 }
 
 impl Render for ImageViewer {
@@ -1046,7 +1048,7 @@ impl Render for ImageViewer {
         let has_next = self.index + 1 < self.items.len();
         let picture = match layout {
             Some(layout) => self.picture(layout, cx),
-            None if self.current_failed(cx) => status_placeholder("Image unavailable"),
+            None if self.current_failed(cx) => status_placeholder(tr("ui.misc.image_unavailable")),
             None => loading_placeholder(),
         };
         let header = self.header(layout, cx);

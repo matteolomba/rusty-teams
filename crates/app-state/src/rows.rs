@@ -26,6 +26,7 @@ use crate::reaction_model::{Reactor, UNKNOWN_REACTOR};
 use crate::render::blocks::{Inline, strip_image_placeholders};
 use crate::render::{Block, layout_blocks};
 use crate::translation::{TranslationContext, TranslationLine};
+use app_base::ui_locale::{tr, tr_with};
 
 const POST_VISIBLE_REPLIES: usize = 3;
 
@@ -138,19 +139,22 @@ pub enum Receipt {
 
 pub fn receipt_label(state: &teams_core::ReceiptState) -> Option<String> {
     match state {
-        teams_core::ReceiptState::Sent => Some("Sent".to_owned()),
+        teams_core::ReceiptState::Sent => Some(tr("ui.chat.conversation.receipt_sent")),
         teams_core::ReceiptState::Read {
             readers,
             total_others,
         } if *total_others > 1 => {
             if readers.len() >= *total_others {
-                Some("Seen by everyone".to_owned())
+                Some(tr("ui.chat.conversation.receipt_seen_all"))
             } else {
                 let names: Vec<&str> = readers.iter().map(|reader| reader.name.as_str()).collect();
-                Some(format!("Seen by {}", names.join(", ")))
+                Some(tr_with(
+                    "ui.chat.conversation.receipt_seen_by",
+                    &[("names", &names.join(", "))],
+                ))
             }
         }
-        teams_core::ReceiptState::Read { .. } => Some("Seen".to_owned()),
+        teams_core::ReceiptState::Read { .. } => Some(tr("ui.chat.conversation.receipt_seen")),
         teams_core::ReceiptState::Unknown => None,
     }
 }
@@ -1269,6 +1273,7 @@ mod tests {
 
     #[test]
     fn the_receipt_label_names_who_saw_a_group_message() {
+        app_base::ui_locale::apply_locale("en");
         let reader = |name: &str| teams_core::ReceiptReader {
             name: name.into(),
             at: Utc::now(),

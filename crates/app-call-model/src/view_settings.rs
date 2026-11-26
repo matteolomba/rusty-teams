@@ -16,12 +16,12 @@ pub enum CallLayout {
 }
 
 impl CallLayout {
-    pub fn label(self) -> &'static str {
-        match self {
-            CallLayout::Gallery => "Gallery",
-            CallLayout::Speaker => "Speaker",
-            CallLayout::Content => "Focus on content",
-        }
+    pub fn label(self) -> String {
+        app_base::ui_locale::tr(match self {
+            CallLayout::Gallery => "ui.calls.layout.gallery",
+            CallLayout::Speaker => "ui.calls.layout.speaker",
+            CallLayout::Content => "ui.calls.layout.content",
+        })
     }
 
     fn meta(self) -> &'static str {

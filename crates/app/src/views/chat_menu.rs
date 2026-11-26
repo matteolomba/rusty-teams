@@ -14,6 +14,7 @@ use crate::i18n::tr;
 use crate::notice::truncated;
 use crate::presence_follow::{NOTIFY_WHEN_AVAILABLE, TURN_OFF_NOTIFICATIONS};
 use crate::theme;
+use app_base::ui_locale::tr_with;
 
 const GROUP_KIND: &str = "group";
 
@@ -80,9 +81,9 @@ pub(crate) fn chat_menu(
     let notes = is_notes_chat(&target.id);
     popup = popup.item(
         PopupMenuItem::new(if unread {
-            "Mark as read"
+            tr("ui.chat.menu.mark_read")
         } else {
-            "Mark as unread"
+            tr("ui.chat.menu.mark_unread")
         })
         .icon(menu_icon(if unread {
             IconName::MailOpen
@@ -111,7 +112,7 @@ pub(crate) fn chat_menu(
         let move_id = target.id.clone();
         popup = popup.submenu_with_icon(
             Some(menu_icon(IconName::Folder)),
-            "Move to section",
+            tr("ui.chat.menu.move_to_section"),
             window,
             cx,
             move |submenu, _, _| {
@@ -131,14 +132,14 @@ pub(crate) fn chat_menu(
         let remove_state = context.state.clone();
         let remove_id = target.id.clone();
         popup = popup.item(
-            PopupMenuItem::new("Remove from section")
+            PopupMenuItem::new(tr("ui.chat.menu.remove_from_section"))
                 .icon(menu_icon(IconName::FolderMinus))
                 .on_click(move |_, _, cx| {
                     remove_state.update(cx, |state, cx| state.move_chat(&remove_id, None, cx));
                 }),
         );
     }
-    let hide_item = PopupMenuItem::new("Hide")
+    let hide_item = PopupMenuItem::new(tr("ui.chat.menu.hide"))
         .icon(menu_icon(IconName::EyeOff))
         .on_click(move |_, _, cx| {
             hide_state.update(cx, |state, cx| state.hide_chat(&hide_id, cx));
@@ -150,15 +151,19 @@ pub(crate) fn chat_menu(
             .item(hide_item);
     }
     popup = popup.item(
-        PopupMenuItem::new(if muted { "Unmute" } else { "Mute" })
-            .icon(menu_icon(if muted {
-                IconName::Bell
-            } else {
-                IconName::BellOff
-            }))
-            .on_click(move |_, _, cx| {
-                mute_state.update(cx, |state, cx| state.set_chat_muted(&mute_id, !muted, cx));
-            }),
+        PopupMenuItem::new(if muted {
+            tr("ui.chat.menu.unmute")
+        } else {
+            tr("ui.chat.menu.mute")
+        })
+        .icon(menu_icon(if muted {
+            IconName::Bell
+        } else {
+            IconName::BellOff
+        }))
+        .on_click(move |_, _, cx| {
+            mute_state.update(cx, |state, cx| state.set_chat_muted(&mute_id, !muted, cx));
+        }),
     );
     popup = chat_notifications_submenu(popup, window, cx, context, target);
     let partner = (!target.is_group)
@@ -172,9 +177,9 @@ pub(crate) fn chat_menu(
             .is_presence_followed(&partner.user_id);
         popup = popup.item(
             PopupMenuItem::new(if follow {
-                NOTIFY_WHEN_AVAILABLE
+                tr(NOTIFY_WHEN_AVAILABLE)
             } else {
-                TURN_OFF_NOTIFICATIONS
+                tr(TURN_OFF_NOTIFICATIONS)
             })
             .icon(menu_icon(if follow {
                 IconName::BellRing
@@ -191,12 +196,12 @@ pub(crate) fn chat_menu(
     let (link_state, link_id) = (context.state.clone(), target.id.clone());
     popup = popup
         .item(
-            PopupMenuItem::new("Copy link")
+            PopupMenuItem::new(tr("ui.chat.menu.copy_link"))
                 .icon(menu_icon(IconName::Link))
                 .on_click(move |_, _, cx| {
                     cx.write_to_clipboard(ClipboardItem::new_string(chat_link(&link_id)));
                     link_state.update(cx, |state, cx| {
-                        state.raise_notice("Link copied".to_owned(), None, cx)
+                        state.raise_notice(tr("ui.chat.menu.link_copied"), None, cx)
                     });
                 }),
         )
@@ -207,7 +212,7 @@ pub(crate) fn chat_menu(
         let remove_state = context.state.clone();
         let remove_id = target.id.clone();
         popup = popup.item(
-            PopupMenuItem::new(REMOVE_HISTORY_LABEL)
+            PopupMenuItem::new(tr(REMOVE_HISTORY_LABEL))
                 .icon(menu_icon(IconName::Trash))
                 .on_click(move |_, window, cx| {
                     confirm_remove_history(&remove_state, &remove_id, window, cx);
@@ -221,7 +226,9 @@ pub(crate) fn chat_menu(
         let member_count = target.member_count;
         popup = popup.item(
             PopupMenuItem::element(|_, _| {
-                div().text_color(theme::red_soft()).child("Leave chat...")
+                div()
+                    .text_color(theme::red_soft())
+                    .child(tr("ui.chat.menu.leave_chat"))
             })
             .icon(menu_icon(IconName::LogOut).text_color(theme::red_soft()))
             .on_click(move |_, window, cx| {
@@ -234,22 +241,25 @@ pub(crate) fn chat_menu(
 
 fn pop_out_item(context: &MenuContext, target: &ChatMenuTarget) -> PopupMenuItem {
     let (state, chat_id) = (context.state.clone(), target.id.clone());
-    PopupMenuItem::new(chat_pop_out::POP_OUT_CHAT_LABEL)
+    PopupMenuItem::new(tr(chat_pop_out::POP_OUT_CHAT_LABEL))
         .icon(menu_icon(IconName::ExternalLink))
         .on_click(move |_, _, cx| chat_pop_out::pop_out_chat(&state, &chat_id, cx))
 }
 
 const CHAT_NOTIFICATION_MODES: [(&str, ChatNotificationMode); 2] = [
-    ("All new messages", ChatNotificationMode::AllNewMessages),
-    ("Mute", ChatNotificationMode::Mute),
+    (
+        "ui.chat.menu.notify_all",
+        ChatNotificationMode::AllNewMessages,
+    ),
+    ("ui.chat.menu.mute", ChatNotificationMode::Mute),
 ];
 
 const DESKTOP_NOTIFICATIONS: [(&str, DesktopNotifications); 2] = [
     (
-        "Match settings used for all chats",
+        "ui.chat.menu.desktop_match_all",
         DesktopNotifications::MatchAllChats,
     ),
-    ("Don't get desktop notifications", DesktopNotifications::Off),
+    ("ui.chat.menu.desktop_off", DesktopNotifications::Off),
 ];
 
 fn chat_notifications_submenu(
@@ -269,7 +279,7 @@ fn chat_notifications_submenu(
     let desktop = state.read(cx).chat_desktop_notifications(&chat_id);
     popup.submenu_with_icon(
         Some(menu_icon(IconName::Bell)),
-        "Manage notifications",
+        tr("ui.chat.menu.manage_notifications"),
         window,
         cx,
         move |submenu, _, _| {
@@ -282,25 +292,25 @@ fn chat_notifications_submenu(
                     });
                 }
             };
-            let submenu = submenu.label("Chat notification mode");
+            let submenu = submenu.label(tr("ui.chat.menu.notification_mode"));
             let submenu =
                 CHAT_NOTIFICATION_MODES
                     .iter()
                     .fold(submenu, |submenu, (label, value)| {
                         submenu.item(
-                            PopupMenuItem::new(*label)
+                            PopupMenuItem::new(tr(label))
                                 .checked(*value == mode)
                                 .on_click(choose(*value, desktop)),
                         )
                     });
             let submenu = submenu
                 .separator()
-                .label("Set a desktop notification preference");
+                .label(tr("ui.chat.menu.desktop_preference"));
             DESKTOP_NOTIFICATIONS
                 .iter()
                 .fold(submenu, |submenu, (label, value)| {
                     submenu.item(
-                        PopupMenuItem::new(*label)
+                        PopupMenuItem::new(tr(label))
                             .checked(*value == desktop)
                             .on_click(choose(mode, *value)),
                     )
@@ -310,19 +320,19 @@ fn chat_notifications_submenu(
 }
 
 pub(crate) fn leave_description(member_count: usize) -> String {
-    let who = match member_count {
-        0 | 1 => "The other members".to_owned(),
-        2 => "The other member".to_owned(),
-        count => format!("The {} other members", count - 1),
-    };
-    let verb = if member_count == 2 { "sees" } else { "see" };
-    format!("{who} {verb} that you left. You can only come back if someone adds you.")
+    match member_count {
+        0 | 1 => tr("ui.chat.leave.other_members"),
+        2 => tr("ui.chat.leave.other_member"),
+        count => tr_with(
+            "ui.chat.leave.other_members_count",
+            &[("count", &(count - 1).to_string())],
+        ),
+    }
 }
 
-const REMOVE_HISTORY_LABEL: &str = "Remove chat history";
-const REMOVE_HISTORY_TITLE: &str = "Remove chat history?";
-const REMOVE_HISTORY_TEXT: &str =
-    "This will remove the chat from your list and search. It affects you only.";
+const REMOVE_HISTORY_LABEL: &str = "ui.chat.remove_history.label";
+const REMOVE_HISTORY_TITLE: &str = "ui.chat.remove_history.title";
+const REMOVE_HISTORY_TEXT: &str = "ui.chat.remove_history.description";
 
 fn confirm_remove_history(
     state: &Entity<AppState>,
@@ -346,8 +356,8 @@ fn confirm_remove_history(
                 window.close_dialog(cx);
             });
         alert
-            .title(REMOVE_HISTORY_TITLE)
-            .description(REMOVE_HISTORY_TEXT)
+            .title(tr(REMOVE_HISTORY_TITLE))
+            .description(tr(REMOVE_HISTORY_TEXT))
             .footer(DialogFooter::new().child(cancel).child(remove))
             .on_ok(|_, _, _| false)
     });
@@ -363,7 +373,10 @@ pub(crate) fn confirm_leave(
 ) {
     let state = state.clone();
     let chat_id = chat_id.to_owned();
-    let heading = format!("Leave \"{}\"?", truncated(title, TITLE_LIMIT));
+    let heading = tr_with(
+        "ui.chat.leave.heading",
+        &[("title", &truncated(title, TITLE_LIMIT))],
+    );
     let description = leave_description(member_count);
     window.open_alert_dialog(cx, move |alert, _, _| {
         let state = state.clone();
@@ -389,9 +402,11 @@ pub(crate) fn confirm_leave(
 #[cfg(test)]
 mod tests {
     use super::leave_description;
+    use app_base::ui_locale::apply_locale;
 
     #[test]
     fn leave_text_counts_the_other_members() {
+        apply_locale("en");
         assert_eq!(
             leave_description(4),
             "The 3 other members see that you left. You can only come back if someone adds you."

@@ -20,7 +20,7 @@ use super::call_view::{BANNER_HEIGHT, MENU_WIDTH};
 use super::widgets::{Corner, corner_badge, count_badge, icon};
 use crate::app_state::AppState;
 use crate::call::{CAPTION_SHOWN, CallModel, CaptionPosition, Focus, contain_size};
-use crate::i18n::tr;
+use crate::i18n::{tr, tr_with};
 use crate::notice::truncated;
 use crate::theme;
 
@@ -73,8 +73,11 @@ pub(super) fn pill(
 
 pub fn lobby_text(waiting: usize) -> String {
     match waiting {
-        1 => "1 person is waiting in the lobby".to_owned(),
-        count => format!("{count} people are waiting in the lobby"),
+        1 => tr("ui.calls.lobby.one_waiting"),
+        count => tr_with(
+            "ui.calls.lobby.many_waiting",
+            &[("count", &count.to_string())],
+        ),
     }
 }
 
@@ -166,12 +169,21 @@ pub fn lobby_banner(
                             .p_0()
                             .h(px(PILL_HEIGHT))
                             .rounded_full()
-                            .child(pill("call-lobby-view-face", "View", false)),
+                            .child(pill(
+                                "call-lobby-view-face",
+                                tr("ui.calls.chrome.view"),
+                                false,
+                            )),
                     )
                     .content(move |_, _, _| lobby_list(&list_app, &guests)),
             )
             .child(
-                pill("call-lobby-admit-all", "Admit all", true).on_click(move |_, _, cx| {
+                pill(
+                    "call-lobby-admit-all",
+                    tr("ui.calls.people.admit_all"),
+                    true,
+                )
+                .on_click(move |_, _, cx| {
                     admit_app.update(cx, |state, cx| state.admit_all_call_guests(cx))
                 }),
             )
@@ -188,7 +200,10 @@ fn confirm_remove(
 ) {
     let app = app.clone();
     let mri = mri.to_owned();
-    let heading = format!("Remove {} from the meeting?", truncated(name, NAME_LIMIT));
+    let heading = tr_with(
+        "ui.calls.people.remove_heading",
+        &[("name", &truncated(name, NAME_LIMIT))],
+    );
     window.open_alert_dialog(cx, move |alert, _, _| {
         let app = app.clone();
         let mri = mri.clone();
@@ -206,7 +221,7 @@ fn confirm_remove(
             });
         alert
             .title(heading.clone())
-            .description("They leave the call and can only come back if they join again.")
+            .description(tr("ui.calls.people.remove_detail"))
             .footer(DialogFooter::new().child(cancel).child(remove))
             .on_ok(|_, _, _| false)
     });
@@ -215,7 +230,7 @@ fn confirm_remove(
 fn own_tile_items(popup: PopupMenu, app: &Entity<AppState>) -> PopupMenu {
     let hide_app = app.clone();
     popup.min_w(px(MENU_WIDTH)).item(
-        PopupMenuItem::new("Hide for me")
+        PopupMenuItem::new(tr("ui.calls.tile.hide_for_me"))
             .icon(IconName::EyeOff)
             .on_click(move |_, _, cx| {
                 hide_app.update(cx, |state, cx| state.set_call_hide_me(true, cx))
@@ -246,11 +261,15 @@ pub fn tile_menu(
     let pin_app = app.clone();
     let pin_mri = mri.to_owned();
     popup = popup.item(
-        PopupMenuItem::new(if pinned { "Unpin" } else { "Pin for me" })
-            .icon(IconName::Frame)
-            .on_click(move |_, _, cx| {
-                pin_app.update(cx, |state, cx| state.toggle_call_pin(&pin_mri, cx))
-            }),
+        PopupMenuItem::new(if pinned {
+            tr("ui.calls.tile.unpin")
+        } else {
+            tr("ui.calls.tile.pin_for_me")
+        })
+        .icon(IconName::Frame)
+        .on_click(move |_, _, cx| {
+            pin_app.update(cx, |state, cx| state.toggle_call_pin(&pin_mri, cx))
+        }),
     );
     if model.is_one_to_one()
         || model
@@ -261,24 +280,28 @@ pub fn tile_menu(
         let (fit_app, fit_mri) = (app.clone(), mri.to_owned());
         let fitted = model.is_fitted(mri);
         popup = popup.item(
-            PopupMenuItem::new(if fitted { "Fill frame" } else { "Fit to frame" })
-                .icon(if fitted {
-                    IconName::Expand
-                } else {
-                    IconName::Shrink
-                })
-                .on_click(move |_, _, cx| {
-                    fit_app.update(cx, |state, cx| state.toggle_call_fit(&fit_mri, cx))
-                }),
+            PopupMenuItem::new(if fitted {
+                tr("ui.calls.tile.fill_frame")
+            } else {
+                tr("ui.calls.tile.fit_frame")
+            })
+            .icon(if fitted {
+                IconName::Expand
+            } else {
+                IconName::Shrink
+            })
+            .on_click(move |_, _, cx| {
+                fit_app.update(cx, |state, cx| state.toggle_call_fit(&fit_mri, cx))
+            }),
         );
     }
     if organizes {
         let (spotlight_app, spotlight_mri) = (app.clone(), mri.to_owned());
         popup = popup.item(
             PopupMenuItem::new(if spotlighted {
-                "Stop spotlight"
+                tr("ui.calls.tile.stop_spotlight")
             } else {
-                "Spotlight for everyone"
+                tr("ui.calls.tile.spotlight")
             })
             .icon(IconName::Star)
             .on_click(move |_, _, cx| {
@@ -291,7 +314,7 @@ pub fn tile_menu(
     if organizes {
         let (mute_app, mute_mri) = (app.clone(), mri.to_owned());
         popup = popup.item(
-            PopupMenuItem::new("Mute")
+            PopupMenuItem::new(tr("ui.calls.tile.mute"))
                 .icon(IconName::MicOff)
                 .disabled(muted)
                 .on_click(move |_, _, cx| {
@@ -306,14 +329,16 @@ pub fn tile_menu(
     }
     if organizes && raised {
         let (hand_app, hand_mri) = (app.clone(), mri.to_owned());
-        popup = popup.item(PopupMenuItem::new("Lower hand").on_click(move |_, _, cx| {
-            hand_app.update(cx, |state, cx| state.lower_call_hand(hand_mri.clone(), cx))
-        }));
+        popup = popup.item(PopupMenuItem::new(tr("calls.chrome.lower_hand")).on_click(
+            move |_, _, cx| {
+                hand_app.update(cx, |state, cx| state.lower_call_hand(hand_mri.clone(), cx))
+            },
+        ));
     }
     if organizes {
         let (remove_app, remove_mri, remove_name) = (app.clone(), mri.to_owned(), name.to_owned());
         popup = popup.separator().item(
-            PopupMenuItem::new("Remove from meeting...")
+            PopupMenuItem::new(tr("ui.calls.tile.remove_ellipsis"))
                 .icon(IconName::Close)
                 .on_click(move |_, window, cx| {
                     confirm_remove(&remove_app, &remove_mri, &remove_name, window, cx)
@@ -331,10 +356,10 @@ fn modality_item(
 ) -> PopupMenuItem {
     let (app, mri) = (app.clone(), mri.to_owned());
     let (label, glyph) = match (modality, allowed) {
-        (Modality::Mic, true) => ("Disable mic", IconName::MicOff),
-        (Modality::Mic, false) => ("Allow mic", IconName::Mic),
-        (Modality::Camera, true) => ("Disable camera", IconName::VideoOff),
-        (Modality::Camera, false) => ("Allow camera", IconName::Video),
+        (Modality::Mic, true) => (tr("ui.calls.people.disable_mic"), IconName::MicOff),
+        (Modality::Mic, false) => (tr("ui.calls.people.allow_mic"), IconName::Mic),
+        (Modality::Camera, true) => (tr("ui.calls.people.disable_camera"), IconName::VideoOff),
+        (Modality::Camera, false) => (tr("ui.calls.people.allow_camera"), IconName::Video),
     };
     PopupMenuItem::new(label)
         .icon(glyph)
@@ -368,9 +393,9 @@ fn restriction_items(
         ))
         .item(
             PopupMenuItem::new(if presenter {
-                "Make attendee"
+                tr("ui.calls.role.make_attendee")
             } else {
-                "Make presenter"
+                tr("ui.calls.role.make_presenter")
             })
             .icon(IconName::Users)
             .on_click(move |_, _, cx| {
@@ -411,7 +436,7 @@ fn more_overlay(
                 .rounded_full()
                 .bg(black().opacity(0.55))
                 .text_color(theme::white())
-                .tooltip("More")
+                .tooltip(tr("ui.calls.people.more"))
                 .dropdown_menu_with_anchor(Anchor::TopRight, move |popup, _, _| {
                     tile_menu(popup, &app, &model, &mri_owned, &name, own)
                 }),
@@ -482,11 +507,16 @@ pub fn more_button(
     Some(
         tool_trigger(
             "call-more",
-            tool_face("call-more-face", IconName::Ellipsis, "More", false)
-                .relative()
-                .when(chat_folded && unread > 0, |face| {
-                    face.child(corner_badge(Corner::TopRight, 4.).child(count_badge(unread, false)))
-                }),
+            tool_face(
+                "call-more-face",
+                IconName::Ellipsis,
+                tr("ui.calls.people.more"),
+                false,
+            )
+            .relative()
+            .when(chat_folded && unread > 0, |face| {
+                face.child(corner_badge(Corner::TopRight, 4.).child(count_badge(unread, false)))
+            }),
         )
         .dropdown_menu_with_anchor(Anchor::TopRight, move |popup, window, cx| {
             more_menu(popup, window, cx, &app, &model, &folded)
@@ -518,7 +548,7 @@ fn incoming_video_item(popup: PopupMenu, app: &Entity<AppState>, model: &CallMod
     }
     let app = app.clone();
     popup.item(
-        PopupMenuItem::new("Turn on incoming video")
+        PopupMenuItem::new(tr("ui.calls.tile.turn_on_incoming_video"))
             .icon(IconName::Video)
             .on_click(move |_, _, cx| {
                 app.update(cx, |state, cx| state.set_call_incoming_video(true, cx))
@@ -536,15 +566,19 @@ fn one_to_one_items(
     let (hold_app, transfer_app) = (app.clone(), app.clone());
     let held = model.hold == HoldState::Local;
     popup = popup.item(
-        PopupMenuItem::new(if held { "Resume" } else { "Hold" })
-            .icon(IconName::Timer)
-            .disabled(!held && !model.can_hold())
-            .on_click(move |_, _, cx| hold_app.update(cx, |state, cx| state.toggle_call_hold(cx))),
+        PopupMenuItem::new(if held {
+            tr("common.resume")
+        } else {
+            tr("ui.calls.tile.hold")
+        })
+        .icon(IconName::Timer)
+        .disabled(!held && !model.can_hold())
+        .on_click(move |_, _, cx| hold_app.update(cx, |state, cx| state.toggle_call_hold(cx))),
     );
     popup = record_items(popup, window, cx, app, model);
     let can_transfer = model.can_transfer();
     popup.item(
-        PopupMenuItem::new("Transfer...")
+        PopupMenuItem::new(tr("ui.calls.tile.transfer_ellipsis"))
             .icon(IconName::Forward)
             .disabled(!can_transfer)
             .on_click(move |_, window, cx| open_transfer_picker(&transfer_app, window, cx)),
@@ -562,7 +596,7 @@ fn meeting_items(
     let captions_on = model.captions_on();
     if model.organizes_meeting() {
         popup = popup.item(
-            PopupMenuItem::new("Mute all")
+            PopupMenuItem::new(tr("ui.calls.people.mute_all"))
                 .icon(IconName::MicOff)
                 .on_click(move |_, _, cx| mute_app.update(cx, |state, cx| state.mute_all_call(cx))),
         );
@@ -570,7 +604,7 @@ fn meeting_items(
     popup = record_items(popup, window, cx, app, model);
     if model.can_open_whiteboard() {
         popup = popup.item(
-            PopupMenuItem::new("Whiteboard")
+            PopupMenuItem::new(tr("ui.calls.tile.whiteboard"))
                 .icon(IconName::Frame)
                 .on_click(move |_, _, cx| {
                     board_app.update(cx, |state, cx| state.open_call_whiteboard(cx))
@@ -579,9 +613,9 @@ fn meeting_items(
     }
     let popup = popup.item(
         PopupMenuItem::new(if captions_on {
-            "Turn off live captions"
+            tr("ui.calls.tile.captions_off")
         } else {
-            "Turn on live captions"
+            tr("ui.calls.tile.captions_on")
         })
         .icon(if captions_on {
             IconName::CaptionsOff
@@ -630,7 +664,7 @@ fn camera_menu(
     );
     let mut popup = popup
         .min_w(px(MENU_WIDTH))
-        .item(PopupMenuItem::label("Camera"));
+        .item(PopupMenuItem::label(tr("calls.prejoin.camera")));
     for item in cameras {
         popup = popup.item(item);
     }
@@ -695,7 +729,7 @@ pub fn captions_overlay(model: &CallModel, now: Instant) -> Option<AnyElement> {
     )
 }
 
-fn focus_chip(label: &'static str, glyph: IconName, background: Hsla, foreground: Hsla) -> Div {
+fn focus_chip(label: String, glyph: IconName, background: Hsla, foreground: Hsla) -> Div {
     h_flex()
         .h(px(CHIP_HEIGHT))
         .px(px(8.))
@@ -711,12 +745,17 @@ fn focus_chip(label: &'static str, glyph: IconName, background: Hsla, foreground
 }
 
 pub fn spotlight_chip() -> Div {
-    focus_chip("Spotlight", IconName::Star, theme::amber(), dark_text())
+    focus_chip(
+        tr("ui.calls.tile.spotlight_chip"),
+        IconName::Star,
+        theme::amber(),
+        dark_text(),
+    )
 }
 
 pub fn pin_chip() -> Div {
     focus_chip(
-        "Pinned",
+        tr("ui.calls.tile.pinned_chip"),
         IconName::Frame,
         hsla(0., 0., 0., 0.6),
         theme::white(),
@@ -735,7 +774,7 @@ pub fn render_focus_stage(
     let me = state.directory.me.as_ref();
     let (name, user_id, speaking, muted, key) = if focus.own {
         (
-            "You".to_owned(),
+            tr("common.you"),
             me.map(|person| person.user_id.clone()),
             model.local_speaking,
             model.muted,
@@ -838,12 +877,13 @@ pub fn render_focus_stage(
     )
 }
 
-pub fn captions_state_hint(model: &CallModel) -> Option<&'static str> {
-    match model.captions {
-        CaptionState::Starting => Some("Starting live captions..."),
-        CaptionState::Failed(_) => Some("Live captions could not start"),
-        CaptionState::On | CaptionState::Off => None,
-    }
+pub fn captions_state_hint(model: &CallModel) -> Option<String> {
+    let key = match model.captions {
+        CaptionState::Starting => "ui.calls.captions.starting",
+        CaptionState::Failed(_) => "ui.calls.captions.failed",
+        CaptionState::On | CaptionState::Off => return None,
+    };
+    Some(tr(key))
 }
 
 pub fn captions_hint_chip(model: &CallModel) -> Option<AnyElement> {

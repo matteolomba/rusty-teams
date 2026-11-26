@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::Arc;
 
+use app_base::ui_locale::tr_with;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::{h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
@@ -12,6 +13,7 @@ use teams_core::{FileKind, FileReference, UploadedFile};
 use super::attachments::{file_badge, kind_description};
 use super::widgets::icon;
 use crate::format;
+use crate::i18n::tr;
 use crate::inline_image::{InlineFormat, image_dimensions, sniff_inline_format};
 pub use crate::outgoing::{InlineImage, OutgoingFile, OutgoingImage};
 use crate::remote_image::{RemoteImage, image_source};
@@ -21,9 +23,8 @@ pub const MAX_ATTACHMENTS: usize = 10;
 pub const INLINE_IMAGE_MAX_BYTES: u64 = 1024 * 1024;
 pub const INLINE_TOTAL_MAX_BYTES: u64 = 5 * 512 * 1024;
 pub const MAX_FILE_BYTES: u64 = 250 * 1024 * 1024;
-pub const FILES_LATER_NOTICE: &str = "Files can be added once the chat exists.";
-pub const NOT_SHARED_NOTICE: &str =
-    "Your organization does not allow sharing with this chat. People may need to request access.";
+pub const FILES_LATER_NOTICE: &str = "ui.misc.files_later_notice";
+pub const NOT_SHARED_NOTICE: &str = "ui.misc.not_shared_notice";
 const PASTED_IMAGE_STEM: &str = "pasted-image";
 const PREVIEW_HEIGHT: f32 = 120.;
 const PREVIEW_GAP: f32 = 4.;
@@ -69,12 +70,19 @@ pub fn inline_image(name: String, bytes: Vec<u8>) -> Option<InlineImage> {
 }
 
 pub fn limit_notice(dropped: usize) -> String {
-    let files = if dropped == 1 {
-        "1 file was".to_owned()
+    let max = MAX_ATTACHMENTS.to_string();
+    let dropped = dropped.to_string();
+    if dropped == "1" {
+        tr_with(
+            "ui.misc.limit_notice_one",
+            &[("max", &max), ("count", &dropped)],
+        )
     } else {
-        format!("{dropped} files were")
-    };
-    format!("Up to {MAX_ATTACHMENTS} attachments per message. {files} not added.")
+        tr_with(
+            "ui.misc.limit_notice_other",
+            &[("max", &max), ("count", &dropped)],
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -367,7 +375,7 @@ impl AttachmentTray {
             }
             Classification::File { .. } if !files_allowed => {
                 self.items.remove(position);
-                self.notice = Some(FILES_LATER_NOTICE.to_owned());
+                self.notice = Some(tr(FILES_LATER_NOTICE));
                 None
             }
             Classification::File { sent_as_file } => {
@@ -439,7 +447,7 @@ impl AttachmentTray {
                 UploadResult::Failed => UploadState::Failed,
             };
             if not_shared {
-                self.notice = Some(NOT_SHARED_NOTICE.to_owned());
+                self.notice = Some(tr(NOT_SHARED_NOTICE));
             }
         }
         None
@@ -622,20 +630,21 @@ pub fn names_of(paths: &[PathBuf]) -> Vec<String> {
 
 pub fn read_attachment(path: &Path) -> Result<LoadedFile, String> {
     let name = display_name(path);
-    let unreadable = || format!("Could not read {name}.");
+    let unreadable = || tr_with("ui.misc.could_not_read_file", &[("name", &name)]);
     let metadata = std::fs::metadata(path).map_err(|_| unreadable())?;
     if !metadata.is_file() {
         return Err(unreadable());
     }
     if metadata.len() > MAX_FILE_BYTES {
-        return Err(format!(
-            "{name} is larger than {} MB.",
-            MAX_FILE_BYTES / (1024 * 1024)
+        let max = (MAX_FILE_BYTES / (1024 * 1024)).to_string();
+        return Err(tr_with(
+            "ui.misc.file_too_large",
+            &[("name", &name), ("max", &max)],
         ));
     }
     let bytes = std::fs::read(path).map_err(|_| unreadable())?;
     if bytes.is_empty() {
-        return Err(format!("{name} is empty."));
+        return Err(tr_with("ui.misc.file_is_empty", &[("name", &name)]));
     }
     Ok(LoadedFile::new(bytes))
 }
@@ -646,7 +655,12 @@ pub fn pasted_image_name() -> String {
 
 /// Formats the app cannot send inline (bitmaps from the Windows clipboard) become PNG.
 pub fn prepare_pasted_image(pasted: Image) -> Result<LoadedFile, String> {
-    let unreadable = || format!("Could not read {}.", pasted_image_name());
+    let unreadable = || {
+        tr_with(
+            "ui.misc.could_not_read_file",
+            &[("name", &pasted_image_name())],
+        )
+    };
     let extension = match pasted.format {
         ImageFormat::Png => "png",
         ImageFormat::Jpeg => "jpg",
@@ -730,7 +744,7 @@ pub fn chip_state(item: &TrayItem) -> ChipState {
         failed: false,
     };
     match &item.kind {
-        ItemKind::Reading => muted("Reading ...".to_owned()),
+        ItemKind::Reading => muted(tr("ui.misc.reading_file")),
         ItemKind::Image { .. } | ItemKind::Remote(_) => muted(size),
         ItemKind::File {
             upload,
@@ -739,23 +753,28 @@ pub fn chip_state(item: &TrayItem) -> ChipState {
         } => match upload {
             UploadState::Uploading(percent) => ChipState {
                 progress: Some(*percent),
-                ..muted(format!("Uploading {percent} %"))
+                ..muted(tr_with(
+                    "ui.misc.uploading_percent",
+                    &[("percent", &percent.to_string())],
+                ))
             },
             UploadState::Sharing(_) => ChipState {
                 progress: Some(100),
-                ..muted("Uploading 100 %".to_owned())
+                ..muted(tr_with("ui.misc.uploading_percent", &[("percent", "100")]))
             },
-            UploadState::Done(_) if *sent_as_file => muted(format!("{size}, sent as file")),
+            UploadState::Done(_) if *sent_as_file => {
+                muted(tr_with("ui.misc.sent_as_file", &[("size", &size)]))
+            }
             UploadState::Done(_) => muted(size),
             UploadState::Failed => ChipState {
                 tone: Tone::Danger,
                 failed: true,
-                ..muted("Upload failed.".to_owned())
+                ..muted(tr("ui.misc.upload_failed"))
             },
             UploadState::ShareFailed(_) => ChipState {
                 tone: Tone::Danger,
                 failed: true,
-                ..muted("Sharing failed.".to_owned())
+                ..muted(tr("ui.misc.sharing_failed"))
             },
         },
     }
@@ -932,7 +951,7 @@ fn chip<T: 'static>(
                     .text_color(theme::accent_text())
                     .cursor_pointer()
                     .hover(|button| button.underline())
-                    .child("Retry")
+                    .child(tr("ui.misc.retry"))
                     .on_click(cx.listener(move |this, _, window, cx| retry(this, id, window, cx))),
             )
         })
@@ -994,6 +1013,7 @@ mod tests {
         UploadResult, chip_state, classify, limit_notice, paste_action, pasted_image_name,
         prepare_pasted_image, preview_size, read_attachment, result_of_share, sniff_inline_format,
     };
+    use crate::i18n::tr;
     use crate::remote_image::RemoteKind;
 
     const PNG_HEADER: [u8; 8] = [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
@@ -1149,6 +1169,8 @@ mod tests {
 
     #[test]
     fn a_failed_share_retries_only_the_share_and_keeps_the_upload() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let (mut tray, id) = tray_with_file();
         let uploaded = sample_upload();
         tray.finish_upload(id, UploadResult::ShareFailed(uploaded.clone()));
@@ -1168,6 +1190,8 @@ mod tests {
 
     #[test]
     fn an_item_being_shared_can_be_deleted_by_remove_or_clear() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let (mut tray, id) = tray_with_file();
         tray.mark_uploaded(id, sample_upload());
         assert_eq!(chip_state(&tray.items()[0]).subtitle, "Uploading 100 %");
@@ -1255,6 +1279,8 @@ mod tests {
 
     #[test]
     fn the_tenth_attachment_fits_and_the_rest_are_dropped() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let mut tray = AttachmentTray::default();
         assert_eq!(tray.add_pending(&names(4)).len(), 4);
         let ids = tray.add_pending(&names(9));
@@ -1268,6 +1294,8 @@ mod tests {
 
     #[test]
     fn one_dropped_file_reads_in_the_singular() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(
             limit_notice(1),
             "Up to 10 attachments per message. 1 file was not added."
@@ -1276,6 +1304,8 @@ mod tests {
 
     #[test]
     fn the_limit_notice_clears_on_the_next_change() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let mut tray = AttachmentTray::default();
         let ids = tray.add_pending(&names(12));
         assert!(tray.notice().is_some());
@@ -1315,6 +1345,8 @@ mod tests {
 
     #[test]
     fn files_are_refused_while_the_chat_does_not_exist() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let mut tray = AttachmentTray::default();
         let ids = tray.add_pending(&["a.pdf".to_owned(), "b.png".to_owned()]);
         assert!(
@@ -1323,12 +1355,14 @@ mod tests {
         );
         tray.finish_reading(ids[1], LoadedFile::new(png(2, 2)), false);
         assert_eq!(tray.items().len(), 1);
-        assert_eq!(tray.notice(), Some(FILES_LATER_NOTICE));
+        assert_eq!(tray.notice(), Some(tr(FILES_LATER_NOTICE).as_str()));
         assert!(!tray.blocks_send());
     }
 
     #[test]
     fn upload_progress_then_done_unblocks_sending() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let (mut tray, id) = tray_with_file();
         tray.set_progress(id, 42);
         assert_eq!(chip_state(&tray.items()[0]).subtitle, "Uploading 42 %");
@@ -1354,6 +1388,8 @@ mod tests {
 
     #[test]
     fn only_a_denied_share_sends_the_file_with_the_notice() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let uploaded = sample_upload();
         let reference = reference("plan.pdf");
         let denied = result_of_share(uploaded.clone(), reference.clone(), ShareEnd::Denied);
@@ -1372,6 +1408,8 @@ mod tests {
 
     #[test]
     fn a_file_that_could_not_be_shared_still_goes_out_with_a_notice() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let (mut tray, id) = tray_with_file();
         let UploadResult::Done(done) = done("plan.pdf") else {
             unreachable!()
@@ -1379,11 +1417,13 @@ mod tests {
         tray.finish_upload(id, UploadResult::NotShared(done));
         assert!(!tray.blocks_send());
         assert_eq!(tray.outgoing_files().len(), 1);
-        assert_eq!(tray.notice(), Some(NOT_SHARED_NOTICE));
+        assert_eq!(tray.notice(), Some(tr(NOT_SHARED_NOTICE).as_str()));
     }
 
     #[test]
     fn a_failed_upload_blocks_sending_until_it_is_retried_or_removed() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let (mut tray, id) = tray_with_file();
         tray.finish_upload(id, UploadResult::Failed);
         let state = chip_state(&tray.items()[0]);
@@ -1413,6 +1453,8 @@ mod tests {
 
     #[test]
     fn done_chips_show_the_size_and_the_file_note() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let mut tray = AttachmentTray::default();
         let id = tray.add_pending(&["scan.bmp".to_owned()])[0];
         tray.finish_reading(id, LoadedFile::new(b"BM....".to_vec()), true);
@@ -1521,6 +1563,8 @@ mod tests {
 
     #[test]
     fn a_failed_read_removes_the_item_and_says_why() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let mut tray = AttachmentTray::default();
         let id = tray.add_pending(&["gone.txt".to_owned()])[0];
         tray.fail_reading(id, "Could not read gone.txt.".to_owned());
@@ -1530,6 +1574,8 @@ mod tests {
 
     #[test]
     fn reading_items_block_sending() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let mut tray = AttachmentTray::default();
         tray.add_pending(&["a.pdf".to_owned()]);
         assert!(tray.blocks_send());
@@ -1538,6 +1584,8 @@ mod tests {
 
     #[test]
     fn files_are_read_from_disk_with_their_limits() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let directory = tempfile::tempdir().unwrap();
         let file = directory.path().join("note.txt");
         std::fs::write(&file, b"hello").unwrap();

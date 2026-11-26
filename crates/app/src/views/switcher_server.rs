@@ -6,6 +6,7 @@ use teams_core::substrate_search::{SearchMessage, SearchPerson, split_highlights
 use super::switcher::MessageResult;
 use crate::app_state::Selection;
 use crate::format;
+use crate::i18n::tr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PersonResult {
@@ -88,7 +89,7 @@ pub fn server_message_results(
                 author: message
                     .sender_name
                     .clone()
-                    .unwrap_or_else(|| "Unknown".to_owned()),
+                    .unwrap_or_else(|| tr("ui.chat.switcher.unknown")),
                 conversation,
                 date: message
                     .sent_at

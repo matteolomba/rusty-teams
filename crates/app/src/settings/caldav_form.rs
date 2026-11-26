@@ -169,7 +169,10 @@ impl IcsForm {
             url: cx.new(|cx| {
                 InputState::new(window, cx).placeholder("https://example.com/calendar.ics")
             }),
-            name: cx.new(|cx| InputState::new(window, cx).placeholder("Holidays")),
+            name: cx.new(|cx| {
+                InputState::new(window, cx)
+                    .placeholder(tr("ui.settings.calendar.ics_name_placeholder"))
+            }),
             show_form: false,
         }
     }

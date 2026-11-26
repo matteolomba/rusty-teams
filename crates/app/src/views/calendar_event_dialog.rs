@@ -43,7 +43,7 @@ const TRACKING_GROUPS: [ResponseType; 4] = [
     ResponseType::Declined,
     ResponseType::NotResponded,
 ];
-const COPY_JOIN_INFO: &str = "Copy join info";
+const COPY_JOIN_INFO: &str = "ui.misc.copy_join_info";
 
 pub enum EventPeekEvent {
     Close,
@@ -587,7 +587,7 @@ impl EventPeek {
                         .dropdown_menu(move |menu, _, _| {
                             let info = info.clone();
                             menu.item(
-                                PopupMenuItem::new(COPY_JOIN_INFO)
+                                PopupMenuItem::new(tr(COPY_JOIN_INFO))
                                     .icon(IconName::Copy)
                                     .on_click(move |_, _, cx| {
                                         cx.write_to_clipboard(ClipboardItem::new_string(

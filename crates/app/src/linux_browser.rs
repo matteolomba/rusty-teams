@@ -216,6 +216,8 @@ async fn hide_after_login(browser: browser::Browser, headless_notify: Arc<Notify
         if tracker.step(status.as_ref(), has_msal_cache) {
             log::info!("Teams sign-in finished: moving Chrome to the background");
             publish_sign_in(BrowserSignInState::Finishing);
+            // Persist before the restart to headless; a crash afterwards would otherwise lose the key.
+            browser.persist_msal_key().await;
             if let Err(error) = browser.headless().await {
                 log::error!("Failed to switch Chrome to headless: {error}");
                 publish_sign_in(BrowserSignInState::Failed(error.to_string()));

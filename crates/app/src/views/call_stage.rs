@@ -12,16 +12,28 @@ use gpui_kit::component::tooltip::Tooltip;
 use super::widgets::icon;
 use crate::app_state::AppState;
 use crate::call::{ShareStage, ZoomStep};
+use crate::i18n::tr;
 use crate::theme;
 
 const STAGE_RADIUS: f32 = 12.;
 const LABEL_OFFSET: f32 = 14.;
 const STAGE_BACKGROUND: f32 = 0.04;
 const LABEL_BACKGROUND: f32 = 0.6;
-pub const WAITING_TEXT: &str = "Loading the shared screen...";
-pub const FULL_WINDOW_HINT: &str = "Double-click or press Esc to leave full window";
-pub const POP_OUT_TOOLTIP: &str = "Pop out";
-pub const POPPED_TEXT: &str = "Shared content is open in its own window";
+pub fn waiting_text() -> String {
+    tr("ui.calls.stage.waiting")
+}
+
+pub fn full_window_hint() -> String {
+    tr("ui.calls.stage.full_window_hint")
+}
+
+pub fn pop_out_tooltip() -> String {
+    tr("ui.calls.stage.pop_out")
+}
+
+pub fn popped_text() -> String {
+    tr("ui.calls.stage.popped_text")
+}
 const LINE_HEIGHT: f32 = 20.;
 const CHIP_HEIGHT: f32 = 30.;
 
@@ -63,7 +75,7 @@ fn picture(image: Option<Arc<RenderImage>>, stage: &ShareStage) -> AnyElement {
             .justify_center()
             .text_size(theme::text_body())
             .text_color(theme::text_muted())
-            .child(WAITING_TEXT)
+            .child(waiting_text())
             .into_any_element();
     };
     let size = stage.size();
@@ -129,7 +141,9 @@ fn zoom_chip(app: &Entity<AppState>, stage: &ShareStage) -> Option<AnyElement> {
                     .font_weight(FontWeight::SEMIBOLD)
                     .cursor_pointer()
                     .hover(|chip| chip.opacity(0.85))
-                    .tooltip(|window, cx| Tooltip::new("Reset zoom").build(window, cx))
+                    .tooltip(|window, cx| {
+                        Tooltip::new(tr("ui.calls.stage.reset_zoom")).build(window, cx)
+                    })
                     .child(icon(IconName::Search, 15., theme::white()))
                     .child(format!("{}%", stage.view.percent()))
                     .on_click(move |_, _, cx| {
@@ -155,7 +169,7 @@ pub fn popped_placeholder(app: &Entity<AppState>) -> AnyElement {
         .bg(stage_black())
         .text_size(theme::text_body())
         .text_color(theme::text_muted())
-        .child(POPPED_TEXT)
+        .child(popped_text())
         .child(
             h_flex()
                 .id("call-stage-bring-back")
@@ -168,7 +182,7 @@ pub fn popped_placeholder(app: &Entity<AppState>) -> AnyElement {
                 .font_weight(FontWeight::SEMIBOLD)
                 .cursor_pointer()
                 .hover(|button| button.opacity(0.9))
-                .child("Bring back")
+                .child(tr("ui.calls.stage.bring_back"))
                 .on_click(move |_, _, cx| {
                     app.update(cx, |state, cx| state.return_stage_from_pop_out(cx))
                 }),
@@ -271,7 +285,7 @@ pub fn render_stage(
                                 .bg(hsla(0., 0., 0., LABEL_BACKGROUND))
                                 .text_size(theme::text_small())
                                 .text_color(theme::white())
-                                .child(FULL_WINDOW_HINT),
+                                .child(full_window_hint()),
                         ),
                 )
             })

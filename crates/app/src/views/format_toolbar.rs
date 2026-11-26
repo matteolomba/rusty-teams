@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use app_base::ui_locale::tr_with;
 use gpui_kit::assets::IconName;
 use gpui_kit::component::input::{Input, InputState};
 use gpui_kit::component::tooltip::PopupTriggerTooltip as _;
@@ -9,6 +10,7 @@ use gpui_kit::*;
 use teams_core::FormatState;
 
 use super::widgets::{icon, symbol};
+use crate::i18n::tr;
 use crate::theme::{self, ElevatedSurface as _};
 
 const PADDING: f32 = 4.;
@@ -178,11 +180,14 @@ pub const TOGGLE_SHORTCUT: &str = "Ctrl+Shift+X";
 
 pub fn toggle_tooltip(open: bool) -> String {
     let label = if open {
-        "Hide Formatting options"
+        tr("ui.misc.hide_formatting_options")
     } else {
-        "Show Formatting options"
+        tr("ui.misc.show_formatting_options")
     };
-    format!("{label} ({TOGGLE_SHORTCUT})")
+    tr_with(
+        "ui.misc.label_with_shortcut",
+        &[("label", &label), ("shortcut", TOGGLE_SHORTCUT)],
+    )
 }
 
 pub fn toggle_symbol(open: bool) -> &'static str {
@@ -226,41 +231,69 @@ impl ButtonState {
 }
 
 impl FormatButton {
-    fn tooltip(self) -> &'static str {
+    fn label_key(self) -> &'static str {
         match self {
-            FormatButton::Bold => "Bold (Ctrl+B)",
-            FormatButton::Italic => "Italic (Ctrl+I)",
-            FormatButton::Underline => "Underline (Ctrl+U)",
-            FormatButton::Strike => "Strikethrough (Ctrl+Alt+X)",
-            FormatButton::Superscript => "Superscript (Ctrl+Shift+=)",
-            FormatButton::Subscript => "Subscript (Ctrl+=)",
-            FormatButton::SizeSmall => "Small text",
-            FormatButton::SizeNormal => "Normal text",
-            FormatButton::SizeLarge => "Large text",
-            FormatButton::Code => "Code (Ctrl+Shift+C)",
-            FormatButton::Link => "Link (Ctrl+K)",
-            FormatButton::Bulleted => "Bulleted list",
-            FormatButton::Numbered => "Numbered list",
-            FormatButton::Quote => "Quote (Ctrl+Alt+4)",
-            FormatButton::Table => "Insert table",
-            FormatButton::TableInsertLine => "Insert column or row (Ctrl+Alt+=)",
-            FormatButton::TableRemoveLine => "Delete column, row, or table (Ctrl+Alt+-)",
-            FormatButton::Highlight => "Text highlight colour",
-            FormatButton::FontColor => "Font colour",
-            FormatButton::ParagraphStyle => "Rich style",
-            FormatButton::ClearFormatting => "Clear all formatting",
-            FormatButton::Outdent => "Decrease indent",
-            FormatButton::Indent => "Increase indent",
-            FormatButton::CodeBlock => "Code block (Ctrl+Shift+B)",
-            FormatButton::Rule => "Insert horizontal rule",
-            FormatButton::FontSize => "Font size",
-            FormatButton::More => "More options",
+            FormatButton::Bold => "ui.misc.fmt_bold",
+            FormatButton::Italic => "ui.misc.fmt_italic",
+            FormatButton::Underline => "ui.misc.fmt_underline",
+            FormatButton::Strike => "ui.misc.fmt_strikethrough",
+            FormatButton::Superscript => "ui.misc.fmt_superscript",
+            FormatButton::Subscript => "ui.misc.fmt_subscript",
+            FormatButton::SizeSmall => "ui.misc.fmt_small_text",
+            FormatButton::SizeNormal => "ui.misc.fmt_normal_text",
+            FormatButton::SizeLarge => "ui.misc.fmt_large_text",
+            FormatButton::Code => "ui.misc.fmt_code",
+            FormatButton::Link => "ui.misc.fmt_link",
+            FormatButton::Bulleted => "ui.misc.fmt_bulleted_list",
+            FormatButton::Numbered => "ui.misc.fmt_numbered_list",
+            FormatButton::Quote => "ui.misc.fmt_quote",
+            FormatButton::Table => "ui.misc.fmt_insert_table",
+            FormatButton::TableInsertLine => "ui.misc.fmt_table_insert",
+            FormatButton::TableRemoveLine => "ui.misc.fmt_table_remove",
+            FormatButton::Highlight => "ui.misc.fmt_highlight",
+            FormatButton::FontColor => "ui.misc.fmt_font_color",
+            FormatButton::ParagraphStyle => "ui.misc.fmt_paragraph_style",
+            FormatButton::ClearFormatting => "ui.misc.fmt_clear_formatting",
+            FormatButton::Outdent => "ui.misc.fmt_outdent",
+            FormatButton::Indent => "ui.misc.fmt_indent",
+            FormatButton::CodeBlock => "ui.misc.fmt_code_block",
+            FormatButton::Rule => "ui.misc.fmt_rule",
+            FormatButton::FontSize => "ui.misc.fmt_font_size",
+            FormatButton::More => "ui.misc.fmt_more",
         }
     }
 
-    pub fn menu_label(self) -> &'static str {
-        let tooltip = self.tooltip();
-        tooltip.split(" (").next().unwrap_or(tooltip)
+    fn shortcut(self) -> Option<&'static str> {
+        match self {
+            FormatButton::Bold => Some("Ctrl+B"),
+            FormatButton::Italic => Some("Ctrl+I"),
+            FormatButton::Underline => Some("Ctrl+U"),
+            FormatButton::Strike => Some("Ctrl+Alt+X"),
+            FormatButton::Superscript => Some("Ctrl+Shift+="),
+            FormatButton::Subscript => Some("Ctrl+="),
+            FormatButton::Code => Some("Ctrl+Shift+C"),
+            FormatButton::Link => Some("Ctrl+K"),
+            FormatButton::Quote => Some("Ctrl+Alt+4"),
+            FormatButton::TableInsertLine => Some("Ctrl+Alt+="),
+            FormatButton::TableRemoveLine => Some("Ctrl+Alt+-"),
+            FormatButton::CodeBlock => Some("Ctrl+Shift+B"),
+            _ => None,
+        }
+    }
+
+    fn tooltip(self) -> String {
+        let label = tr(self.label_key());
+        match self.shortcut() {
+            Some(shortcut) => tr_with(
+                "ui.misc.label_with_shortcut",
+                &[("label", &label), ("shortcut", shortcut)],
+            ),
+            None => label,
+        }
+    }
+
+    pub fn menu_label(self) -> String {
+        tr(self.label_key())
     }
 
     fn edits_table(self) -> bool {
@@ -317,7 +350,7 @@ impl FormatButton {
                 .justify_between()
                 .text_size(theme::text_label())
                 .text_color(color)
-                .child(label.unwrap_or_default())
+                .child(label.map(tr).unwrap_or_default())
                 .child(icon(IconName::ChevronDown, 12., color))
                 .into_any_element(),
             FormatButton::ClearFormatting => symbol("format_clear", 20., color).into_any_element(),
@@ -664,7 +697,7 @@ fn link_editor(field: &Entity<InputState>, refused: bool, on_apply: ApplyHandler
                 .font_weight(FontWeight::SEMIBOLD)
                 .cursor_pointer()
                 .hover(|button| button.opacity(0.9))
-                .child("Apply")
+                .child(tr("ui.misc.apply"))
                 .on_mouse_down(MouseButton::Left, |_, window, cx| {
                     window.prevent_default();
                     cx.stop_propagation();
@@ -678,7 +711,7 @@ fn link_editor(field: &Entity<InputState>, refused: bool, on_apply: ApplyHandler
                 .px(px(2.))
                 .text_size(theme::text_caption())
                 .text_color(theme::red_soft())
-                .child("Only http, https and mailto links"),
+                .child(tr("ui.misc.link_schemes_only")),
         )
     })
 }
@@ -909,6 +942,8 @@ mod tests {
 
     #[test]
     fn overflow_rows_read_without_the_shortcut() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(FormatButton::CodeBlock.menu_label(), "Code block");
         assert_eq!(FormatButton::Rule.menu_label(), "Insert horizontal rule");
         assert_eq!(FormatButton::More.tooltip(), "More options");
@@ -917,6 +952,8 @@ mod tests {
 
     #[test]
     fn the_format_toggle_reads_like_teams() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(
             toggle_tooltip(false),
             "Show Formatting options (Ctrl+Shift+X)"

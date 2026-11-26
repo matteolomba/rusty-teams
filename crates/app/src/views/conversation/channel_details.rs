@@ -13,6 +13,7 @@ use crate::app_state::Selection;
 use crate::channel_files::{SharedContent, SharedItem};
 use crate::find_in_chat::FIND_IN_CHANNEL;
 use crate::format;
+use crate::i18n::tr;
 use crate::rows::reply_excerpt;
 use crate::theme;
 use crate::views::attachments::file_badge;
@@ -24,18 +25,18 @@ pub const CHANNEL_DETAILS_BUTTON: &str = "shell/islands/main/channel-details-but
 pub const CHANNEL_DETAILS_PINNED_TAG: &str = "shell/islands/main/channel-details/pinned";
 pub const CHANNEL_DETAILS_SHARED_TAG: &str = "shell/islands/main/channel-details/shared";
 const CHANNEL_DETAILS_SCROLL_DIVIDER: &str = "shell/islands/main/channel-details/divider-scroll";
-const OPEN_LABEL: &str = "Open channel details";
-const CLOSE_LABEL: &str = "Close channel details";
-const OPEN_CHAT_LABEL: &str = "Open chat details";
-const CLOSE_CHAT_LABEL: &str = "Close chat details";
-const CHAT_DETAILS_TITLE: &str = "In this chat";
-const PINNED_TITLE: &str = "Pinned";
-const SHARED_TITLE: &str = "Shared";
-const SEE_ALL_SHARED_ARIA: &str = "See all shared files";
-const SEE_ALL_LABEL: &str = "See all";
-const SEE_ALL_ARIA: &str = "See all pinned posts";
-const BACK_LABEL: &str = "Back";
-const FALLBACK_PREVIEW: &str = "Pinned post";
+const OPEN_LABEL: &str = "ui.chat.details.open_channel";
+const CLOSE_LABEL: &str = "ui.chat.details.close_channel";
+const OPEN_CHAT_LABEL: &str = "ui.chat.details.open_chat";
+const CLOSE_CHAT_LABEL: &str = "ui.chat.details.close_chat";
+const CHAT_DETAILS_TITLE: &str = "ui.chat.details.in_this_chat";
+const PINNED_TITLE: &str = "ui.chat.details.pinned";
+const SHARED_TITLE: &str = "ui.chat.details.shared";
+const SEE_ALL_SHARED_ARIA: &str = "ui.chat.details.see_all_shared";
+const SEE_ALL_LABEL: &str = "ui.chat.details.see_all";
+const SEE_ALL_ARIA: &str = "ui.chat.details.see_all_pinned";
+const BACK_LABEL: &str = "ui.chat.details.back";
+const FALLBACK_PREVIEW: &str = "ui.chat.details.pinned_post";
 const PANE_WIDTH: f32 = 320.;
 const PANE_PADDING: f32 = 16.;
 const HEADER_HEIGHT: f32 = 48.;
@@ -57,7 +58,7 @@ pub(super) fn pinned_post_item(message_id: &str, record: Option<&MessageRecord>)
         return PinnedPostItem {
             message_id: message_id.to_owned(),
             author_id: None,
-            title: FALLBACK_PREVIEW.to_owned(),
+            title: tr(FALLBACK_PREVIEW),
             byline: String::new(),
         };
     };
@@ -155,7 +156,7 @@ impl ConversationView {
                 .ghost()
                 .size(px(BUTTON_SIZE))
                 .rounded(px(8.))
-                .tooltip(FIND_IN_CHANNEL)
+                .tooltip(tr(FIND_IN_CHANNEL))
                 .on_click(cx.listener(|this, _, window, cx| this.open_find(window, cx)))
                 .into_any_element(),
         )
@@ -176,7 +177,11 @@ impl ConversationView {
                 .ghost()
                 .size(px(BUTTON_SIZE))
                 .rounded(px(8.))
-                .tooltip(if open { close_label } else { open_label })
+                .tooltip(if open {
+                    tr(close_label)
+                } else {
+                    tr(open_label)
+                })
                 .on_click(cx.listener(|this, _, _, cx| this.toggle_details(cx)))
                 .into_any_element(),
         )
@@ -218,7 +223,7 @@ impl ConversationView {
         let shown = shown_pin_count(items.len(), expanded);
         let has_more = items.len() > shown;
         let title = if is_chat {
-            CHAT_DETAILS_TITLE.to_owned()
+            tr(CHAT_DETAILS_TITLE)
         } else {
             self.current
                 .as_ref()
@@ -237,7 +242,7 @@ impl ConversationView {
                 .gap(px(4.))
                 .debug_selector(|| CHANNEL_DETAILS_PINNED_TAG.into());
             if !expanded {
-                section = section.child(section_title(PINNED_TITLE));
+                section = section.child(section_title(&tr(PINNED_TITLE)));
             }
             for item in items.iter().take(shown) {
                 section = section.child(self.pinned_post_row(&channel_id, item, directory, cx));
@@ -246,8 +251,8 @@ impl ConversationView {
                 section = section.child(
                     Button::new("channel-details-see-all-pins")
                         .ghost()
-                        .label(SEE_ALL_LABEL)
-                        .tooltip(SEE_ALL_ARIA)
+                        .label(tr(SEE_ALL_LABEL))
+                        .tooltip(tr(SEE_ALL_ARIA))
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.pinned_posts_expanded = true;
                             cx.notify();
@@ -262,7 +267,7 @@ impl ConversationView {
                 .w_full()
                 .gap(px(4.))
                 .debug_selector(|| CHANNEL_DETAILS_SHARED_TAG.into())
-                .child(section_title(SHARED_TITLE));
+                .child(section_title(&tr(SHARED_TITLE)));
             for row in &shared_rows {
                 section = section.child(self.shared_file_row(&channel_id, row, cx));
             }
@@ -270,8 +275,8 @@ impl ConversationView {
                 section = section.child(
                     Button::new("channel-details-see-all-shared")
                         .ghost()
-                        .label(SEE_ALL_LABEL)
-                        .tooltip(SEE_ALL_SHARED_ARIA)
+                        .label(tr(SEE_ALL_LABEL))
+                        .tooltip(tr(SEE_ALL_SHARED_ARIA))
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.select_pane(ChannelPane::Shared, cx);
                         })),
@@ -288,13 +293,13 @@ impl ConversationView {
                         .ghost()
                         .size(px(BUTTON_SIZE))
                         .rounded(px(8.))
-                        .tooltip(BACK_LABEL)
+                        .tooltip(tr(BACK_LABEL))
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.pinned_posts_expanded = false;
                             cx.notify();
                         })),
                 )
-                .child(header_title(PINNED_TITLE.to_owned()))
+                .child(header_title(tr(PINNED_TITLE)))
         } else {
             h_flex().child(header_title(title))
         };
@@ -323,7 +328,7 @@ impl ConversationView {
                                         .ghost()
                                         .size(px(BUTTON_SIZE))
                                         .rounded(px(8.))
-                                        .tooltip(close_label)
+                                        .tooltip(tr(close_label))
                                         .on_click(cx.listener(|this, _, _, cx| {
                                             this.channel_details_open = false;
                                             this.pinned_posts_expanded = false;
@@ -453,13 +458,13 @@ impl ConversationView {
     }
 }
 
-fn section_title(text: &'static str) -> Div {
+fn section_title(text: &str) -> Div {
     div()
         .py(px(8.))
         .text_size(theme::text_body())
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme::text())
-        .child(text)
+        .child(text.to_owned())
 }
 
 fn header_title(text: String) -> Div {
@@ -480,7 +485,7 @@ mod tests {
 
     use teams_core::{FileCard, FileKind};
 
-    use super::{FALLBACK_PREVIEW, pinned_post_item, shared_file_rows, shown_pin_count};
+    use super::{pinned_post_item, shared_file_rows, shown_pin_count};
     use crate::channel_files::{SharedContent, SharedItem};
 
     fn record(subject: Option<&str>) -> MessageRecord {
@@ -512,9 +517,10 @@ mod tests {
 
     #[test]
     fn an_uncached_post_keeps_its_place_with_a_fallback() {
+        app_base::ui_locale::apply_locale("en");
         let item = pinned_post_item("9", None);
         assert_eq!(item.message_id, "9");
-        assert_eq!(item.title, FALLBACK_PREVIEW);
+        assert_eq!(item.title, "Pinned post");
         assert!(item.byline.is_empty());
     }
 

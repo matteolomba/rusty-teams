@@ -296,6 +296,25 @@ impl Browser {
             .unwrap_or(false)
     }
 
+    /// Persists the MSAL cache key as soon as a sign-in produced it, so a later crash, OOM kill
+    /// or logout does not lose the key and force another interactive sign-in.
+    pub async fn persist_msal_key(&self) {
+        if self.inner.bidi.is_some() {
+            return;
+        }
+        let Some(info) = self.version().await else {
+            return;
+        };
+        self.persist_msal_key_at(&info.websocket_url).await;
+    }
+
+    async fn persist_msal_key_at(&self, websocket_url: &str) {
+        let budget = self.inner.timeouts.msal_key;
+        if let Err(error) = tokio::time::timeout(budget, keep_msal_cache_key(websocket_url)).await {
+            log::warn!("MSAL cache key not kept within the {budget:?} budget: {error}");
+        }
+    }
+
     pub async fn login_window(&self) -> Result<(), BrowserError> {
         let _guard = self.inner.operation.lock().await;
         if self.is_visible_managed() && self.is_running().await {
@@ -503,12 +522,7 @@ impl Browser {
             let port = self.inner.config.port;
             let _ = tokio::task::spawn_blocking(move || launcher.terminate_listener(port)).await;
         } else if let Some(info) = self.version().await {
-            let budget = self.inner.timeouts.msal_key;
-            if let Err(error) =
-                tokio::time::timeout(budget, keep_msal_cache_key(&info.websocket_url)).await
-            {
-                log::warn!("MSAL cache key not kept within the {budget:?} stop budget: {error}");
-            }
+            self.persist_msal_key_at(&info.websocket_url).await;
             close_over_cdp(&info.websocket_url).await;
         }
     }

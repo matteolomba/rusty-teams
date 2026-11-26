@@ -18,15 +18,15 @@ pub enum SectionNameTarget {
 impl SectionNameTarget {
     fn title(&self) -> &'static str {
         match self {
-            SectionNameTarget::New => "New section",
-            SectionNameTarget::Rename { .. } => "Rename section",
+            SectionNameTarget::New => "ui.chat.section.new_title",
+            SectionNameTarget::Rename { .. } => "ui.chat.section.rename_title",
         }
     }
 
     fn confirm_label(&self) -> &'static str {
         match self {
-            SectionNameTarget::New => "Create",
-            SectionNameTarget::Rename { .. } => "Rename",
+            SectionNameTarget::New => "ui.chat.section.create",
+            SectionNameTarget::Rename { .. } => "ui.chat.section.rename",
         }
     }
 }
@@ -56,7 +56,7 @@ impl SectionNameForm {
         };
         let name = cx.new(|cx| {
             InputState::new(window, cx)
-                .placeholder("Section name")
+                .placeholder(tr("ui.chat.section.name_placeholder"))
                 .default_value(current)
         });
         let subscription = cx.subscribe_in(&name, window, Self::on_enter);
@@ -107,7 +107,7 @@ pub fn open_section_name_dialog(
     window: &mut Window,
     cx: &mut App,
 ) {
-    let (title, confirm_label) = (target.title(), target.confirm_label());
+    let (title, confirm_label) = (tr(target.title()), tr(target.confirm_label()));
     let form = cx.new(|cx| SectionNameForm::new(state, target, window, cx));
     let field = form.read(cx).name.clone();
     window.open_dialog(cx, move |dialog: Dialog, _, _| {
@@ -121,7 +121,7 @@ pub fn open_section_name_dialog(
             .child(
                 Button::new("section-name-confirm")
                     .primary()
-                    .label(confirm_label)
+                    .label(confirm_label.clone())
                     .on_click(move |_, window, cx| {
                         if submit_form.update(cx, |form, cx| form.submit(cx)) {
                             window.close_dialog(cx);
@@ -129,7 +129,7 @@ pub fn open_section_name_dialog(
                     }),
             );
         dialog
-            .title(title)
+            .title(title.clone())
             .w(px(DIALOG_WIDTH))
             .child(form.clone())
             .footer(footer)

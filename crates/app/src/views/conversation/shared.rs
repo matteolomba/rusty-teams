@@ -14,6 +14,7 @@ use crate::channel_files::{
     library_file, shared_items, sorted_entries,
 };
 use crate::downloads::DownloadKey;
+use crate::i18n::tr;
 use crate::notice::short_error;
 use crate::runtime;
 use crate::views::attachment_tray::{display_name, read_attachment};
@@ -25,9 +26,10 @@ use crate::views::shared_tab::{
     LibraryView, Listing, MessagesView, SharedCommand, SharedRun, SharedScope, render_library,
     render_messages,
 };
+use app_base::ui_locale::tr_with;
 
 const LIBRARY_KEY: &str = "library";
-const NEW_FOLDER_PLACEHOLDER: &str = "Folder name";
+const NEW_FOLDER_PLACEHOLDER: &str = "ui.chat.shared.folder_placeholder";
 const ITEM_SCAN_LIMIT: usize = 5000;
 
 pub(super) struct SharedState {
@@ -271,8 +273,12 @@ impl ConversationView {
         });
         match self.shared.scope {
             SharedScope::Library => {
-                let status = (self.shared.uploads_running > 0)
-                    .then(|| format!("Uploading {} ...", self.shared.uploads_running));
+                let status = (self.shared.uploads_running > 0).then(|| {
+                    tr_with(
+                        "ui.chat.shared.uploading",
+                        &[("count", &self.shared.uploads_running.to_string())],
+                    )
+                });
                 render_library(
                     LibraryView {
                         path: self.shared.path.as_ref(),
@@ -353,7 +359,7 @@ impl ConversationView {
                 if let Some(entry) = self.library_entry(index) {
                     cx.write_to_clipboard(ClipboardItem::new_string(entry.web_url));
                     self.app.update(cx, |state, cx| {
-                        state.raise_notice("Link copied".to_owned(), None, cx)
+                        state.raise_notice(tr("ui.chat.menu.link_copied"), None, cx)
                     });
                 }
             }
@@ -410,7 +416,7 @@ impl ConversationView {
             return;
         }
         let Some(engine) = engine else {
-            self.shared.listing = Listing::Failed("not connected".to_owned());
+            self.shared.listing = Listing::Failed(tr("ui.chat.shared.not_connected"));
             return;
         };
         let receiver = runtime::spawn(async move {
@@ -495,8 +501,8 @@ impl ConversationView {
         let input = match &self.new_folder_input {
             Some(input) => input.clone(),
             None => {
-                let input =
-                    cx.new(|cx| InputState::new(window, cx).placeholder(NEW_FOLDER_PLACEHOLDER));
+                let input = cx
+                    .new(|cx| InputState::new(window, cx).placeholder(tr(NEW_FOLDER_PLACEHOLDER)));
                 let subscription = cx.subscribe_in(&input, window, Self::on_new_folder_event);
                 self._subscriptions.push(subscription);
                 self.new_folder_input = Some(input.clone());
@@ -564,7 +570,12 @@ impl ConversationView {
                 Err(error) => Err(short_error(&error)),
             };
             this.update(cx, |this, cx| {
-                this.finish_change(&parent, outcome, "Folder not created", cx)
+                this.finish_change(
+                    &parent,
+                    outcome,
+                    &tr("ui.chat.shared.folder_create_failed"),
+                    cx,
+                )
             })
             .ok();
         })
@@ -636,7 +647,7 @@ impl ConversationView {
                         Ok(())
                     }
                     Ok(file) => match engine {
-                        None => Err("not connected".to_owned()),
+                        None => Err(tr("ui.chat.shared.not_connected")),
                         Some(engine) => {
                             let (target, file_name) = (folder.clone(), name.clone());
                             let receiver = runtime::spawn(async move {
@@ -654,7 +665,7 @@ impl ConversationView {
                 };
                 this.update(cx, |this, cx| {
                     this.shared.uploads_running = this.shared.uploads_running.saturating_sub(1);
-                    let failure = format!("{name} not uploaded");
+                    let failure = tr_with("ui.chat.shared.upload_failed", &[("name", &name)]);
                     if this.shared.uploads_running == 0 || outcome.is_err() {
                         this.finish_change(&folder, outcome, &failure, cx);
                     } else {

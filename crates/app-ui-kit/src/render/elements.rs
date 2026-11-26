@@ -9,6 +9,7 @@ use super::selectable::{Pill, SelectableRichText};
 use super::syntax::{self, Token};
 use crate::widgets::symbol;
 use app_base::theme;
+use app_base::ui_locale::tr;
 
 const LIST_GAP: f32 = 2.;
 const INDENT_STEP: f32 = teams_core::INDENT_PIXELS as f32;
@@ -226,7 +227,7 @@ fn code_header(language: &str, code: &str, id: &str, own: bool) -> Div {
                     cx.write_to_clipboard(ClipboardItem::new_string(code.clone()))
                 })
                 .child(symbol("content_copy", 13., muted))
-                .child("Copy"),
+                .child(tr("ui.settings.common.copy")),
         )
 }
 

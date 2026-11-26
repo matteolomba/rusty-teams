@@ -49,25 +49,28 @@ pub fn button_look(state: Option<&DownloadState>) -> ButtonLook {
         None => ButtonLook {
             symbol: "download",
             percent: None,
-            tooltip: "Save to Downloads".to_owned(),
+            tooltip: crate::ui_locale::tr("ui.settings.downloads.save"),
             clickable: true,
         },
         Some(DownloadState::Saving(percent)) => ButtonLook {
             symbol: "download",
             percent: Some(*percent),
-            tooltip: "Saving".to_owned(),
+            tooltip: crate::ui_locale::tr("ui.settings.downloads.saving"),
             clickable: false,
         },
         Some(DownloadState::Saved(_)) => ButtonLook {
             symbol: "folder_open",
             percent: None,
-            tooltip: "Show in folder".to_owned(),
+            tooltip: crate::ui_locale::tr("ui.settings.downloads.show_in_folder"),
             clickable: true,
         },
         Some(DownloadState::Failed(reason)) => ButtonLook {
             symbol: "refresh",
             percent: None,
-            tooltip: format!("Save failed: {reason}. Click to retry"),
+            tooltip: crate::ui_locale::tr_with(
+                "ui.settings.downloads.failed",
+                &[("reason", reason)],
+            ),
             clickable: true,
         },
     }
@@ -614,7 +617,10 @@ mod tests {
         let idle = button_look(None);
         assert_eq!(
             (idle.symbol, idle.tooltip.as_str()),
-            ("download", "Save to Downloads")
+            (
+                "download",
+                crate::ui_locale::tr("ui.settings.downloads.save").as_str()
+            )
         );
         assert!(idle.clickable);
         let saving = button_look(Some(&DownloadState::Saving(42)));
@@ -623,11 +629,17 @@ mod tests {
         let saved = button_look(Some(&DownloadState::Saved(PathBuf::from("/a"))));
         assert_eq!(
             (saved.symbol, saved.tooltip.as_str()),
-            ("folder_open", "Show in folder")
+            (
+                "folder_open",
+                crate::ui_locale::tr("ui.settings.downloads.show_in_folder").as_str()
+            )
         );
         let failed = button_look(Some(&DownloadState::Failed("HTTP 404".into())));
         assert_eq!(failed.symbol, "refresh");
-        assert_eq!(failed.tooltip, "Save failed: HTTP 404. Click to retry");
+        assert_eq!(
+            failed.tooltip,
+            crate::ui_locale::tr_with("ui.settings.downloads.failed", &[("reason", "HTTP 404")])
+        );
         assert_eq!(percent_label(42), "42 %");
     }
 

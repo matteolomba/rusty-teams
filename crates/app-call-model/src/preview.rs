@@ -213,8 +213,14 @@ pub fn preview_backgrounds(library: &BackgroundLibrary) -> Vec<(BackgroundPick, 
             (BackgroundPick::Custom(path.clone()), name)
         });
     [
-        (BackgroundPick::None, "None".to_owned()),
-        (BackgroundPick::Blur, "Blur".to_owned()),
+        (
+            BackgroundPick::None,
+            app_base::ui_locale::tr("calls.chrome.background_none"),
+        ),
+        (
+            BackgroundPick::Blur,
+            app_base::ui_locale::tr("calls.chrome.background_blur"),
+        ),
     ]
     .into_iter()
     .chain(defaults)

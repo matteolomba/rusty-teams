@@ -2,9 +2,11 @@ use gpui_kit::*;
 use store::MessageRecord;
 
 use super::ConversationView;
+use crate::i18n::tr;
 use crate::notice::short_error;
 use crate::restorable_deletes::RESTORE_FAILED_NOTICE;
 use crate::runtime;
+use app_base::ui_locale::tr_with;
 
 impl ConversationView {
     pub(super) fn delete(&mut self, message_id: &str, cx: &mut Context<Self>) {
@@ -19,7 +21,7 @@ impl ConversationView {
             return;
         }
         let Some(engine) = engine.filter(|_| !mode.read_only) else {
-            self.show_notice("Read-only mode: message not deleted", cx);
+            self.show_notice(&tr("ui.chat.delete.read_only"), cx);
             return;
         };
         self.remember_delete(&record, cx);
@@ -34,7 +36,7 @@ impl ConversationView {
             let error = match receiver.await {
                 Ok(Ok(())) => return,
                 Ok(Err(error)) => short_error(&error),
-                Err(_) => "cancelled".to_owned(),
+                Err(_) => tr("ui.chat.delete.cancelled"),
             };
             this.update(cx, |this, cx| {
                 this.app.update(cx, |state, _| {
@@ -42,7 +44,7 @@ impl ConversationView {
                         .restorable_deletes
                         .forget(&failed_conversation, &failed_message)
                 });
-                this.show_notice(&format!("Delete failed: {error}"), cx);
+                this.show_notice(&tr_with("ui.chat.delete.failed", &[("detail", &error)]), cx);
             })
             .ok();
         })
@@ -85,7 +87,7 @@ impl ConversationView {
             this.update(cx, |this, cx| {
                 this.remember_delete(&record, cx);
                 this.store_deleted(record, true, cx);
-                this.show_notice(RESTORE_FAILED_NOTICE, cx);
+                this.show_notice(&tr(RESTORE_FAILED_NOTICE), cx);
             })
             .ok();
         })

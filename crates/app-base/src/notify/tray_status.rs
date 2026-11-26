@@ -7,12 +7,12 @@ pub fn duration_target(forced: Option<ForcedKind>) -> Option<ForcedKind> {
     forced.filter(|kind| *kind != ForcedKind::Available)
 }
 
-pub fn reset_label() -> &'static str {
-    "Reset status"
+pub fn reset_label() -> String {
+    crate::ui_locale::tr("ui.settings.tray.reset_status")
 }
 
-pub fn duration_menu_label() -> &'static str {
-    "Duration"
+pub fn duration_menu_label() -> String {
+    crate::ui_locale::tr("ui.settings.tray.duration")
 }
 
 pub fn kind_id(kind: ForcedKind) -> &'static str {

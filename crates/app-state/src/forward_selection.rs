@@ -5,20 +5,23 @@ use crate::rows::{Delivery, MessageRow};
 
 pub const FORWARD_SELECTION_LIMIT: usize = 5;
 pub const FORWARD_IMAGE_LIMIT: usize = 5;
-pub const FORWARD_LABEL: &str = "Forward";
-pub const THIS_MESSAGE_LABEL: &str = "This message";
-pub const MULTIPLE_MESSAGES_LABEL: &str = "Multiple messages";
-pub const SELECT_MESSAGE_LABEL: &str = "Select message";
-pub const NEXT_LABEL: &str = "Next";
-pub const CANCEL_LABEL: &str = "Cancel";
-pub const LIMIT_REASON: &str = "You can only forward up to 5 messages at a time.";
-pub const IMAGE_LIMIT_REASON: &str = "Messages with more than 5 images can't be forwarded.";
-pub const UNDELIVERED_REASON: &str = "Undelivered messages can't be forwarded.";
-pub const SCHEDULED_REASON: &str = "Scheduled messages can't be forwarded until they're sent.";
-pub const DEFAULT_REASON: &str = "This message can't be forwarded.";
+pub const FORWARD_LABEL: &str = "ui.chat.forward.action";
+pub const THIS_MESSAGE_LABEL: &str = "ui.chat.forward.this_message";
+pub const MULTIPLE_MESSAGES_LABEL: &str = "ui.chat.forward.multiple_messages";
+pub const SELECT_MESSAGE_LABEL: &str = "ui.chat.forward.select_message";
+pub const NEXT_LABEL: &str = "ui.chat.forward.next";
+pub const CANCEL_LABEL: &str = "ui.chat.forward.cancel";
+pub const LIMIT_REASON: &str = "ui.chat.forward.limit_reason";
+pub const IMAGE_LIMIT_REASON: &str = "ui.chat.forward.image_limit_reason";
+pub const UNDELIVERED_REASON: &str = "ui.chat.forward.undelivered_reason";
+pub const SCHEDULED_REASON: &str = "ui.chat.forward.scheduled_reason";
+pub const DEFAULT_REASON: &str = "ui.chat.forward.default_reason";
 
 pub fn selected_count_label(count: usize) -> String {
-    format!("{count} selected")
+    app_base::ui_locale::tr_with(
+        "ui.chat.forward.selected_count",
+        &[("count", &count.to_string())],
+    )
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -121,7 +124,11 @@ impl AppState {
         cx: &mut Context<Self>,
     ) {
         if self.mode.read_only {
-            self.raise_notice("Read-only mode: message not forwarded".to_owned(), None, cx);
+            self.raise_notice(
+                app_base::ui_locale::tr("ui.chat.forward.read_only"),
+                None,
+                cx,
+            );
             return;
         }
         self.forward_selection = Some(ForwardSelection::starting_with(conversation_id, message_id));
@@ -264,6 +271,7 @@ mod tests {
 
     #[test]
     fn the_footer_counts_the_selection() {
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(selected_count_label(3), "3 selected");
     }
 }

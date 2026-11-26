@@ -3,9 +3,11 @@ use std::rc::Rc;
 use gpui_kit::component::h_flex;
 use gpui_kit::*;
 
+use crate::i18n::tr;
 use crate::rows::MessageRow;
 use crate::theme;
 use crate::translation::TranslationLine;
+use app_base::ui_locale::tr_with;
 
 const LINE_SIZE: f32 = 11.;
 const LINE_GAP: f32 = 10.;
@@ -47,7 +49,7 @@ pub fn translation_line(
             .children(actions.map(|actions| {
                 line_link(
                     link_id("translate"),
-                    "Translate".to_owned(),
+                    tr("ui.chat.translation.translate"),
                     theme::accent_text(),
                     actions.translate.clone(),
                 )
@@ -56,19 +58,19 @@ pub fn translation_line(
                 actions.never.clone().map(|never| {
                     line_link(
                         link_id("never"),
-                        format!("Never translate {language}"),
+                        tr_with("ui.chat.translation.never", &[("language", language)]),
                         theme::text_muted(),
                         never,
                     )
                 })
             })),
-        TranslationLine::Working => base.child("Translating..."),
+        TranslationLine::Working => base.child(tr("ui.chat.translation.working")),
         TranslationLine::Failed => {
-            base.child("Couldn't translate.")
+            base.child(tr("ui.chat.translation.failed"))
                 .children(actions.map(|actions| {
                     line_link(
                         link_id("retry"),
-                        "Retry".to_owned(),
+                        tr("ui.chat.message.retry"),
                         theme::accent_text(),
                         actions.translate.clone(),
                     )
@@ -79,14 +81,17 @@ pub fn translation_line(
             showing_original,
         } => {
             let summary = match (language, showing_original) {
-                (_, true) => "Showing original".to_owned(),
-                (Some(language), false) => format!("Translated from {language}"),
-                (None, false) => "Translated".to_owned(),
+                (_, true) => tr("ui.chat.translation.showing_original"),
+                (Some(language), false) => tr_with(
+                    "ui.chat.translation.translated_from",
+                    &[("language", language)],
+                ),
+                (None, false) => tr("ui.chat.translation.translated"),
             };
             let toggle = if *showing_original {
-                "See translation"
+                tr("ui.chat.conversation.see_translation")
             } else {
-                "See original"
+                tr("ui.chat.conversation.see_original")
             };
             base.child(
                 h_flex()
@@ -96,7 +101,7 @@ pub fn translation_line(
                     .children(actions.map(|actions| {
                         line_link(
                             link_id("toggle"),
-                            toggle.to_owned(),
+                            toggle.clone(),
                             theme::accent_text(),
                             actions.translate.clone(),
                         )

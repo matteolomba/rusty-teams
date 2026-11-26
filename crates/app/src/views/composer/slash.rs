@@ -8,6 +8,7 @@ use gpui_kit::*;
 use teams_core::{ForcedAvailability, ForcedKind};
 
 use super::Composer;
+use crate::i18n::tr;
 use crate::theme::{self, ElevatedSurface as _};
 use crate::views::actions::OpenSwitcher;
 use crate::views::chat_menu::confirm_leave;
@@ -19,8 +20,8 @@ const ROW_HEIGHT: f32 = 32.;
 const HEADER_HEIGHT: f32 = 28.;
 const VISIBLE_ROWS: usize = 8;
 const NAME_WIDTH: f32 = 128.;
-pub const HEADER: &str = "Commands";
-pub const NO_RESULTS: &str = "No results";
+pub const HEADER: &str = "ui.chat.slash.header";
+pub const NO_RESULTS: &str = "ui.chat.slash.no_results";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SlashCommand {
@@ -80,40 +81,37 @@ impl SlashCommand {
         }
     }
 
-    pub fn description(self) -> &'static str {
-        match self {
-            SlashCommand::Presence(ForcedKind::Available) => "Set your status to available",
-            SlashCommand::Presence(ForcedKind::Away) => "Set your status to away",
-            SlashCommand::Presence(ForcedKind::BeRightBack) => "Set your status to be right back",
-            SlashCommand::Presence(ForcedKind::Busy) => "Set your status to busy",
-            SlashCommand::Presence(ForcedKind::DoNotDisturb) => "Set your status to do not disturb",
-            SlashCommand::Presence(ForcedKind::Offline) => "Set your status to offline",
-            SlashCommand::ResetPresence => "Reset your presence status",
-            SlashCommand::Goto => "Go right to a chat or channel",
-            SlashCommand::LeaveChat => "Leave the chat",
-            SlashCommand::Mute => "Mute the chat",
-            SlashCommand::Unmute => "Unmute the chat",
-            SlashCommand::ScheduleMessage => "Schedule a message",
-            SlashCommand::Settings => "Open Settings",
-            SlashCommand::Shortcuts => "Open keyboard shortcuts",
-        }
+    pub fn description(self) -> String {
+        let key = match self {
+            SlashCommand::Presence(ForcedKind::Available) => "ui.chat.slash.available",
+            SlashCommand::Presence(ForcedKind::Away) => "ui.chat.slash.away",
+            SlashCommand::Presence(ForcedKind::BeRightBack) => "ui.chat.slash.brb",
+            SlashCommand::Presence(ForcedKind::Busy) => "ui.chat.slash.busy",
+            SlashCommand::Presence(ForcedKind::DoNotDisturb) => "ui.chat.slash.dnd",
+            SlashCommand::Presence(ForcedKind::Offline) => "ui.chat.slash.offline",
+            SlashCommand::ResetPresence => "ui.chat.slash.reset",
+            SlashCommand::Goto => "ui.chat.slash.goto",
+            SlashCommand::LeaveChat => "ui.chat.slash.leavechat",
+            SlashCommand::Mute => "ui.chat.slash.mute",
+            SlashCommand::Unmute => "ui.chat.slash.unmute",
+            SlashCommand::ScheduleMessage => "ui.chat.slash.schedule",
+            SlashCommand::Settings => "ui.chat.slash.settings",
+            SlashCommand::Shortcuts => "ui.chat.slash.shortcuts",
+        };
+        tr(key)
     }
 
     pub fn confirmation(self) -> Option<&'static str> {
         match self {
             SlashCommand::Presence(ForcedKind::Available) => {
-                Some("Your status is set to available.")
+                Some("ui.chat.slash.confirm_available")
             }
-            SlashCommand::Presence(ForcedKind::Away) => Some("Your status is set to away."),
-            SlashCommand::Presence(ForcedKind::BeRightBack) => {
-                Some("Your status is set to be right back.")
-            }
-            SlashCommand::Presence(ForcedKind::Busy) => Some("Your status is set to busy."),
-            SlashCommand::Presence(ForcedKind::DoNotDisturb) => {
-                Some("Your status is set to do not disturb.")
-            }
-            SlashCommand::Presence(ForcedKind::Offline) => Some("Your status is set to offline."),
-            SlashCommand::ResetPresence => Some("Your presence status is reset."),
+            SlashCommand::Presence(ForcedKind::Away) => Some("ui.chat.slash.confirm_away"),
+            SlashCommand::Presence(ForcedKind::BeRightBack) => Some("ui.chat.slash.confirm_brb"),
+            SlashCommand::Presence(ForcedKind::Busy) => Some("ui.chat.slash.confirm_busy"),
+            SlashCommand::Presence(ForcedKind::DoNotDisturb) => Some("ui.chat.slash.confirm_dnd"),
+            SlashCommand::Presence(ForcedKind::Offline) => Some("ui.chat.slash.confirm_offline"),
+            SlashCommand::ResetPresence => Some("ui.chat.slash.confirm_reset"),
             _ => None,
         }
     }
@@ -233,7 +231,7 @@ fn row(index: usize, command: SlashCommand, selected: bool) -> Stateful<Div> {
         )
 }
 
-fn label(text: &'static str) -> Div {
+fn label(text: &str) -> Div {
     h_flex()
         .h(px(HEADER_HEIGHT))
         .px(px(8.))
@@ -241,7 +239,7 @@ fn label(text: &'static str) -> Div {
         .text_size(theme::text_small())
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme::text_muted())
-        .child(text)
+        .child(text.to_owned())
 }
 
 pub fn render(
@@ -266,7 +264,7 @@ pub fn render(
         .rounded(px(10.))
         .flyout_surface()
         .occlude()
-        .child(label(HEADER))
+        .child(label(&tr(HEADER)))
         .when(popup.commands.is_empty(), |panel| {
             panel.child(
                 h_flex()
@@ -276,7 +274,7 @@ pub fn render(
                     .items_center()
                     .text_size(theme::text_label())
                     .text_color(theme::text_muted())
-                    .child(NO_RESULTS),
+                    .child(tr(NO_RESULTS)),
             )
         })
         .when(!popup.commands.is_empty(), |panel| {
@@ -402,7 +400,7 @@ impl Composer {
         self.app.update(cx, |state, cx| {
             state.set_own_availability(forced, cx);
             if let Some(text) = command.confirmation() {
-                state.raise_notice(text.to_owned(), None, cx);
+                state.raise_notice(tr(text), None, cx);
             }
         });
     }

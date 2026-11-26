@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added
+- Italian labels for calls, chat, settings, calendar, files, dialogs and notifications, so every screen follows the selected UI language.
+
+### Changed
+- CI checks `cargo fmt --check` on every pull request.
+
+### Fixed
+- The MSAL cache key is persisted right after sign-in, so a crash or OOM kill no longer forces another sign-in.
+- The stopped-screen-share notice and the Help yes/no values use translation keys that exist in all locales.
+
 ## [0.7.0-rc.4] - 2026-11-25
 
 ### Changed
@@ -34,23 +44,23 @@
 ## [0.7.0-rc.2] - 2026-11-24
 
 ### Added
-- Modalità aggiornamenti configurabile in Impostazioni > Generale: `Off`, `Manual` (predefinita), `Automatic`, `Release page`. Il feed punta al fork e rifiuta asset upstream.
+- Configurable update mode in Settings > General: `Off`, `Manual` (default), `Automatic`, `Release page`. The feed points to the fork and rejects upstream assets.
 
 ### Fixed
-- Confronto del tag staged con la versione rilasciata, non con il build id; caricamento calendario e indici colore refactorizzati senza cambiare comportamento.
+- The staged tag is compared with the released version, not the build id; calendar loading and colour indices were refactored without changing behaviour.
 
 ## [0.7.0-rc.1] - 2026-11-24
 
 ### Added
-- Impostazione "Mostra anteprima messaggi" nella lista chat: con l'anteprima disattivata le righe diventano a una sola linea.
-- Modalità Compact più densa nelle conversazioni.
-- Creazione meeting trascinando su slot vuoti nel calendario.
-- Calendari delle persone da free/busy, con gruppo dedicato nelle impostazioni e colori personalizzabili.
-- Rilevamento inattività di sistema su Linux tramite Wayland `ext-idle-notify-v1` e fallback X11.
-- Picker nativo macOS per la condivisione di una finestra (da provare su macOS 14+).
-- Traduzione italiana dell'interfaccia, selezionabile dalle impostazioni e applicata automaticamente quando la lingua del sistema è italiana.
+- "Show message preview" setting in the chat list: with preview off, rows become a single line.
+- Denser Compact mode in conversations.
+- Create meetings by dragging over empty calendar slots.
+- People calendars from free/busy, with a dedicated settings group and custom colours.
+- System idle detection on Linux through Wayland `ext-idle-notify-v1` with an X11 fallback.
+- Native macOS picker for sharing a window (to test on macOS 14+).
+- Italian UI translation, selectable in settings and applied automatically when the system language is Italian.
 
 ### Fixed
-- VAAPI non viene più scelto come encoder predefinito; la selezione esplicita resta disponibile.
-- Ricostruzione delle mention canale/team/tag durante la modifica di un messaggio (da verificare con una sessione Teams reale).
-- Gestione di `BadMatch` di `X_GetImage` sotto X11 (da verificare su X11 reale).
+- VAAPI is no longer chosen as the default encoder; explicit selection remains available.
+- Channel, team and tag mentions are rebuilt when a message is edited (to verify with a real Teams session).
+- Handle `X_GetImage` `BadMatch` under X11 (to verify on real X11).

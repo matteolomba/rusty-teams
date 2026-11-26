@@ -5,6 +5,7 @@ use gpui_kit::*;
 
 use crate::app_state::AppState;
 use crate::notice::Notice;
+use app_base::ui_locale::tr_with;
 
 struct NoticeToast;
 struct UpdateFailedToast;
@@ -83,7 +84,7 @@ impl NoticeToasts {
         let Some(message) = message else {
             return;
         };
-        let toast = Notification::error(format!("Update failed: {message}"))
+        let toast = Notification::error(tr_with("ui.chat.update.failed", &[("detail", message)]))
             .id::<UpdateFailedToast>()
             .placement(toast_placement());
         window.defer(cx, move |window, cx| window.push_notification(toast, cx));

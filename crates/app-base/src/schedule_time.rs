@@ -2,6 +2,8 @@ use chrono::{
     DateTime, Datelike, Duration, Local, NaiveDate, NaiveTime, TimeZone, Timelike, Weekday,
 };
 
+use crate::ui_locale::{tr, tr_with};
+
 const LATER_TODAY_HOURS: i64 = 3;
 const LATER_TODAY_CUTOFF_HOUR: u32 = 20;
 const MORNING_HOUR: u32 = 8;
@@ -20,7 +22,7 @@ pub enum PresetKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Preset {
     pub kind: PresetKind,
-    pub label: &'static str,
+    pub label: String,
     pub time_label: String,
     pub at: DateTime<Local>,
 }
@@ -32,11 +34,11 @@ pub enum ScheduleError {
 }
 
 impl ScheduleError {
-    pub fn message(self) -> &'static str {
-        match self {
-            ScheduleError::Past => "That time has passed.",
-            ScheduleError::TooFar => "Teams schedules up to 7 days ahead.",
-        }
+    pub fn message(self) -> String {
+        tr(match self {
+            ScheduleError::Past => "ui.settings.schedule.past",
+            ScheduleError::TooFar => "ui.settings.schedule.too_far",
+        })
     }
 }
 
@@ -87,7 +89,7 @@ pub fn presets(now: DateTime<Local>) -> Vec<Preset> {
     if let Some(at) = later_today(now) {
         presets.push(Preset {
             kind: PresetKind::LaterToday,
-            label: "Later today",
+            label: tr("ui.settings.schedule.later_today"),
             time_label: at.format(crate::format::clock_format()).to_string(),
             at,
         });
@@ -102,10 +104,14 @@ pub fn presets(now: DateTime<Local>) -> Vec<Preset> {
     for (kind, label, at) in [
         (
             PresetKind::TomorrowMorning,
-            "Tomorrow morning",
+            tr("ui.settings.schedule.tomorrow_morning"),
             tomorrow_morning,
         ),
-        (PresetKind::MondayMorning, "Monday morning", monday),
+        (
+            PresetKind::MondayMorning,
+            tr("ui.settings.schedule.monday_morning"),
+            monday,
+        ),
     ] {
         if let Some(at) = at.filter(|at| validate(*at, now).is_ok()) {
             presets.push(Preset {
@@ -176,7 +182,7 @@ pub fn describe(at: DateTime<Local>, now: DateTime<Local>) -> String {
     let days_ahead = (at.date_naive() - now.date_naive()).num_days();
     let clock = at.format(crate::format::clock_format()).to_string();
     match days_ahead {
-        0 => crate::ui_locale::tr_with("regional.today_clock", &[("clock", &clock)]),
+        0 => tr_with("regional.today_clock", &[("clock", &clock)]),
         1..=6 => weekday_clock(at),
         _ => format!(
             "{} {clock}",
@@ -228,10 +234,14 @@ mod tests {
     fn midweek_offers_tomorrow_and_next_monday() {
         let _guard = crate::ui_locale::locale_test_lock();
         let found = presets(at(8, 9, 0));
-        let labels: Vec<_> = found.iter().map(|preset| preset.label).collect();
+        let labels: Vec<_> = found.iter().map(|preset| preset.label.as_str()).collect();
         assert_eq!(
             labels,
-            ["Later today", "Tomorrow morning", "Monday morning"]
+            [
+                tr("ui.settings.schedule.later_today"),
+                tr("ui.settings.schedule.tomorrow_morning"),
+                tr("ui.settings.schedule.monday_morning"),
+            ]
         );
         assert_eq!(found[1].time_label, "Fri 08:00");
         assert_eq!(found[1].at, at(9, 8, 0));
@@ -278,10 +288,13 @@ mod tests {
         assert_eq!(validate(at(6, 10, 1), now), Ok(()));
         assert_eq!(validate(at(13, 10, 0), now), Ok(()));
         assert_eq!(validate(at(13, 10, 1), now), Err(ScheduleError::TooFar));
-        assert_eq!(ScheduleError::Past.message(), "That time has passed.");
+        assert_eq!(
+            ScheduleError::Past.message(),
+            tr("ui.settings.schedule.past")
+        );
         assert_eq!(
             ScheduleError::TooFar.message(),
-            "Teams schedules up to 7 days ahead."
+            tr("ui.settings.schedule.too_far")
         );
     }
 

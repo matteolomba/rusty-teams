@@ -8,6 +8,7 @@ use gpui_kit::*;
 use super::widgets::icon;
 use crate::app_state::Mode;
 use crate::appearance::AppIcon;
+use crate::i18n::tr;
 use crate::theme;
 use crate::updater::UpdateStatus;
 
@@ -18,7 +19,7 @@ const SEARCH_MIN_VISIBLE_WIDTH: f32 = 36.;
 const SEARCH_HEIGHT: f32 = 28.;
 const SEARCH_GAP: f32 = 8.;
 const SHORTCUT_MIN_WIDTH: f32 = 200.;
-const SEARCH_HINT: &str = "Search chats, people and channels";
+const SEARCH_HINT: &str = "ui.chat.title.search_hint";
 const SHORTCUT_HINT: &str = "Ctrl K";
 const APP_ICON_SIZE: f32 = 18.;
 /// Frame of one macOS traffic light button (14 x 14 since macOS 26).
@@ -49,7 +50,7 @@ pub fn app_icon_image(app_icon: AppIcon) -> Arc<Image> {
         .clone()
 }
 
-fn mode_pill(label: &'static str) -> Div {
+fn mode_pill(label: &str) -> Div {
     div()
         .debug_selector(|| "shell/title-bar/mode-pill".into())
         .flex_none()
@@ -62,14 +63,14 @@ fn mode_pill(label: &'static str) -> Div {
         .text_size(theme::text_caption())
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(theme::amber())
-        .child(label)
+        .child(tr(label))
 }
 
 pub fn mode_label(mode: Mode) -> Option<&'static str> {
     if mode.demo {
-        Some("Demo")
+        Some("ui.chat.title.demo")
     } else if mode.read_only {
-        Some("Read-only")
+        Some("ui.chat.title.read_only")
     } else {
         None
     }
@@ -106,9 +107,9 @@ pub fn update_button(
             })
             .when(installing, |button| button.opacity(0.7))
             .child(if installing {
-                "Restarting..."
+                tr("ui.chat.title.restarting")
             } else {
-                "Restart to update"
+                tr("ui.chat.title.restart_to_update")
             })
             .into_any_element(),
     )
@@ -194,7 +195,7 @@ fn search_box(
                 .flex_none()
                 .child(icon(IconName::Search, 14., theme::text_muted())),
         )
-        .child(div().flex_1().min_w_0().truncate().child(SEARCH_HINT))
+        .child(div().flex_1().min_w_0().truncate().child(tr(SEARCH_HINT)))
         .when(span.width >= SHORTCUT_MIN_WIDTH, |search| {
             search.child(
                 div()

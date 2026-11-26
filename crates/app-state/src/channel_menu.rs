@@ -5,9 +5,10 @@ use gpui_kit::*;
 use crate::app_state::AppState;
 use crate::sidebar_model::channel_shown;
 use crate::team_admin::ChannelAdmin;
+use app_base::ui_locale::{tr, tr_with};
 
-pub const COPIED_TO_CLIPBOARD: &str = "Copied to clipboard";
-pub const PINNED_CHANNEL_CANNOT_HIDE: &str = "Pinned channels can't be hidden.";
+pub const COPIED_TO_CLIPBOARD: &str = "ui.chat.channel_menu.copied";
+pub const PINNED_CHANNEL_CANNOT_HIDE: &str = "ui.chat.channel_menu.pinned_cannot_hide";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChannelMenuItem {
@@ -40,15 +41,15 @@ pub enum MenuEntry<Item> {
 impl ChannelMenuItem {
     pub fn label(self) -> &'static str {
         match self {
-            ChannelMenuItem::Notifications => "Channel notifications",
-            ChannelMenuItem::Pin => "Pin",
-            ChannelMenuItem::Unpin => "Unpin",
-            ChannelMenuItem::Show => "Show",
-            ChannelMenuItem::Hide => "Hide",
-            ChannelMenuItem::EditChannel => "Edit channel",
-            ChannelMenuItem::ManageChannel => "Manage channel",
-            ChannelMenuItem::CopyLink => "Copy link",
-            ChannelMenuItem::DeleteChannel => "Delete channel",
+            ChannelMenuItem::Notifications => "ui.chat.channel_menu.notifications",
+            ChannelMenuItem::Pin => "ui.chat.channel_menu.pin",
+            ChannelMenuItem::Unpin => "ui.chat.channel_menu.unpin",
+            ChannelMenuItem::Show => "ui.chat.channel_menu.show",
+            ChannelMenuItem::Hide => "ui.chat.channel_menu.hide",
+            ChannelMenuItem::EditChannel => "ui.chat.channel_menu.edit",
+            ChannelMenuItem::ManageChannel => "ui.chat.channel_menu.manage",
+            ChannelMenuItem::CopyLink => "ui.chat.channel_menu.copy_link",
+            ChannelMenuItem::DeleteChannel => "ui.chat.channel_menu.delete",
         }
     }
 }
@@ -56,11 +57,11 @@ impl ChannelMenuItem {
 impl TeamMenuItem {
     pub fn label(self) -> &'static str {
         match self {
-            TeamMenuItem::AddChannel => "Add channel",
-            TeamMenuItem::Show => "Show",
-            TeamMenuItem::Hide => "Hide",
-            TeamMenuItem::ManageTeam => "Manage team",
-            TeamMenuItem::CopyLink => "Copy link",
+            TeamMenuItem::AddChannel => "ui.chat.channel_menu.add_channel",
+            TeamMenuItem::Show => "ui.chat.channel_menu.show",
+            TeamMenuItem::Hide => "ui.chat.channel_menu.hide",
+            TeamMenuItem::ManageTeam => "ui.chat.channel_menu.manage_team",
+            TeamMenuItem::CopyLink => "ui.chat.channel_menu.copy_link",
         }
     }
 }
@@ -74,8 +75,10 @@ enum LinkUse {
 impl LinkUse {
     fn failure(self, reason: &str) -> String {
         match self {
-            LinkUse::Copy => format!("Copy link failed: {reason}"),
-            LinkUse::OpenInBrowser => format!("Couldn't open Teams on the web: {reason}"),
+            LinkUse::Copy => tr_with("ui.chat.channel_menu.copy_failed", &[("reason", reason)]),
+            LinkUse::OpenInBrowser => {
+                tr_with("ui.chat.channel_menu.open_failed", &[("reason", reason)])
+            }
         }
     }
 }
@@ -150,25 +153,25 @@ pub fn team_menu_entries(state: TeamMenuState) -> Vec<MenuEntry<TeamMenuItem>> {
 
 pub fn pin_failure(pinned: bool) -> &'static str {
     if pinned {
-        "We couldn't pin the channel."
+        "ui.chat.channel_menu.pin_channel_failed"
     } else {
-        "We couldn't unpin the channel."
+        "ui.chat.channel_menu.unpin_channel_failed"
     }
 }
 
 pub fn channel_visibility_failure(shown: bool) -> &'static str {
     if shown {
-        "We couldn't show the channel."
+        "ui.chat.channel_menu.show_channel_failed"
     } else {
-        "We couldn't hide the channel."
+        "ui.chat.channel_menu.hide_channel_failed"
     }
 }
 
 pub fn team_visibility_failure(shown: bool) -> &'static str {
     if shown {
-        "We couldn't show the team."
+        "ui.chat.channel_menu.show_team_failed"
     } else {
-        "We couldn't hide the team."
+        "ui.chat.channel_menu.hide_team_failed"
     }
 }
 
@@ -182,28 +185,32 @@ pub struct PostPinDialog {
 pub fn post_pin_dialog(pin: bool) -> PostPinDialog {
     if pin {
         PostPinDialog {
-            title: "Pin in channel",
-            body: "The message will be pinned for everyone who views the channel.",
-            confirm: "Pin",
+            title: "ui.chat.channel_menu.pin_dialog_title",
+            body: "ui.chat.channel_menu.pin_dialog_body",
+            confirm: "ui.chat.channel_menu.pin",
         }
     } else {
         PostPinDialog {
-            title: "Unpin this message?",
-            body: "The message will be unpinned for everyone who views the channel.",
-            confirm: "Unpin",
+            title: "ui.chat.channel_menu.unpin_dialog_title",
+            body: "ui.chat.channel_menu.unpin_dialog_body",
+            confirm: "ui.chat.channel_menu.unpin",
         }
     }
 }
 
 pub fn post_pin_notice(pin: bool) -> &'static str {
-    if pin { "Post pinned" } else { "Post unpinned" }
+    if pin {
+        "ui.chat.channel_menu.post_pinned"
+    } else {
+        "ui.chat.channel_menu.post_unpinned"
+    }
 }
 
 pub fn post_pin_failure(pin: bool) -> &'static str {
     if pin {
-        "We couldn't pin the post."
+        "ui.chat.channel_menu.pin_post_failed"
     } else {
-        "We couldn't unpin the post."
+        "ui.chat.channel_menu.unpin_post_failed"
     }
 }
 
@@ -264,7 +271,7 @@ impl AppState {
 
     pub fn set_channel_shown(&mut self, channel_id: &str, shown: bool, cx: &mut Context<Self>) {
         if !shown && self.channel_pinned(channel_id) {
-            self.raise_notice(PINNED_CHANNEL_CANNOT_HIDE.to_owned(), None, cx);
+            self.raise_notice(tr(PINNED_CHANNEL_CANNOT_HIDE), None, cx);
             return;
         }
         let Some(engine_or_demo) = self.chat_action_engine(cx) else {
@@ -393,7 +400,7 @@ impl AppState {
         match link_use {
             LinkUse::Copy => {
                 cx.write_to_clipboard(ClipboardItem::new_string(link));
-                self.raise_notice(COPIED_TO_CLIPBOARD.to_owned(), None, cx);
+                self.raise_notice(tr(COPIED_TO_CLIPBOARD), None, cx);
             }
             LinkUse::OpenInBrowser => cx.open_url(&link),
         }
@@ -435,9 +442,9 @@ impl AppState {
             this.update(cx, |state, cx| {
                 if failed {
                     revert(state, cx);
-                    state.raise_notice(failure.to_owned(), None, cx);
+                    state.raise_notice(app_base::ui_locale::tr(failure), None, cx);
                 } else if let Some(text) = success {
-                    state.raise_notice(text.to_owned(), None, cx);
+                    state.raise_notice(app_base::ui_locale::tr(text), None, cx);
                 }
             })
             .ok();
@@ -459,18 +466,19 @@ mod tests {
     fn labels<Item: Copy>(
         entries: &[MenuEntry<Item>],
         label: impl Fn(Item) -> &'static str,
-    ) -> Vec<&'static str> {
+    ) -> Vec<String> {
         entries
             .iter()
             .map(|entry| match entry {
-                MenuEntry::Item(item) => label(*item),
-                MenuEntry::Separator => "-",
+                MenuEntry::Item(item) => app_base::ui_locale::tr(label(*item)),
+                MenuEntry::Separator => "-".to_owned(),
             })
             .collect()
     }
 
     #[test]
     fn channel_menu_follows_teams_order() {
+        app_base::ui_locale::apply_locale("en");
         let shown = channel_menu_entries(ChannelMenuState {
             pinned: false,
             shown: true,
@@ -524,6 +532,7 @@ mod tests {
 
     #[test]
     fn edit_and_delete_appear_only_with_the_rights() {
+        app_base::ui_locale::apply_locale("en");
         let admin = ChannelMenuState {
             pinned: false,
             shown: true,
@@ -550,6 +559,7 @@ mod tests {
 
     #[test]
     fn team_menu_switches_between_show_and_hide() {
+        app_base::ui_locale::apply_locale("en");
         let shown = TeamMenuState::default();
         assert_eq!(
             labels(&team_menu_entries(shown), TeamMenuItem::label),
@@ -567,6 +577,7 @@ mod tests {
 
     #[test]
     fn add_channel_leads_the_team_menu_when_the_team_allows_it() {
+        app_base::ui_locale::apply_locale("en");
         let state = TeamMenuState {
             hidden: false,
             can_add_channel: true,
@@ -579,30 +590,37 @@ mod tests {
 
     #[test]
     fn post_pin_dialogs_and_notices_use_teams_strings() {
+        use app_base::ui_locale::tr;
+        app_base::ui_locale::apply_locale("en");
         let unpin = post_pin_dialog(false);
-        assert_eq!(unpin.title, "Unpin this message?");
+        assert_eq!(tr(unpin.title), "Unpin this message?");
         assert_eq!(
-            unpin.body,
+            tr(unpin.body),
             "The message will be unpinned for everyone who views the channel."
         );
-        assert_eq!(unpin.confirm, "Unpin");
+        assert_eq!(tr(unpin.confirm), "Unpin");
         let pin = post_pin_dialog(true);
-        assert_eq!(pin.title, "Pin in channel");
-        assert_eq!(pin.confirm, "Pin");
-        assert_eq!(post_pin_notice(true), "Post pinned");
-        assert_eq!(post_pin_notice(false), "Post unpinned");
-        assert_eq!(post_pin_failure(true), "We couldn't pin the post.");
-        assert_eq!(post_pin_failure(false), "We couldn't unpin the post.");
+        assert_eq!(tr(pin.title), "Pin in channel");
+        assert_eq!(tr(pin.confirm), "Pin");
+        assert_eq!(tr(post_pin_notice(true)), "Post pinned");
+        assert_eq!(tr(post_pin_notice(false)), "Post unpinned");
+        assert_eq!(tr(post_pin_failure(true)), "We couldn't pin the post.");
+        assert_eq!(tr(post_pin_failure(false)), "We couldn't unpin the post.");
     }
 
     #[test]
     fn failures_use_teams_strings() {
-        assert_eq!(pin_failure(true), "We couldn't pin the channel.");
-        assert_eq!(pin_failure(false), "We couldn't unpin the channel.");
+        use app_base::ui_locale::tr;
+        app_base::ui_locale::apply_locale("en");
+        assert_eq!(tr(pin_failure(true)), "We couldn't pin the channel.");
+        assert_eq!(tr(pin_failure(false)), "We couldn't unpin the channel.");
         assert_eq!(
-            channel_visibility_failure(false),
+            tr(channel_visibility_failure(false)),
             "We couldn't hide the channel."
         );
-        assert_eq!(team_visibility_failure(true), "We couldn't show the team.");
+        assert_eq!(
+            tr(team_visibility_failure(true)),
+            "We couldn't show the team."
+        );
     }
 }

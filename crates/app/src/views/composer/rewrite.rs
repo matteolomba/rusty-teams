@@ -9,25 +9,38 @@ use gpui_kit::*;
 use teams_core::{ComposeAction, ComposeAdjustment, Draft, OBJECT_MARK, TABLE_MARK, html_to_spans};
 
 use super::{COMPOSER_BUTTON_SIZE, COMPOSER_ICON_SIZE, Composer};
+use crate::i18n::tr;
 use crate::runtime;
 use crate::theme::{self, ElevatedSurface as _};
 use crate::views::widgets::symbol;
+use app_base::ui_locale::tr_with;
 use app_ui_kit::spinner::spinner;
 
 pub const REWRITE_BUTTON_TAG: &str = "composer/actions/copilot";
 pub const REWRITE_PANEL_TAG: &str = "composer/copilot";
-const BUTTON_LABEL: &str = "Write with Copilot";
+const BUTTON_LABEL: &str = "ui.chat.rewrite.button";
 const REWRITE_SYSTEM: &str = "You rewrite a Teams chat draft. Reply with only the new message text. Keep the meaning. Do not add a preamble. Write in the same language as the draft.";
-const SWITCH_HINT: &str = "Choose another model under Settings > Agents, Write with.";
-const CLOSE_LABEL: &str = "Close";
-const ADJUST_LABEL: &str = "Adjust";
-const CUSTOM_LABEL: &str = "Customised";
-const CUSTOM_PLACEHOLDER: &str = "Describe how to adjust it, e.g. make it sound friendlier";
-const REPLACE_LABEL: &str = "Replace";
-const DISCLAIMER: &str = "AI-generated content may be incorrect";
+const SWITCH_HINT: &str = "ui.chat.rewrite.switch_hint";
+const CLOSE_LABEL: &str = "ui.chat.rewrite.close";
+const ADJUST_LABEL: &str = "ui.chat.rewrite.adjust";
+const CUSTOM_LABEL: &str = "ui.chat.rewrite.customised";
+const CUSTOM_PLACEHOLDER: &str = "ui.chat.rewrite.custom_placeholder";
+const REPLACE_LABEL: &str = "ui.chat.rewrite.replace";
+const DISCLAIMER: &str = "ui.chat.rewrite.disclaimer";
 const COPILOT_NAME: &str = "Copilot";
 const BUTTON_ICON: &str = "auto_fix_high";
 const LOCAL_BUTTON_ICON: &str = "smart_toy";
+fn adjustment_key(adjustment: ComposeAdjustment) -> &'static str {
+    match adjustment {
+        ComposeAdjustment::Concise => "ui.chat.rewrite.adjust_concise",
+        ComposeAdjustment::Longer => "ui.chat.rewrite.adjust_longer",
+        ComposeAdjustment::Casual => "ui.chat.rewrite.adjust_casual",
+        ComposeAdjustment::Professional => "ui.chat.rewrite.adjust_professional",
+        ComposeAdjustment::Confident => "ui.chat.rewrite.adjust_confident",
+        ComposeAdjustment::Enthusiastic => "ui.chat.rewrite.adjust_enthusiastic",
+    }
+}
+
 const PANEL_WIDTH: f32 = 600.;
 const PANEL_PADDING: f32 = 16.;
 const PANEL_RADIUS: f32 = 10.;
@@ -104,8 +117,8 @@ impl Composer {
         let local = writer.is_some();
         let tooltip = writer
             .as_ref()
-            .map(|profile| format!("Rewrite with {}", profile.name))
-            .unwrap_or_else(|| BUTTON_LABEL.to_owned());
+            .map(|profile| tr_with("ui.chat.rewrite.with_profile", &[("name", &profile.name)]))
+            .unwrap_or_else(|| tr(BUTTON_LABEL));
         Some(
             div()
                 .id("composer-copilot")
@@ -228,9 +241,11 @@ impl Composer {
                         RewriteAnswer::Ready(Draft::from_spans(&html_to_spans(&html)).trimmed())
                     }
                     Ok(Err(error)) => {
-                        RewriteAnswer::Failed(format!("{failed} {error} {SWITCH_HINT}"))
+                        RewriteAnswer::Failed(format!("{failed} {error} {}", tr(SWITCH_HINT)))
                     }
-                    Err(error) => RewriteAnswer::Failed(format!("{failed} {error} {SWITCH_HINT}")),
+                    Err(error) => {
+                        RewriteAnswer::Failed(format!("{failed} {error} {}", tr(SWITCH_HINT)))
+                    }
                 },
             };
             this.update(cx, |this, cx| {
@@ -270,7 +285,8 @@ impl Composer {
         self.rewrite.adjust_menu = false;
         self.rewrite.custom_open = true;
         if self.rewrite.custom_input.is_none() {
-            let input = cx.new(|cx| InputState::new(window, cx).placeholder(CUSTOM_PLACEHOLDER));
+            let input =
+                cx.new(|cx| InputState::new(window, cx).placeholder(tr(CUSTOM_PLACEHOLDER)));
             let subscription = cx.subscribe_in(
                 &input,
                 window,
@@ -325,7 +341,7 @@ impl Composer {
                     .rounded(px(6.))
                     .cursor_pointer()
                     .hover(|button| button.bg(theme::popup_hover()))
-                    .popup_trigger_tooltip_text(false, CLOSE_LABEL)
+                    .popup_trigger_tooltip_text(false, &tr(CLOSE_LABEL))
                     .child(symbol("close", CHIP_ICON, theme::text_soft()))
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.close_rewrite();
@@ -386,7 +402,7 @@ impl Composer {
             .font_weight(FontWeight::SEMIBOLD)
             .text_color(theme::text())
             .child(symbol(icon, CHIP_ICON, theme::text_soft()))
-            .child(label)
+            .child(tr(label))
             .when(busy, |chip| chip.opacity(0.5))
             .when(!busy, |chip| {
                 chip.cursor_pointer()
@@ -408,8 +424,8 @@ impl Composer {
             ),
         };
         let label = match choice {
-            Choice::Rewrite => "Rewrite",
-            Choice::Proofread => "Proofread",
+            Choice::Rewrite => "ui.chat.rewrite.rewrite",
+            Choice::Proofread => "ui.chat.rewrite.proofread",
         };
         Self::chip(id, icon, label, busy).when(!busy, |chip| {
             chip.on_click(
@@ -446,14 +462,15 @@ impl Composer {
                 .hover(|row| row.bg(theme::popup_hover()))
                 .text_size(theme::text_label())
                 .text_color(theme::text())
-                .child(label)
+                .child(tr(label))
         };
         let custom = item("composer-copilot-custom", CUSTOM_LABEL)
             .on_click(cx.listener(|this, _, window, cx| this.open_custom(window, cx)));
         let adjustments = ComposeAdjustment::ALL.into_iter().map(|adjustment| {
-            item(adjustment.label(), adjustment.label()).on_click(cx.listener(
-                move |this, _, _, cx| this.request_rewrite(ComposeAction::Adjust(adjustment), cx),
-            ))
+            let key = adjustment_key(adjustment);
+            item(key, key).on_click(cx.listener(move |this, _, _, cx| {
+                this.request_rewrite(ComposeAction::Adjust(adjustment), cx)
+            }))
         });
         Some(
             v_flex()
@@ -537,7 +554,7 @@ impl Composer {
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .cursor_pointer()
                                 .hover(|button| button.opacity(0.85))
-                                .child(REPLACE_LABEL)
+                                .child(tr(REPLACE_LABEL))
                                 .on_click(cx.listener(|this, _, window, cx| {
                                     this.replace_with_rewrite(window, cx)
                                 })),
@@ -546,7 +563,7 @@ impl Composer {
                             div()
                                 .text_size(theme::text_caption())
                                 .text_color(theme::text_muted())
-                                .child(DISCLAIMER),
+                                .child(tr(DISCLAIMER)),
                         ),
                 ),
         })
@@ -564,19 +581,19 @@ fn writer_display_name(cx: &App) -> String {
 }
 
 fn working_message(name: &str) -> String {
-    format!("{name} is writing ...")
+    tr_with("ui.chat.rewrite.working", &[("name", name)])
 }
 
 fn failed_rewrite(name: &str) -> String {
-    format!("{name} could not rewrite this:")
+    tr_with("ui.chat.rewrite.failed", &[("name", name)])
 }
 
 fn empty_draft_message(name: &str) -> String {
-    format!("Type a message first, then let {name} rewrite it.")
+    tr_with("ui.chat.rewrite.empty", &[("name", name)])
 }
 
 fn text_only_message(name: &str) -> String {
-    format!("{name} rewrites text only. Move images and tables out of the message first.")
+    tr_with("ui.chat.rewrite.text_only", &[("name", name)])
 }
 
 fn rewrite_instruction(action: &ComposeAction, draft: &str) -> String {

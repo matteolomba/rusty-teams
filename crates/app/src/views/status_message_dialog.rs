@@ -61,7 +61,7 @@ impl StatusMessageDialog {
         let input = cx.new(|cx| {
             TextareaState::new(window, cx)
                 .auto_grow(FIELD_MIN_ROWS, FIELD_MAX_ROWS)
-                .placeholder("What's your status message?")
+                .placeholder(tr("ui.misc.status_message_placeholder"))
                 .default_value(text.clone())
         });
         let subscription = cx.subscribe_in(&input, window, Self::on_input_event);
@@ -136,7 +136,7 @@ impl StatusMessageDialog {
                     .flex_1()
                     .text_size(px(15.))
                     .font_weight(FontWeight::SEMIBOLD)
-                    .child("Set status message"),
+                    .child(tr("ui.misc.set_status_message")),
             )
             .child(
                 div()
@@ -189,7 +189,7 @@ impl StatusMessageDialog {
             .child(
                 div()
                     .text_size(theme::text_label())
-                    .child("Clear status message after"),
+                    .child(tr("ui.misc.clear_status_message_after")),
             )
             .child(
                 Button::new("status-message-expiry")
@@ -227,7 +227,7 @@ impl StatusMessageDialog {
             .text_color(theme::on_accent())
             .text_size(theme::text_label())
             .font_weight(FontWeight::SEMIBOLD)
-            .child("Done");
+            .child(tr("ui.misc.done"));
         if enabled {
             button
                 .cursor_pointer()
@@ -280,7 +280,7 @@ impl Render for StatusMessageDialog {
                     .child(self.field())
                     .child(
                         Checkbox::new("status-message-pinned")
-                            .label("Show when people message me")
+                            .label(tr("ui.misc.status_show_when_messaged"))
                             .checked(self.show_when_messaged)
                             .on_click(cx.listener(|this, checked: &bool, _, cx| {
                                 this.show_when_messaged = *checked;
@@ -297,7 +297,7 @@ impl Render for StatusMessageDialog {
                                 row.child(
                                     Button::new("status-message-clear")
                                         .ghost()
-                                        .label("Clear message")
+                                        .label(tr("ui.misc.clear_message"))
                                         .on_click(cx.listener(|this, _, _, cx| this.clear(cx))),
                                 )
                             })

@@ -26,36 +26,30 @@ impl RecordBlock {
         self != RecordBlock::Busy
     }
 
-    pub fn reason(self, feature: RecordFeature) -> &'static str {
-        match (self, feature) {
+    pub fn reason(self, feature: RecordFeature) -> String {
+        app_base::ui_locale::tr(match (self, feature) {
             (RecordBlock::Role, RecordFeature::Recording) => {
-                "Only meeting organisers and presenters can control recording"
+                "ui.calls.record.reason_role_recording"
             }
             (RecordBlock::Role, RecordFeature::Transcription) => {
-                "Only meeting organisers and presenters can control transcription"
+                "ui.calls.record.reason_role_transcription"
             }
-            (RecordBlock::OrganizerOff, _) => {
-                "Unavailable because the meeting organiser has disabled recording for this meeting"
-            }
-            (RecordBlock::OrganizerOnly, _) => {
-                "Only meeting organiser and co-organiser can control recording for this meeting"
-            }
-            (RecordBlock::Busy, _) => "Starting...",
-            (RecordBlock::External, _) => {
-                "Unavailable to people in a different org from the organiser"
-            }
+            (RecordBlock::OrganizerOff, _) => "ui.calls.record.reason_organizer_off",
+            (RecordBlock::OrganizerOnly, _) => "ui.calls.record.reason_organizer_only",
+            (RecordBlock::Busy, _) => "ui.calls.record.starting",
+            (RecordBlock::External, _) => "ui.calls.record.reason_external",
             (RecordBlock::CallPolicy, RecordFeature::Recording) => {
-                "Unavailable for this call due to organisation policy. Reach out to your IT admin to get access."
+                "ui.calls.record.reason_call_policy"
             }
             (RecordBlock::MeetingPolicy, RecordFeature::Recording) => {
-                "Unavailable for this meeting due to organisation policy. Reach out to your IT admin to get access."
+                "ui.calls.record.reason_meeting_policy"
             }
             (
                 RecordBlock::CallPolicy | RecordBlock::MeetingPolicy,
                 RecordFeature::Transcription,
-            ) => "Unavailable due to org policy. Reach out to your IT admin to get access.",
-            (RecordBlock::Capability, _) => "Unavailable in this meeting",
-        }
+            ) => "ui.calls.record.reason_org_policy",
+            (RecordBlock::Capability, _) => "ui.calls.record.reason_capability",
+        })
     }
 }
 

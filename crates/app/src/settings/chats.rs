@@ -8,10 +8,6 @@ use crate::app_state::AppState;
 use crate::i18n::tr;
 use crate::theme;
 
-const MARKDOWN_DETAIL: &str = "Use mark-down language to define the structure and appearance of messages. Your formatting will take effect once you send your message. When this is on, the formatting options menu won't be visible.";
-const ACTIONS_DETAIL: &str = "Reactions and More options appear when you right click a message instead of when you point at it.";
-const RECEIPTS_DETAIL: &str = "Let people know when you've seen their messages and know when they've seen yours. Close and reopen any chat windows for the setting to take effect in those chats.";
-
 pub fn render(app: &Entity<AppState>, cx: &App) -> Div {
     let state = app.read(cx);
     let muted_section = state.directory.section_settings.enabled(ChatSection::Muted);
@@ -27,12 +23,12 @@ pub fn render(app: &Entity<AppState>, cx: &App) -> Div {
     );
     v_flex()
         .w_full()
-        .child(caption("CHAT LIST"))
+        .child(caption(tr("ui.settings.chats.list_caption")))
         .child(
             toggle_row(
                 "settings-muted-section",
-                "Show muted items in their own section",
-                "Read from your Teams account",
+                tr("settings.chats.muted_section"),
+                tr("ui.settings.chats.account_detail"),
                 theme::text_muted(),
                 muted_section,
             )
@@ -59,13 +55,13 @@ pub fn render(app: &Entity<AppState>, cx: &App) -> Div {
                 })
             }),
         )
-        .child(caption("CHATS"))
+        .child(caption(tr("ui.settings.chats.caption")))
         .child(account_select(
             app,
             (
                 "settings-message-density",
-                "Message density",
-                "Compact your chats and see more messages",
+                tr("settings.chats.density"),
+                tr("ui.settings.chats.density_detail"),
             ),
             &DENSITY,
             settings.message_density,
@@ -75,8 +71,8 @@ pub fn render(app: &Entity<AppState>, cx: &App) -> Div {
             app,
             (
                 "settings-enter-key",
-                "When writing a message, press Enter to",
-                "This setting doesn't apply when message formatting is active.",
+                tr("settings.chats.enter_to"),
+                tr("ui.settings.chats.enter_detail"),
             ),
             &ENTER_KEY,
             settings.enter_key,
@@ -85,8 +81,8 @@ pub fn render(app: &Entity<AppState>, cx: &App) -> Div {
         .child(
             toggle_row(
                 "settings-markdown",
-                "Format messages using mark-down",
-                MARKDOWN_DETAIL,
+                tr("settings.chats.markdown"),
+                tr("settings.chats.markdown_detail"),
                 theme::text_muted(),
                 markdown_mode,
             )
@@ -97,8 +93,8 @@ pub fn render(app: &Entity<AppState>, cx: &App) -> Div {
         .child(
             toggle_row(
                 "settings-actions-on-right-click",
-                "Show message actions on right click",
-                ACTIONS_DETAIL,
+                tr("settings.chats.message_actions"),
+                tr("ui.settings.chats.actions_detail"),
                 theme::text_muted(),
                 actions_on_right_click,
             )
@@ -111,8 +107,8 @@ pub fn render(app: &Entity<AppState>, cx: &App) -> Div {
         .child(
             toggle_row(
                 "settings-read-receipts",
-                "Read receipts",
-                RECEIPTS_DETAIL,
+                tr("settings.chats.read_receipts"),
+                tr("ui.settings.chats.receipts_detail"),
                 theme::text_muted(),
                 settings.read_receipts,
             )

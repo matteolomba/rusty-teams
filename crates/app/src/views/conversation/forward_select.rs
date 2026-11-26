@@ -5,6 +5,7 @@ use gpui_kit::*;
 
 use super::ConversationView;
 use crate::forward_selection::{CANCEL_LABEL, ForwardSelection, NEXT_LABEL, selected_count_label};
+use crate::i18n::tr;
 use crate::rows::MessageRow;
 use crate::theme;
 use crate::views::widgets::icon;
@@ -145,7 +146,7 @@ impl ConversationView {
                     .child(
                         Button::new("forward-footer-cancel")
                             .ghost()
-                            .label(CANCEL_LABEL)
+                            .label(tr(CANCEL_LABEL))
                             .on_click(cx.listener(|this, _, _, cx| {
                                 this.cancel_forward_selection(cx);
                             })),
@@ -168,7 +169,7 @@ fn next_button(enabled: bool, cx: &mut Context<ConversationView>) -> Stateful<Di
         .text_color(theme::on_accent())
         .text_size(theme::text_label())
         .font_weight(FontWeight::SEMIBOLD)
-        .child(NEXT_LABEL);
+        .child(tr(NEXT_LABEL));
     if enabled {
         button
             .cursor_pointer()

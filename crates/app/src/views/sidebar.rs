@@ -46,6 +46,7 @@ use crate::sidebar_model::{
     team_name_style, visible_channel_ids, wants_older_chats,
 };
 use crate::theme;
+use app_base::ui_locale::tr_with;
 use app_ui_kit::layout::SIDEBAR_WIDTH;
 use gpui_kit::component::input::InputState;
 
@@ -376,7 +377,7 @@ pub struct SidebarView {
 fn preview_text(preview: &Preview) -> Option<(String, bool)> {
     match preview {
         Preview::Empty => None,
-        Preview::Deleted => Some((DELETED_CHAT_PREVIEW.to_owned(), true)),
+        Preview::Deleted => Some((tr(DELETED_CHAT_PREVIEW), true)),
         Preview::Event(text) => Some((text.clone(), true)),
         Preview::Typing(text) => Some((text.clone(), true)),
         Preview::Text {
@@ -1048,7 +1049,10 @@ impl SidebarView {
                         .overflow_hidden()
                         .text_size(theme::text_small())
                         .text_color(theme::accent_text())
-                        .child(div().truncate().child(format!("Proposal from {agent}"))),
+                        .child(div().truncate().child(tr_with(
+                            "ui.chat.sidebar.proposal_from",
+                            &[("agent", &agent)],
+                        ))),
                 ),
                 (None, Some(local)) => Some(local_preview_row(local, preview_color)),
                 (None, None) => preview_text(&item.preview).map(|(text, italic)| {
@@ -1331,7 +1335,7 @@ impl SidebarView {
                         .text_size(theme::text_small())
                         .italic()
                         .text_color(theme::text_faint())
-                        .child(EMPTY_FOLDER_HINT),
+                        .child(tr(EMPTY_FOLDER_HINT)),
                 );
                 y += HINT_HEIGHT;
             }
@@ -1953,7 +1957,7 @@ pub(crate) fn channel_menu(
         };
         let (action_state, action_id) = (state.clone(), channel_id.to_owned());
         popup = popup.item(
-            PopupMenuItem::new(item.label())
+            PopupMenuItem::new(tr(item.label()))
                 .icon(menu_icon(channel_menu_icon(item)))
                 .disabled(menu_state.disables(item))
                 .on_click(move |_, window, cx| {
@@ -2015,7 +2019,7 @@ fn team_menu(
         };
         let (action_state, action_id) = (state.clone(), team_id.to_owned());
         popup = popup.item(
-            PopupMenuItem::new(item.label())
+            PopupMenuItem::new(tr(item.label()))
                 .icon(menu_icon(match item {
                     TeamMenuItem::AddChannel => IconName::Plus,
                     TeamMenuItem::Show => IconName::Eye,

@@ -11,6 +11,7 @@ use teams_core::{Draft, MentionInput, OBJECT_MARK};
 #[cfg(test)]
 use crate::agent_api::body::body_blocks;
 use crate::agent_api::{ProposalEntry, ProposalPicture, ProposalStatus, agent_label};
+use crate::i18n::tr;
 use crate::render::render_blocks;
 use crate::theme;
 use crate::views::attachment_tray::{Classification, OutgoingImage, classify, inline_image};
@@ -60,9 +61,20 @@ pub fn free_writing_choices(asked: u32) -> Vec<u32> {
 
 pub fn duration_label(minutes: u32) -> String {
     match (minutes / 60, minutes % 60) {
-        (0, rest) => format!("{rest} min"),
-        (hours, 0) => format!("{hours} h"),
-        (hours, rest) => format!("{hours} h {rest} min"),
+        (0, rest) => app_base::ui_locale::tr_with(
+            "ui.chat.duration_minutes",
+            &[("minutes", &rest.to_string())],
+        ),
+        (hours, 0) => {
+            app_base::ui_locale::tr_with("ui.chat.duration_hours", &[("hours", &hours.to_string())])
+        }
+        (hours, rest) => app_base::ui_locale::tr_with(
+            "ui.chat.duration_hours_minutes",
+            &[
+                ("hours", &hours.to_string()),
+                ("minutes", &rest.to_string()),
+            ],
+        ),
     }
 }
 
@@ -91,6 +103,11 @@ fn free_writing_row(entry: &ProposalEntry, allow: AllowAction) -> Option<Div> {
     let reason = (!ask.reason.is_empty())
         .then(|| format!(": {}", ask.reason))
         .unwrap_or_default();
+    let duration = duration_label(ask.minutes);
+    let request = app_base::ui_locale::tr_with(
+        "ui.chat.free_writing_ask",
+        &[("agent", agent), ("duration", duration.as_str())],
+    );
     Some(
         v_flex()
             .w_full()
@@ -99,10 +116,7 @@ fn free_writing_row(entry: &ProposalEntry, allow: AllowAction) -> Option<Div> {
                 div()
                     .text_size(theme::text_small())
                     .text_color(theme::text_muted())
-                    .child(format!(
-                        "{agent} asks to keep writing here without review for {}{reason}",
-                        duration_label(ask.minutes)
-                    )),
+                    .child(format!("{request}{reason}")),
             )
             .child(
                 h_flex()
@@ -113,7 +127,7 @@ fn free_writing_row(entry: &ProposalEntry, allow: AllowAction) -> Option<Div> {
                         div()
                             .text_size(theme::text_small())
                             .text_color(theme::text_soft())
-                            .child("Send and allow for"),
+                            .child(tr("ui.chat.send_and_allow_for")),
                     )
                     .children(chips),
             ),
@@ -142,11 +156,14 @@ pub fn free_writing_bar(agent: &str, until: DateTime<Utc>, stop: CardAction) -> 
                 .truncate()
                 .text_size(theme::text_small())
                 .text_color(theme::text_muted())
-                .child(format!("{agent} writes here without review until {until}")),
+                .child(app_base::ui_locale::tr_with(
+                    "ui.chat.free_writing_until",
+                    &[("agent", agent), ("until", &until.to_string())],
+                )),
         )
         .child(card_button(
             "free-writing-stop",
-            "Stop",
+            tr("common.stop"),
             theme::surface_raised(),
             theme::text(),
             stop,
@@ -266,20 +283,30 @@ fn thumbnails(pictures: &[ProposalPicture]) -> Div {
 pub fn age_label(created_at: DateTime<Utc>, now: DateTime<Utc>) -> String {
     let minutes = (now - created_at).num_minutes().max(0);
     match minutes {
-        0 => "just now".to_owned(),
-        1..=59 => format!("{minutes} min ago"),
-        60..=1439 => format!("{} h ago", minutes / 60),
-        _ => format!("{} d ago", minutes / 1440),
+        0 => tr("ui.chat.just_now"),
+        1..=59 => app_base::ui_locale::tr_with(
+            "ui.chat.minutes_ago",
+            &[("minutes", &minutes.to_string())],
+        ),
+        60..=1439 => app_base::ui_locale::tr_with(
+            "ui.chat.hours_ago",
+            &[("hours", &(minutes / 60).to_string())],
+        ),
+        _ => app_base::ui_locale::tr_with(
+            "ui.chat.days_ago",
+            &[("days", &(minutes / 1440).to_string())],
+        ),
     }
 }
 
 pub(super) fn card_button(
     id: &'static str,
-    label: &'static str,
+    label: impl Into<SharedString>,
     background: Hsla,
     color: Hsla,
     action: CardAction,
 ) -> Stateful<Div> {
+    let label: SharedString = label.into();
     div()
         .id(id)
         .h(px(BUTTON_HEIGHT))
@@ -301,20 +328,28 @@ fn header_text(entry: &ProposalEntry, now: DateTime<Utc>) -> (String, Hsla, Opti
     let agent = agent_label(entry.proposal.agent.as_deref());
     match &entry.status {
         ProposalStatus::Pending => (
-            format!("{agent} proposes a reply"),
+            app_base::ui_locale::tr_with("ui.chat.proposal_pending", &[("agent", agent)]),
             theme::accent_text(),
             Some(format!(" - {}", age_label(entry.proposal.created_at, now))),
         ),
         ProposalStatus::Stale { answered_at } => (
-            format!(
-                "{agent}'s reply is outdated - you answered at {}",
-                answered_at.format(crate::format::clock_format())
+            app_base::ui_locale::tr_with(
+                "ui.chat.proposal_stale",
+                &[
+                    ("agent", agent),
+                    (
+                        "time",
+                        &answered_at
+                            .format(crate::format::clock_format())
+                            .to_string(),
+                    ),
+                ],
             ),
             theme::text_muted(),
             None,
         ),
         ProposalStatus::Failed { reason } => (
-            format!("Could not send - {reason}"),
+            app_base::ui_locale::tr_with("ui.chat.proposal_failed", &[("reason", reason.as_str())]),
             theme::red_soft(),
             None,
         ),
@@ -391,7 +426,11 @@ pub fn render(
         .child(render_blocks(&entry.body, "proposal-body", false, cx))
         .when(!labels.is_empty(), |body| {
             body.tooltip(move |window, cx| {
-                Tooltip::new(format!("Mentions: {}", labels.join(", "))).build(window, cx)
+                Tooltip::new(app_base::ui_locale::tr_with(
+                    "ui.chat.mentions_tooltip",
+                    &[("names", &labels.join(", "))],
+                ))
+                .build(window, cx)
             })
         });
     let images = (!entry.images.is_empty()).then(|| thumbnails(&entry.images));
@@ -411,7 +450,11 @@ pub fn render(
         .when(!stale, |row| {
             row.child(card_button(
                 "proposal-send",
-                if failed { "Retry" } else { "Send" },
+                if failed {
+                    tr("common.retry")
+                } else {
+                    tr("ui.chat.send")
+                },
                 theme::accent(),
                 theme::on_accent(),
                 actions.send.clone(),
@@ -419,14 +462,14 @@ pub fn render(
         })
         .child(card_button(
             "proposal-edit",
-            "Edit",
+            tr("ui.chat.edit"),
             theme::surface_raised(),
             theme::text(),
             actions.edit.clone(),
         ))
         .child(card_button(
             "proposal-discard",
-            "Discard",
+            tr("ui.chat.discard"),
             theme::surface_raised(),
             theme::text(),
             actions.discard.clone(),
@@ -438,7 +481,7 @@ pub fn render(
                 .cursor_pointer()
                 .text_size(theme::text_small())
                 .text_color(theme::accent_text())
-                .child("Open session")
+                .child(tr("ui.chat.open_session"))
                 .on_click(move |_, window, cx| open_session(&session_id, window, cx))
         }));
     v_flex()
@@ -525,6 +568,8 @@ mod tests {
 
     #[test]
     fn the_asked_window_joins_the_usual_choices() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         assert_eq!(free_writing_choices(60), [15, 60, 240]);
         assert_eq!(free_writing_choices(30), [15, 30, 60, 240]);
         assert_eq!(duration_label(15), "15 min");
@@ -534,6 +579,8 @@ mod tests {
 
     #[test]
     fn age_labels_follow_the_elapsed_time() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
         let now = Utc::now();
         let label = |minutes: i64| age_label(now - Duration::minutes(minutes), now);
         assert_eq!(label(0), "just now");

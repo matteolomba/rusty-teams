@@ -116,7 +116,11 @@ impl AppState {
 
     pub fn copy_profile_email(&mut self, email: &str, cx: &mut Context<Self>) {
         cx.write_to_clipboard(ClipboardItem::new_string(email.to_owned()));
-        self.raise_notice("Email copied".to_owned(), None, cx);
+        self.raise_notice(
+            app_base::ui_locale::tr("ui.chat.profile.email_copied"),
+            None,
+            cx,
+        );
     }
 
     pub fn open_chat_with(&mut self, user_id: &str, cx: &mut Context<Self>) {
@@ -150,11 +154,15 @@ impl AppState {
             return;
         }
         if self.mode.read_only {
-            self.raise_notice("Read-only mode: chat not created".to_owned(), None, cx);
+            self.raise_notice(
+                app_base::ui_locale::tr("ui.chat.profile.read_only"),
+                None,
+                cx,
+            );
             return;
         }
         let Some(engine) = self.engine.clone() else {
-            self.raise_notice("No chat with this person yet".to_owned(), None, cx);
+            self.raise_notice(app_base::ui_locale::tr("ui.chat.profile.no_chat"), None, cx);
             return;
         };
         let user_id = user_id.to_owned();

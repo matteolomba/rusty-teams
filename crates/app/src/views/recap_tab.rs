@@ -22,8 +22,8 @@ use crate::channel_files::SharedItem;
 use crate::downloads::DownloadState;
 use crate::i18n::tr;
 use crate::recap::{
-    ATTENDANCE_FAILED, ATTENDANCE_OFF, EMPTY_RECAP, Load, NO_TRANSCRIPT, clock_label,
-    expiry_is_urgent, expiry_label, highlight_segments, matching_turns, occurrence_label,
+    Load, attendance_failed, attendance_off, clock_label, empty_recap, expiry_is_urgent,
+    expiry_label, highlight_segments, matching_turns, no_transcript, occurrence_label,
     shows_recording, span_label, time_label,
 };
 use crate::theme;
@@ -77,7 +77,8 @@ pub struct RecapView<'a> {
     pub now: DateTime<Utc>,
 }
 
-fn section(title: &'static str) -> Div {
+fn section(title: impl Into<SharedString>) -> Div {
+    let title: SharedString = title.into();
     v_flex().w_full().flex_none().gap(px(10.)).child(
         div()
             .text_size(theme::text_label())
@@ -112,15 +113,14 @@ fn action(
 
 fn download_action(
     id: &'static str,
-    label: &'static str,
+    label: impl Into<String>,
     download: RecapDownload,
     state: Option<&DownloadState>,
     run: &RecapRun,
 ) -> Button {
-    let text = download_label(state).map_or_else(
-        || label.to_owned(),
-        |progress| format!("{label} - {progress}"),
-    );
+    let label = label.into();
+    let text = download_label(state)
+        .map_or_else(|| label.clone(), |progress| format!("{label} - {progress}"));
     action(
         id,
         text,
@@ -189,7 +189,7 @@ fn recording_card(details: &RecordingDetails) -> Div {
             ),
         )
         .when(details.audio_only, |row| {
-            row.child(div().child("Audio only"))
+            row.child(div().child(tr("ui.chat.recap.audio_only")))
         });
     div()
         .relative()
@@ -216,8 +216,14 @@ fn recording_card(details: &RecordingDetails) -> Div {
 
 fn recording_section(view: &RecapView, run: &RecapRun) -> Div {
     let body = match view.details {
-        Load::Loading => muted("Loading recording ..").into_any_element(),
-        Load::Failed(reason) => failure(format!("Recording not available: {reason}"), run),
+        Load::Loading => muted(tr("ui.chat.recap.loading_recording")).into_any_element(),
+        Load::Failed(reason) => failure(
+            app_base::ui_locale::tr_with(
+                "ui.chat.recap.recording_unavailable",
+                &[("reason", reason.as_str())],
+            ),
+            run,
+        ),
         Load::Ready(details) => {
             let days = details
                 .expires_at
@@ -243,14 +249,14 @@ fn recording_section(view: &RecapView, run: &RecapRun) -> Div {
                         .children(expiry)
                         .child(action(
                             "recap-play",
-                            "Play".to_owned(),
+                            tr("ui.chat.recap.play"),
                             IconName::Play,
                             RecapCommand::Play,
                             run,
                         ))
                         .child(download_action(
                             "recap-download",
-                            "Download",
+                            tr("ui.chat.recap.download"),
                             RecapDownload::Recording,
                             view.recording_state,
                             run,
@@ -259,7 +265,7 @@ fn recording_section(view: &RecapView, run: &RecapRun) -> Div {
                             column.child(
                                 action(
                                     "recap-delete",
-                                    "Delete".to_owned(),
+                                    tr("common.delete"),
                                     IconName::Trash,
                                     RecapCommand::AskDelete,
                                     run,
@@ -271,7 +277,7 @@ fn recording_section(view: &RecapView, run: &RecapRun) -> Div {
                 .into_any_element()
         }
     };
-    section("Recording").child(body)
+    section(tr("ui.chat.recap.recording")).child(body)
 }
 
 fn failure(reason: String, run: &RecapRun) -> AnyElement {
@@ -348,26 +354,32 @@ fn transcript_section(view: &RecapView, run: &RecapRun) -> Div {
         .gap(px(4.))
         .child(download_action(
             "recap-vtt",
-            "Download .vtt",
+            tr("ui.chat.recap.download_vtt"),
             RecapDownload::Transcript(TranscriptFormat::Vtt),
             view.vtt_state,
             run,
         ))
         .child(download_action(
             "recap-docx",
-            "Download .docx",
+            tr("ui.chat.recap.download_docx"),
             RecapDownload::Transcript(TranscriptFormat::Docx),
             view.docx_state,
             run,
         ));
     let body = match view.transcript {
-        Load::Loading => muted("Loading transcript ..").into_any_element(),
-        Load::Failed(reason) => failure(format!("Transcript not available: {reason}"), run),
-        Load::Ready(turns) if turns.is_empty() => muted(NO_TRANSCRIPT).into_any_element(),
+        Load::Loading => muted(tr("ui.chat.recap.loading_transcript")).into_any_element(),
+        Load::Failed(reason) => failure(
+            app_base::ui_locale::tr_with(
+                "ui.chat.recap.transcript_unavailable",
+                &[("reason", reason.as_str())],
+            ),
+            run,
+        ),
+        Load::Ready(turns) if turns.is_empty() => muted(no_transcript()).into_any_element(),
         Load::Ready(turns) => {
             let matches = matching_turns(turns, view.query);
             let list = if matches.is_empty() {
-                muted("No lines match.").into_any_element()
+                muted(tr("ui.chat.recap.no_lines_match")).into_any_element()
             } else {
                 v_flex()
                     .w_full()
@@ -398,7 +410,9 @@ fn transcript_section(view: &RecapView, run: &RecapRun) -> Div {
                 .into_any_element()
         }
     };
-    section("Transcript").child(downloads).child(body)
+    section(tr("ui.chat.recap.transcript"))
+        .child(downloads)
+        .child(body)
 }
 
 fn attendance_row(record: &AttendanceRecord, offset: FixedOffset) -> Div {
@@ -432,26 +446,26 @@ fn attendance_row(record: &AttendanceRecord, offset: FixedOffset) -> Div {
 }
 
 fn attendance_header() -> Div {
-    let cell = |text: &'static str, width: f32| div().w(px(width)).flex_none().child(text);
+    let cell = |text: String, width: f32| div().w(px(width)).flex_none().child(text);
     h_flex()
         .w_full()
         .flex_none()
         .gap(px(12.))
         .text_size(theme::text_caption())
         .text_color(theme::text_faint())
-        .child(cell("Name", NAME_COLUMN))
-        .child(cell("Joined", ATTENDANCE_COLUMN))
-        .child(cell("Left", ATTENDANCE_COLUMN))
-        .child(cell("Duration", ATTENDANCE_COLUMN))
+        .child(cell(tr("ui.chat.recap.column_name"), NAME_COLUMN))
+        .child(cell(tr("ui.chat.recap.column_joined"), ATTENDANCE_COLUMN))
+        .child(cell(tr("ui.chat.recap.column_left"), ATTENDANCE_COLUMN))
+        .child(cell(tr("ui.chat.recap.column_duration"), ATTENDANCE_COLUMN))
 }
 
 fn attendance_section(view: &RecapView, offset: FixedOffset) -> Div {
     let body = match view.attendance {
-        Load::Loading => muted("Loading attendance ..").into_any_element(),
-        Load::Failed(_) => muted(ATTENDANCE_FAILED).into_any_element(),
-        Load::Ready(Attendance::TurnedOff) => muted(ATTENDANCE_OFF).into_any_element(),
+        Load::Loading => muted(tr("ui.chat.recap.loading_attendance")).into_any_element(),
+        Load::Failed(_) => muted(attendance_failed()).into_any_element(),
+        Load::Ready(Attendance::TurnedOff) => muted(attendance_off()).into_any_element(),
         Load::Ready(Attendance::Report(records)) if records.is_empty() => {
-            muted("No attendees recorded.").into_any_element()
+            muted(tr("ui.chat.recap.no_attendees")).into_any_element()
         }
         Load::Ready(Attendance::Report(records)) => v_flex()
             .w_full()
@@ -460,7 +474,7 @@ fn attendance_section(view: &RecapView, offset: FixedOffset) -> Div {
             .children(records.iter().map(|record| attendance_row(record, offset)))
             .into_any_element(),
     };
-    section("Attendance").child(body)
+    section(tr("ui.chat.recap.attendance")).child(body)
 }
 
 fn files_section(view: &RecapView) -> Option<Div> {
@@ -475,7 +489,7 @@ fn files_section(view: &RecapView) -> Option<Div> {
                     .text_size(theme::text_label())
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_color(theme::text())
-                    .child("Files"),
+                    .child(tr("ui.chat.recap.files")),
             )
             .children(view.files.iter().enumerate().map(|(index, item)| {
                 let label = view.file_labels.get(index).cloned().flatten();
@@ -496,7 +510,7 @@ pub fn render_recap(view: RecapView, run: &RecapRun) -> AnyElement {
             .justify_center()
             .text_size(theme::text_label())
             .text_color(theme::text_muted())
-            .child(EMPTY_RECAP)
+            .child(empty_recap())
             .into_any_element()
     } else {
         v_flex()

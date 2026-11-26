@@ -4,6 +4,7 @@ use gpui_kit::component::h_flex;
 use gpui_kit::*;
 
 use app_base::theme;
+use app_base::ui_locale::tr;
 
 const PILL_HEIGHT: f32 = 26.;
 const PILL_PADDING: f32 = 10.;
@@ -21,7 +22,12 @@ pub struct ReactionPill {
     pub discard: PillAction,
 }
 
-fn pill_link(id: String, label: &'static str, color: Hsla, action: PillAction) -> Stateful<Div> {
+fn pill_link(
+    id: String,
+    label: impl Into<SharedString>,
+    color: Hsla,
+    action: PillAction,
+) -> Stateful<Div> {
     div()
         .id(ElementId::Name(id.into()))
         .flex_none()
@@ -29,7 +35,7 @@ fn pill_link(id: String, label: &'static str, color: Hsla, action: PillAction) -
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(color)
         .hover(|link| link.underline())
-        .child(label)
+        .child(label.into())
         .on_click(move |_, _, cx| action(cx))
 }
 
@@ -52,13 +58,13 @@ pub fn reaction_pill(pill: ReactionPill, key: &str) -> Div {
         )
         .child(pill_link(
             format!("reaction-accept-{key}"),
-            "Accept",
+            tr("ui.settings.pill.accept"),
             theme::accent_text(),
             pill.accept,
         ))
         .child(pill_link(
             format!("reaction-discard-{key}"),
-            "Discard",
+            tr("ui.settings.pill.discard"),
             theme::text_muted(),
             pill.discard,
         ))
