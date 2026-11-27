@@ -1185,6 +1185,13 @@ impl InviteTarget {
 }
 
 fn invitation_media(invitation: &Invitation<'_>) -> Value {
+    // A test call is not a group offer. Teams rejects the seeded video descriptions on this
+    // scenario with `InvalidFinalAnswerMediaDescriptions`; the captured shape has an empty list.
+    if matches!(invitation.target, InviteTarget::Echo) {
+        let mut content = media_content(invitation.offer_sdp, invitation.media_leg_id, false);
+        content["mediaDescriptions"] = json!({"descriptions": [], "requestId": 1});
+        return content;
+    }
     if !invitation.is_direct() {
         return media_content(invitation.offer_sdp, invitation.media_leg_id, true);
     }
@@ -1864,6 +1871,15 @@ mod tests {
                 .unwrap()
                 .len(),
             11
+        );
+        assert_eq!(
+            body["callInvitation"]["mediaContent"]["mediaDescriptions"]["descriptions"],
+            json!([])
+        );
+        assert!(
+            body["callInvitation"]["mediaContent"]
+                .get("applyChannelParameters")
+                .is_none()
         );
     }
 
