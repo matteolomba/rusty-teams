@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [0.7.0-rc.6] - 2026-11-27
+
+### Changed
+- Integrated upstream PRs #147 (quiet Wayland portal stop), #140 (quiet Linux audio-device dumps in diagnostics), #141 (Linux call tones on the saved Pulse sink) and #139 (macOS host-load report and early send limits).
+
+### Fixed
+- The code-block composer test no longer compares the internal `U+FFF9` header marker with visible text.
+
 ## [0.7.0-rc.5] - 2026-11-27
 
 ### Added

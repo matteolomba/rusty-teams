@@ -505,9 +505,7 @@ fn is_adm_enumeration_dump(text: &str) -> bool {
         "input:",
         "Initialized",
     ];
-    PREFIXES
-        .iter()
-        .any(|prefix| message.starts_with(prefix))
+    PREFIXES.iter().any(|prefix| message.starts_with(prefix))
 }
 
 fn is_endpoint_dump(text: &str) -> bool {

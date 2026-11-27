@@ -9,9 +9,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
 
+use rodio::Source;
 #[cfg(not(target_os = "linux"))]
 use rodio::cpal::traits::{DeviceTrait, HostTrait};
-use rodio::Source;
 
 const SOUND_BYTES: &[u8] = include_bytes!("../../../../app/assets/sounds/notification.mp3");
 const POLL: Duration = Duration::from_millis(20);
