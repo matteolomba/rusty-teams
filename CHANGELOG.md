@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.7.0-rc.7] - 2026-11-27
+
+### Changed
+- Synced the MSAL unseal helper with upstream and added the review fixes for Windows persistence: one success is enough, a closed tab or WebDriver BiDi does not count, and Retry also wakes the page-runner backoff.
+
 ## [0.7.0-rc.6] - 2026-11-27
 
 ### Changed
