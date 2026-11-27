@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.7.0-rc.9] - 2026-11-27
+
+### Added
+- The share banner, share bar and share menu now show whether computer audio is actually transmitted, not shared, or requested but not started, and explain what other people hear.
+
 ## [0.7.0-rc.8] - 2026-11-27
 
 ### Fixed
