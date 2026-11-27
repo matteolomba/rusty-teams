@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.7.0-rc.8] - 2026-11-27
+
+### Fixed
+- Test calls no longer end with `InvalidFinalAnswerMediaDescriptions`: the echo invitation keeps the captured empty media-description shape while group offers keep their seeded descriptions and bandwidth.
+
 ## [0.7.0-rc.7] - 2026-11-27
 
 ### Changed
