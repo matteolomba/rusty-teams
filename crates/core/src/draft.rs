@@ -896,7 +896,8 @@ impl Draft {
             LineKind::Text => {
                 let language = fence_language(&self.text[content.clone()])?;
                 self.splice(content.clone(), "", &[]);
-                let cursor = self.set_line_kind(index, LineKind::Code(language), None, content.start);
+                let cursor =
+                    self.set_line_kind(index, LineKind::Code(language), None, content.start);
                 Some(self.repair(cursor))
             }
             LineKind::Heading(_) | LineKind::Table(_) | LineKind::Rule => None,
@@ -3184,7 +3185,10 @@ mod tests {
                 LineKind::Code(None),
             ]
         );
-        assert_eq!(draft.code_block_at(draft.text().find('b').unwrap()), Some(0..2));
+        assert_eq!(
+            draft.code_block_at(draft.text().find('b').unwrap()),
+            Some(0..2)
+        );
         assert_eq!(draft.code_block_at(draft.text().len() - 1), Some(3..4));
         draft.set_code_language(draft.text().find('x').unwrap(), Some("c".into()));
         assert_eq!(draft.lines()[2], LineKind::Text);
@@ -3214,7 +3218,11 @@ mod tests {
             content: "FROM x".into(),
             marks: Vec::new(),
         }]);
-        assert!(docker.to_html().starts_with("<pre class=\"language-dockerFile "));
+        assert!(
+            docker
+                .to_html()
+                .starts_with("<pre class=\"language-dockerFile ")
+        );
     }
 
     #[test]

@@ -2,10 +2,13 @@
 
 ## [Unreleased]
 
+## [0.7.0-rc.5] - 2026-11-27
+
 ### Added
 - Italian labels for calls, chat, settings, calendar, files, dialogs and notifications, so every screen follows the selected UI language.
 
 ### Changed
+- Synced with `danieldaeschle/rusty-teams` up to `c5f9d259`; fork choices on updates, localization and the Windows release stay in place.
 - CI checks `cargo fmt --check` on every pull request.
 
 ### Fixed

@@ -4868,7 +4868,10 @@ mod tests {
             visual.run_until_parked();
             let draft = composer.read_with(&visual, |composer, _| composer.draft.clone());
             let dart = teams_core::LineKind::Code(Some("dart".into()));
-            assert_eq!(draft.lines(), [teams_core::LineKind::Text, dart.clone(), dart]);
+            assert_eq!(
+                draft.lines(),
+                [teams_core::LineKind::Text, dart.clone(), dart]
+            );
             assert_eq!(
                 draft.to_html(),
                 "x<pre class=\"language-dart skipProofing\" spellcheck=\"false\"><code>a<br>b</code></pre>"
