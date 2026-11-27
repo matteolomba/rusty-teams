@@ -16,12 +16,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::{env, path, process::Command};
 
-const HW_ENCODER_ENV: &str = "LIVEKIT_PREFERRED_HW_ENCODER";
-
-fn hardware_encoder_requested(backend: &str) -> bool {
-    env::var(HW_ENCODER_ENV).is_ok_and(|value| value.eq_ignore_ascii_case(backend))
-}
-
 fn main() {
     if env::var("DOCS_RS").is_ok() {
         return;
@@ -33,7 +27,6 @@ fn main() {
 
     println!("cargo:rerun-if-env-changed=LK_DEBUG_WEBRTC");
     println!("cargo:rerun-if-env-changed=LK_CUSTOM_WEBRTC");
-    println!("cargo:rerun-if-env-changed={HW_ENCODER_ENV}");
 
     let mut rust_files = vec![
         "src/peer_connection.rs",
@@ -44,6 +37,7 @@ fn main() {
         "src/audio_track.rs",
         "src/video_track.rs",
         "src/data_channel.rs",
+        "src/frame_cryptor.rs",
         "src/jsep.rs",
         "src/candidate.rs",
         "src/rtp_parameters.rs",
@@ -98,6 +92,7 @@ fn main() {
         "src/synthetic_audio_device.cpp",
         "src/adm_proxy.cpp",
         "src/audio_resampler.cpp",
+        "src/frame_cryptor.cpp",
         "src/global_task_queue.cpp",
         "src/prohibit_libsrtp_initialization.cpp",
         "src/apm.cpp",
@@ -132,10 +127,7 @@ fn main() {
     ]);
     builder.define("WEBRTC_APM_DEBUG_DUMP", "0");
 
-    println!(
-        "cargo:rustc-link-search=native={}",
-        webrtc_lib.to_str().unwrap()
-    );
+    println!("cargo:rustc-link-search=native={}", webrtc_lib.to_str().unwrap());
 
     for (key, value) in webrtc_sys_build::webrtc_defines() {
         let value = value.as_deref();
@@ -186,10 +178,7 @@ fn main() {
 
             // Do not use pkg_config::probe_library, because we only require headers.
             for lib_name in ["glib-2.0", "gobject-2.0", "gio-2.0"] {
-                let lib = pkg_config::Config::new()
-                    .cargo_metadata(false)
-                    .probe(lib_name)
-                    .unwrap();
+                let lib = pkg_config::Config::new().cargo_metadata(false).probe(lib_name).unwrap();
                 for path in lib.include_paths {
                     builder.include(path);
                 }
@@ -198,24 +187,15 @@ fn main() {
             add_lazy_load_so(
                 &mut builder,
                 "desktop_capturer",
-                [
-                    "drm",
-                    "gbm",
-                    "X11",
-                    "Xfixes",
-                    "Xdamage",
-                    "Xrandr",
-                    "Xcomposite",
-                    "Xext",
-                ]
-                .map(String::from)
-                .to_vec(),
+                ["drm", "gbm", "X11", "Xfixes", "Xdamage", "Xrandr", "Xcomposite", "Xext"]
+                    .map(String::from)
+                    .to_vec(),
             );
 
             let x86 = target_arch == "x86_64" || target_arch == "i686";
             let arm = target_arch == "aarch64" || target_arch.contains("arm");
 
-            if x86 && hardware_encoder_requested("vaapi") {
+            if x86 {
                 if let Some(libva_include) = pkg_config::get_variable("libva", "includedir").ok() {
                     // Do not use pkg_config::probe_library because libva is dlopened
                     // and pkg_config::probe_library would link it.
@@ -235,21 +215,16 @@ fn main() {
                 } else {
                     println!("cargo:warning=libva not found; building without hardware accelerated video codecs");
                 }
-            } else if x86 {
-                println!("cargo:warning=VAAPI encoder disabled by default; set LIVEKIT_PREFERRED_HW_ENCODER=vaapi to opt in");
             }
 
             if arm {
                 println!("cargo:rerun-if-env-changed=LK_JETSON_MMAPI_DIR");
                 let jetson_mmapi_dir = PathBuf::from(match env::var("LK_JETSON_MMAPI_DIR") {
                     Ok(p) => p,
-                    Err(_) => {
-                        println!("cargo:warning=Jetson encoders disabled by default; set LK_JETSON_MMAPI_DIR to opt in");
-                        String::new()
-                    }
+                    Err(_) => "/usr/src/jetson_multimedia_api".to_owned(),
                 });
                 let jetson_mmapi_include = jetson_mmapi_dir.join("include");
-                if !jetson_mmapi_dir.as_os_str().is_empty() && jetson_mmapi_include.exists() {
+                if jetson_mmapi_include.exists() {
                     let jetson_classes_dir = jetson_mmapi_dir.join("samples/common/classes");
 
                     builder
@@ -297,7 +272,7 @@ fn main() {
                 }
             }
 
-            if (x86 || arm) && hardware_encoder_requested("nvenc") {
+            if x86 || arm {
                 let cuda_home = PathBuf::from(match env::var("CUDA_HOME") {
                     Ok(p) => p,
                     Err(_) => "/usr/local/cuda".to_owned(),
@@ -332,8 +307,6 @@ fn main() {
                 } else {
                     println!("cargo:warning=cuda.h not found; building without hardware accelerated video codec support for NVidia GPUs");
                 }
-            } else if x86 || arm {
-                println!("cargo:warning=NVENC and hardware decoding disabled by default; set LIVEKIT_PREFERRED_HW_ENCODER=nvenc to opt in");
             }
 
             builder
@@ -476,10 +449,8 @@ fn get_output_path() -> PathBuf {
     let manifest_dir_string = env::var("CARGO_MANIFEST_DIR").unwrap();
     let build_type = env::var("PROFILE").unwrap();
     let build_target = env::var("TARGET").unwrap();
-    let path = Path::new(&manifest_dir_string)
-        .join("../target")
-        .join(build_target)
-        .join(build_type);
+    let path =
+        Path::new(&manifest_dir_string).join("../target").join(build_target).join(build_type);
     return PathBuf::from(path);
 }
 
@@ -503,17 +474,12 @@ fn configure_darwin_sysroot(builder: &mut cc::Build) -> String {
     println!("cargo:rustc-link-lib={}", clang_rt);
     println!("cargo:rustc-link-arg=-ObjC");
 
-    let sysroot = Command::new("xcrun")
-        .args(["--sdk", sdk, "--show-sdk-path"])
-        .output()
-        .unwrap();
+    let sysroot = Command::new("xcrun").args(["--sdk", sdk, "--show-sdk-path"]).output().unwrap();
 
-    let sysroot = String::from_utf8_lossy(&sysroot.stdout).trim().to_owned();
+    let sysroot = String::from_utf8_lossy(&sysroot.stdout);
+    let sysroot = sysroot.trim().to_owned();
 
-    let search_dirs = Command::new("cc")
-        .arg("--print-search-dirs")
-        .output()
-        .unwrap();
+    let search_dirs = Command::new("cc").arg("--print-search-dirs").output().unwrap();
 
     let search_dirs = String::from_utf8_lossy(&search_dirs.stdout);
     for line in search_dirs.lines() {
@@ -642,12 +608,9 @@ fn check_clang_version(builder: &cc::Build, libcxx: &path::Path) {
         .output()
         .unwrap_or_else(|e| panic!("failed to run {}: {e}", compiler.path().display()));
 
-    let major = String::from_utf8_lossy(&defines.stdout)
-        .lines()
-        .find_map(|line| {
-            line.strip_prefix("#define __clang_major__ ")
-                .and_then(|v| v.trim().parse::<u32>().ok())
-        });
+    let major = String::from_utf8_lossy(&defines.stdout).lines().find_map(|line| {
+        line.strip_prefix("#define __clang_major__ ").and_then(|v| v.trim().parse::<u32>().ok())
+    });
 
     match major {
         Some(major) if major >= min => {}

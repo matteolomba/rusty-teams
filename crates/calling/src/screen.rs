@@ -49,10 +49,6 @@ impl ShareSource {
 fn capturer(kind: ShareKind) -> Option<DesktopCapturer> {
     let mut options = DesktopCapturerOptions::new(kind.source_type());
     options.set_include_cursor(true);
-    #[cfg(target_os = "macos")]
-    if kind == ShareKind::Window {
-        options.set_sck_system_picker(true);
-    }
     DesktopCapturer::new(options)
 }
 
@@ -92,11 +88,6 @@ pub fn share_thumbnail(
     max_width: u32,
     max_height: u32,
 ) -> Option<VideoPicture> {
-    if wanted.kind == ShareKind::Window
-        && !window_thumbnails_enabled(std::env::var("WAYLAND_DISPLAY").ok().as_deref())
-    {
-        return None;
-    }
     let source = sources_of(wanted.kind)
         .into_iter()
         .find(|(source, _)| source.id == wanted.id)
@@ -147,15 +138,6 @@ fn pump_messages() {
 
 #[cfg(not(windows))]
 fn pump_messages() {}
-
-/// X11 `XGetImage` can raise `BadMatch` for a window that closes between listing and
-/// thumbnail capture. Xlib error handlers are per thread and shared with the app's own
-/// display connection, so suppressing that error with a handler here would also hide
-/// unrelated errors. Without Wayland there is no safe per-capture handler: skip window
-/// thumbnails instead. Wayland sessions use the portal, which has no thumbnail list.
-fn window_thumbnails_enabled(wayland_display: Option<&str>) -> bool {
-    !cfg!(target_os = "linux") || wayland_display.is_some_and(|value| !value.is_empty())
-}
 
 fn scaled_bgra(
     bytes: &[u8],
@@ -406,7 +388,7 @@ pub fn share_sources_for_menu(picker: SharePicker, sources: Vec<ShareSource>) ->
     }
 }
 
-pub use crate::notices::PORTAL_UNAVAILABLE_NOTICE;
+pub use crate::notices::{PORTAL_UNAVAILABLE_NOTICE, SHARE_SOURCE_GONE_NOTICE};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortalFollowUp {
@@ -426,19 +408,34 @@ pub fn portal_follow_up(event: PortalPickerEvent, source: Option<ShareSource>) -
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PickerOutcome {
+    Portal(PortalPickerEvent),
+    SourceGone,
+}
+
+fn picker_follow_up(outcome: PickerOutcome, source: Option<ShareSource>) -> PortalFollowUp {
+    match outcome {
+        PickerOutcome::Portal(event) => portal_follow_up(event, source),
+        PickerOutcome::SourceGone => PortalFollowUp::Notice(SHARE_SOURCE_GONE_NOTICE),
+    }
+}
+
 /// What a frame result says about a system picker without a delegated
 /// controller (macOS). Frames start once a source is picked. A cancel turns
-/// into `Cancelled`, while a capture that fails to start turns into `Failed`.
+/// into `Cancelled`, a disappearing source turns into `SourceGone`, and a
+/// capture that fails to start turns into `Failed`.
 fn picker_event_from_frame<T>(
     result: &std::result::Result<T, CaptureError>,
-) -> Option<PortalPickerEvent> {
+) -> Option<PickerOutcome> {
     match result {
-        Ok(_) => Some(PortalPickerEvent::Selected),
+        Ok(_) => Some(PickerOutcome::Portal(PortalPickerEvent::Selected)),
         Err(CaptureError::Permanent | CaptureError::StoppedByUser) => {
-            Some(PortalPickerEvent::Cancelled)
+            Some(PickerOutcome::Portal(PortalPickerEvent::Cancelled))
         }
-        Err(CaptureError::StartFailed | CaptureError::SourceGone | CaptureError::Interrupted) => {
-            Some(PortalPickerEvent::Failed)
+        Err(CaptureError::SourceGone) => Some(PickerOutcome::SourceGone),
+        Err(CaptureError::StartFailed | CaptureError::Interrupted) => {
+            Some(PickerOutcome::Portal(PortalPickerEvent::Failed))
         }
         Err(CaptureError::Temporary) => None,
     }
@@ -457,7 +454,7 @@ fn active_portal_error(error: CaptureError) -> Option<ActiveShareStop> {
         CaptureError::StartFailed | CaptureError::Interrupted => {
             Some(ActiveShareStop::Notice("macOS stopped the capture"))
         }
-        CaptureError::Permanent => Some(ActiveShareStop::Notice("capture failed permanently")),
+        CaptureError::Permanent => Some(ActiveShareStop::Notice("the system stopped the capture")),
         CaptureError::Temporary | CaptureError::SourceGone => None,
     }
 }
@@ -475,6 +472,8 @@ pub(crate) fn start_portal_capture(
             outcome(PortalFollowUp::Notice(PORTAL_UNAVAILABLE_NOTICE));
             return;
         };
+        let mut last_fps = fps.load(Ordering::Relaxed).max(1);
+        capturer.set_max_frame_rate(last_fps);
         // The Wayland portal reports the pick through a delegated picker. The
         // macOS system picker has none: it opens in `start_capture` and the
         // outcome shows in the frame results.
@@ -483,9 +482,6 @@ pub(crate) fn start_portal_capture(
             outcome(PortalFollowUp::Notice(PORTAL_UNAVAILABLE_NOTICE));
             return;
         }
-        // ScreenCaptureKit streams run on their own queue; cap their rate to
-        // the same target the share loop uses for polling.
-        capturer.set_max_frame_rate(fps.load(Ordering::Relaxed).max(1));
         let (sender, receiver) = std::sync::mpsc::channel();
         let frame_events = (!delegated).then(|| sender.clone());
         let selected = Arc::new(AtomicBool::new(false));
@@ -503,7 +499,7 @@ pub(crate) fn start_portal_capture(
                     return;
                 };
                 let _ = events.send(event);
-                if event != PortalPickerEvent::Selected {
+                if event != PickerOutcome::Portal(PortalPickerEvent::Selected) {
                     return;
                 }
                 gate.store(true, Ordering::SeqCst);
@@ -540,7 +536,7 @@ pub(crate) fn start_portal_capture(
         });
         if delegated {
             capturer.watch_picker(move |event| {
-                let _ = sender.send(event);
+                let _ = sender.send(PickerOutcome::Portal(event));
             });
             capturer.ensure_picker_visible();
         }
@@ -566,7 +562,7 @@ pub(crate) fn start_portal_capture(
         // The portal already bound this stream. Looking the source up again, or
         // selecting that id, is what used to tear the stream down and report
         // "the shared source is gone".
-        let source = if event == PortalPickerEvent::Selected {
+        let source = if event == PickerOutcome::Portal(PortalPickerEvent::Selected) {
             selected.store(true, Ordering::SeqCst);
             Some(ShareSource {
                 id: 0,
@@ -576,16 +572,23 @@ pub(crate) fn start_portal_capture(
         } else {
             None
         };
-        let follow = portal_follow_up(event, source);
+        let follow = picker_follow_up(event, source);
         if !matches!(follow, PortalFollowUp::Share(_)) {
             outcome(follow);
             return;
         }
-        capturer.capture_frame();
+        if delegated {
+            capturer.capture_frame();
+        }
         outcome(follow);
         let reason = loop {
             if stop.load(Ordering::SeqCst) {
                 return;
+            }
+            let target_fps = fps.load(Ordering::Relaxed).max(1);
+            if target_fps != last_fps {
+                capturer.set_max_frame_rate(target_fps);
+                last_fps = target_fps;
             }
             capturer.capture_frame();
             if let Some(end) = active_end.lock().ok().and_then(|mut slot| slot.take()) {
@@ -600,7 +603,7 @@ pub(crate) fn start_portal_capture(
             if gone {
                 break Some("the shared source is gone");
             }
-            std::thread::sleep(Duration::from_secs(1) / fps.load(Ordering::Relaxed).max(1));
+            std::thread::sleep(Duration::from_secs(1) / target_fps);
         };
         if !stop.load(Ordering::SeqCst) {
             ended(reason.map(str::to_owned));
@@ -644,27 +647,31 @@ mod tests {
     fn frames_report_the_macos_picker_outcome() {
         assert_eq!(
             picker_event_from_frame(&Ok(())),
-            Some(PortalPickerEvent::Selected)
+            Some(PickerOutcome::Portal(PortalPickerEvent::Selected))
         );
         assert_eq!(
             picker_event_from_frame::<()>(&Err(CaptureError::Permanent)),
-            Some(PortalPickerEvent::Cancelled)
+            Some(PickerOutcome::Portal(PortalPickerEvent::Cancelled))
         );
         assert_eq!(
             picker_event_from_frame::<()>(&Err(CaptureError::StoppedByUser)),
-            Some(PortalPickerEvent::Cancelled)
+            Some(PickerOutcome::Portal(PortalPickerEvent::Cancelled))
         );
         assert_eq!(
             picker_event_from_frame::<()>(&Err(CaptureError::StartFailed)),
-            Some(PortalPickerEvent::Failed)
+            Some(PickerOutcome::Portal(PortalPickerEvent::Failed))
         );
         assert_eq!(
             picker_event_from_frame::<()>(&Err(CaptureError::SourceGone)),
-            Some(PortalPickerEvent::Failed)
+            Some(PickerOutcome::SourceGone)
+        );
+        assert_eq!(
+            picker_follow_up(PickerOutcome::SourceGone, None),
+            PortalFollowUp::Notice(SHARE_SOURCE_GONE_NOTICE)
         );
         assert_eq!(
             picker_event_from_frame::<()>(&Err(CaptureError::Interrupted)),
-            Some(PortalPickerEvent::Failed)
+            Some(PickerOutcome::Portal(PortalPickerEvent::Failed))
         );
         assert_eq!(
             picker_event_from_frame::<()>(&Err(CaptureError::Temporary)),
@@ -686,12 +693,12 @@ mod tests {
             active_portal_error(CaptureError::StartFailed),
             Some(ActiveShareStop::Notice("macOS stopped the capture"))
         );
-        assert_eq!(active_portal_error(CaptureError::SourceGone), None);
-        assert_eq!(active_portal_error(CaptureError::Temporary), None);
         assert_eq!(
             active_portal_error(CaptureError::Permanent),
-            Some(ActiveShareStop::Notice("capture failed permanently"))
+            Some(ActiveShareStop::Notice("the system stopped the capture"))
         );
+        assert_eq!(active_portal_error(CaptureError::SourceGone), None);
+        assert_eq!(active_portal_error(CaptureError::Temporary), None);
     }
 }
 
@@ -780,18 +787,6 @@ mod portal_share_tests {
     }
 }
 
-#[cfg(all(test, target_os = "linux"))]
-mod portal_loop_tests {
-    #[test]
-    fn portal_loop_stays_up_across_ensures() {
-        libwebrtc::desktop_capturer::ensure_shared_glib_loop();
-        let id = libwebrtc::desktop_capturer::shared_glib_loop_id();
-        assert_ne!(id, 0);
-        libwebrtc::desktop_capturer::ensure_shared_glib_loop();
-        assert_eq!(id, libwebrtc::desktop_capturer::shared_glib_loop_id());
-    }
-}
-
 #[cfg(all(test, target_os = "macos"))]
 mod macos_window_capturer_tests {
     use super::{ShareKind, capturer};
@@ -802,6 +797,18 @@ mod macos_window_capturer_tests {
         // single-window backend without invoking SCContentSharingPicker until start.
         let mut window_capturer = capturer(ShareKind::Window).expect("macOS window capturer");
         window_capturer.set_max_frame_rate(15);
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod portal_loop_tests {
+    #[test]
+    fn portal_loop_stays_up_across_ensures() {
+        libwebrtc::desktop_capturer::ensure_shared_glib_loop();
+        let id = libwebrtc::desktop_capturer::shared_glib_loop_id();
+        assert_ne!(id, 0);
+        libwebrtc::desktop_capturer::ensure_shared_glib_loop();
+        assert_eq!(id, libwebrtc::desktop_capturer::shared_glib_loop_id());
     }
 }
 
@@ -848,18 +855,5 @@ mod portal_smoke {
             PortalFollowUp::Quiet => panic!("the dialog was cancelled"),
             PortalFollowUp::Notice(text) => panic!("portal notice: {text}"),
         }
-    }
-}
-
-#[cfg(test)]
-mod thumbnail_policy_tests {
-    use super::window_thumbnails_enabled;
-
-    #[test]
-    fn window_thumbnails_need_wayland_on_linux() {
-        let linux = cfg!(target_os = "linux");
-        assert_eq!(window_thumbnails_enabled(None), !linux);
-        assert_eq!(window_thumbnails_enabled(Some("")), !linux);
-        assert!(window_thumbnails_enabled(Some("wayland-0")));
     }
 }

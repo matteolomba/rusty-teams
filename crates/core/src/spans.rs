@@ -80,13 +80,14 @@ const SKIPPED_ELEMENTS: [&str; 4] = ["script", "style", "attachment", "head"];
 const LANGUAGE_PREFIX: &str = "language-";
 const EMOJI_ITEMTYPE: &str = "schema.skype.com/Emoji";
 const REPLY_ITEMTYPE: &str = "schema.skype.com/Reply";
+pub const CODE_BLOCK_ITEMTYPE: &str = "http://schema.skype.com/CodeBlockEditor";
 const MAX_HEADING_LEVEL: u8 = 3;
 const MARK_BACKGROUND: u32 = 0xffff00;
 const MAX_CONSECUTIVE_BREAKS: usize = 2;
 const INDENTED_ELEMENTS: [&str; 8] = ["p", "div", "h1", "h2", "h3", "h4", "h5", "h6"];
 const INDENT_STEP_PIXELS: f32 = 40.;
 const MAX_INDENT_LEVEL: u8 = 8;
-const PLAIN_LANGUAGE: &str = "plaintext";
+use crate::code_languages::PLAIN_LANGUAGE;
 /// Server HTML may be arbitrarily nested; flatten beyond this depth instead of recursing until the
 /// stack is exhausted (a message with thousands of wrappers used to kill the app).
 const MAX_SPAN_DEPTH: u32 = 64;
@@ -118,6 +119,12 @@ fn convert_children(element: ElementRef<'_>, depth: u32) -> Vec<Span> {
                 let Some(child_element) = ElementRef::wrap(child) else {
                     continue;
                 };
+                // The empty paragraph Teams puts before a code block only links it to its editor.
+                if child_element.value().attr("itemtype") == Some(CODE_BLOCK_ITEMTYPE)
+                    && raw_text(child_element).trim().is_empty()
+                {
+                    continue;
+                }
                 let is_block = BLOCK_ELEMENTS.contains(&child_element.value().name());
                 if (is_block || break_pending) && !spans.is_empty() {
                     spans.push(Span::LineBreak);
@@ -430,8 +437,9 @@ fn language_of(element: ElementRef<'_>) -> Option<String> {
     element
         .value()
         .classes()
-        .find_map(|class| class.strip_prefix(LANGUAGE_PREFIX))
-        .filter(|language| !language.is_empty())
+        .filter_map(|class| class.strip_prefix(LANGUAGE_PREFIX))
+        // Teams marks a language it guessed with this second class.
+        .find(|language| !language.is_empty() && *language != "was-auto-selected")
         .map(str::to_owned)
 }
 

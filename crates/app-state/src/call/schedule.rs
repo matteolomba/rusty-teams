@@ -11,7 +11,8 @@ use crate::runtime;
 
 const AGENDA_KEYS: [&str; 4] = ["body", "bodyContent", "bodyContentType", "bodyPreview"];
 const HALF_HOUR_MINUTES: i64 = 30;
-const DEFAULT_LENGTH_MINUTES: i64 = 30;
+/// Length of a new meeting when nothing else sets it (Teams: 30 minutes).
+pub const DEFAULT_LENGTH_MINUTES: i64 = 30;
 const READ_ONLY_MESSAGE: &str = "ui.calls.notice.schedule_read_only";
 const PERSON_CALENDAR_READ_ONLY_MESSAGE: &str = "ui.calls.notice.person_calendar_read_only";
 const RESPONSE_FAILED_NOTICE: &str = "ui.calls.notice.response_failed";

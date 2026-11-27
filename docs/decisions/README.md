@@ -40,5 +40,6 @@ Statuses: `proposed`, `accepted`, `superseded`.
 | [0022](0022-linux-parks-the-idle-teams-tab.md) | Linux parks the idle Teams tab in a Chromium browser |
 | [0023](0023-secrets-live-in-the-os-keyring.md) | Secrets live in the OS keyring, the cache is owner-only |
 | [0024](0024-product-ui-locale-italian.md) | Product UI also supports Italian |
+| [0025](0025-calendar-slot-selection-for-new-meetings.md) | Picking empty calendar slots for a new meeting |
 
 Records `0001` to `0021` are the decisions already shipped. `0001` follows Daniel's call-window note in `GUARDRAILS.md`.
