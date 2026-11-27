@@ -1714,13 +1714,13 @@ calls:
       de: Fenster freigeben...
       it: Condividi una finestra...
     computer_sound_on:
-      en: Computer sound on
-      de: Computerton ein
-      it: Audio del computer attivo
+      en: "Computer sound: shared"
+      de: "Computerton: geteilt"
+      it: "Audio del computer: condiviso"
     computer_sound_off:
-      en: Computer sound off
-      de: Computerton aus
-      it: Audio del computer disattivato
+      en: "Computer sound: not shared"
+      de: "Computerton: nicht geteilt"
+      it: "Audio del computer: non condiviso"
     sharing_label:
       en: "You are sharing: %{label}"
       de: "Sie geben frei: %{label}"
@@ -3712,9 +3712,21 @@ ui:
         de: "Nur aktiven Sprecher anzeigen"
         it: "Mostra solo il relatore attivo"
       sound_failed:
-        en: "Computer sound OFF (requested, could not start)"
-        de: "Computerton AUS (angefordert, konnte nicht starten)"
-        it: "Audio del computer OFF (richiesto, avvio non riuscito)"
+        en: "Computer sound: requested, not shared"
+        de: "Computerton: angefordert, nicht geteilt"
+        it: "Audio del computer: richiesto, non condiviso"
+      sound_state_on:
+        en: "Transmitted to others with your microphone."
+        de: "Wird mit Ihrem Mikrofon an andere übertragen."
+        it: "Trasmesso agli altri insieme al microfono."
+      sound_state_off:
+        en: "Not transmitted. Others hear only your microphone."
+        de: "Nicht übertragen. Andere hören nur Ihr Mikrofon."
+        it: "Non trasmesso. Gli altri sentono solo il microfono."
+      sound_state_failed:
+        en: "Requested, but the call could not start it. Others hear only your microphone."
+        de: "Angefordert, aber der Anruf konnte es nicht starten. Andere hören nur Ihr Mikrofon."
+        it: "Richiesto, ma la chiamata non è riuscita ad avviarlo. Gli altri sentono solo il microfono."
       sound_hint_off:
         en: "Others cannot hear your computer sound. Click to include it."
         de: "Andere hören Ihren Computerton nicht. Klicken Sie, um ihn einzubeziehen."
@@ -3724,25 +3736,25 @@ ui:
         de: "Andere hören Ihren Computerton. Klicken Sie, um ihn auszuschalten."
         it: "Gli altri sentono l'audio del Suo computer. Fai clic per disattivarlo."
       sound_off:
-        en: "Sound off"
-        de: "Ton aus"
-        it: "Audio disattivato"
+        en: "Computer sound: off"
+        de: "Computerton: aus"
+        it: "Audio del computer: disattivato"
       sound_on:
-        en: "Sound on"
-        de: "Ton an"
-        it: "Audio attivo"
+        en: "Computer sound: on"
+        de: "Computerton: ein"
+        it: "Audio del computer: attivo"
       sound_tip_active:
-        en: "Computer sound is being shared. Click to turn it off."
-        de: "Der Computerton wird geteilt. Klicken Sie, um ihn auszuschalten."
-        it: "L'audio del computer è condiviso. Fai clic per disattivarlo."
+        en: "Transmitted to others with your microphone. Click to turn it off."
+        de: "Wird mit Ihrem Mikrofon an andere übertragen. Klicken Sie, um es auszuschalten."
+        it: "Trasmesso agli altri insieme al microfono. Fai clic per disattivarlo."
       sound_tip_failed:
-        en: "Computer sound is not being shared. The call could not start it. Click to try again."
-        de: "Der Computerton wird nicht geteilt. Der Anruf konnte ihn nicht starten. Klicken Sie, um es erneut zu versuchen."
-        it: "L'audio del computer non è condiviso. La chiamata non è riuscita ad avviarlo. Fai clic per riprovare."
+        en: "Requested, but the call could not start it. Click to try again."
+        de: "Angefordert, aber der Anruf konnte es nicht starten. Klicken Sie, um es erneut zu versuchen."
+        it: "Richiesto, ma la chiamata non è riuscita ad avviarlo. Fai clic per riprovare."
       sound_tip_off:
-        en: "Computer sound is not being shared. Click to include it."
-        de: "Der Computerton wird nicht geteilt. Klicken Sie, um ihn einzubeziehen."
-        it: "L'audio del computer non è condiviso. Fai clic per includerlo."
+        en: "Not transmitted. Others hear only your microphone. Click to include computer sound."
+        de: "Nicht übertragen. Andere hören nur Ihr Mikrofon. Klicken Sie, um den Computerton einzubeziehen."
+        it: "Non trasmesso. Gli altri sentono solo il microfono. Fai clic per includere l'audio del computer."
       stop:
         en: "Stop"
         de: "Stopp"

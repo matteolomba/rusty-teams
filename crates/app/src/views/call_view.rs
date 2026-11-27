@@ -552,19 +552,32 @@ fn camera_action(
     })
 }
 
-fn sound_switch_item(app: &Entity<AppState>, sound: bool) -> PopupMenuItem {
+fn sound_switch_item(app: &Entity<AppState>, wanted: bool, active: bool) -> PopupMenuItem {
     let app = app.clone();
     PopupMenuItem::element(move |_, _| {
-        h_flex()
+        v_flex()
             .id("call-share-sound-row")
             .w_full()
-            .gap(px(16.))
-            .items_center()
-            .justify_between()
-            .child(tr("calls.chrome.include_computer_sound"))
-            .child(Switch::new("call-share-sound").checked(sound))
+            .gap(px(2.))
+            .child(
+                h_flex()
+                    .w_full()
+                    .gap(px(16.))
+                    .items_center()
+                    .justify_between()
+                    .child(tr("calls.chrome.include_computer_sound"))
+                    .child(Switch::new("call-share-sound").checked(wanted)),
+            )
+            .child(
+                div()
+                    .pl(px(2.))
+                    .text_size(theme::text_caption())
+                    .text_color(theme::text_muted())
+                    .child(share_sound_detail(active, wanted)),
+            )
+            .into_any_element()
     })
-    .on_click(move |_, _, cx| app.update(cx, |state, cx| state.set_call_share_sound(!sound, cx)))
+    .on_click(move |_, _, cx| app.update(cx, |state, cx| state.set_call_share_sound(!wanted, cx)))
 }
 
 fn motion_switch_item(app: &Entity<AppState>, motion: bool) -> PopupMenuItem {
@@ -686,7 +699,7 @@ fn share_items(
 ) -> PopupMenu {
     let mut popup = popup
         .min_w(px(SHARE_MENU_WIDTH))
-        .item(sound_switch_item(app, options.sound))
+        .item(sound_switch_item(app, options.sound, model.share_sound))
         .item(motion_switch_item(app, options.motion))
         .item(standout_switch_item(app, options.standout, model.camera_on))
         .separator();
@@ -866,6 +879,17 @@ pub(super) fn share_sound_status(active: bool, wanted: bool) -> String {
     }
 }
 
+/// What others actually hear, independent of the saved preference.
+pub(crate) fn share_sound_detail(active: bool, wanted: bool) -> String {
+    if active {
+        tr("ui.calls.share.sound_state_on")
+    } else if wanted {
+        tr("ui.calls.share.sound_state_failed")
+    } else {
+        tr("ui.calls.share.sound_state_off")
+    }
+}
+
 fn sharing_banner(app: &Entity<AppState>, model: &CallModel, wanted: bool) -> Option<AnyElement> {
     let label = model.local_share.as_ref()?;
     let sound_active = model.share_sound;
@@ -911,8 +935,10 @@ fn sharing_banner(app: &Entity<AppState>, model: &CallModel, wanted: bool) -> Op
                     .tooltip(move |window, cx| {
                         Tooltip::new(if sound_active {
                             tr("ui.calls.share.sound_hint_on")
+                        } else if wanted {
+                            tr("ui.calls.share.sound_tip_failed")
                         } else {
-                            tr("ui.calls.share.sound_hint_off")
+                            tr("ui.calls.share.sound_tip_off")
                         })
                         .build(window, cx)
                     })
@@ -1740,17 +1766,38 @@ mod tests {
 
 #[cfg(test)]
 mod share_sound_status_tests {
-    use super::share_sound_status;
+    use super::{share_sound_detail, share_sound_status};
 
     #[test]
     fn the_label_follows_the_real_state_not_only_the_preference() {
         let _guard = crate::i18n::locale_test_lock();
         app_base::ui_locale::apply_locale("en");
-        assert_eq!(share_sound_status(true, true), "Computer sound on");
+        assert_eq!(share_sound_status(true, true), "Computer sound: shared");
         assert_eq!(
             share_sound_status(false, true),
-            "Computer sound OFF (requested, could not start)"
+            "Computer sound: requested, not shared"
         );
-        assert_eq!(share_sound_status(false, false), "Computer sound off");
+        assert_eq!(
+            share_sound_status(false, false),
+            "Computer sound: not shared"
+        );
+    }
+
+    #[test]
+    fn the_detail_says_what_other_people_hear() {
+        let _guard = crate::i18n::locale_test_lock();
+        app_base::ui_locale::apply_locale("en");
+        assert_eq!(
+            share_sound_detail(true, true),
+            "Transmitted to others with your microphone."
+        );
+        assert_eq!(
+            share_sound_detail(false, false),
+            "Not transmitted. Others hear only your microphone."
+        );
+        assert!(
+            share_sound_detail(false, true)
+                .starts_with("Requested, but the call could not start it")
+        );
     }
 }

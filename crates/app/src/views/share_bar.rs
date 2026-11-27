@@ -3,7 +3,7 @@ use gpui_kit::assets::IconName;
 use gpui_kit::component::{h_flex, tooltip::Tooltip};
 use gpui_kit::*;
 
-use super::call_view::{camera_button, mute_button, round_control};
+use super::call_view::{camera_button, mute_button, round_control, share_sound_status};
 use crate::app_state::AppState;
 use crate::call::CallWindows;
 use crate::i18n::tr;
@@ -65,11 +65,7 @@ fn sound_button(app: &Entity<AppState>, active: bool, wanted: bool) -> Stateful<
     } else {
         (IconName::VolumeOff, theme::surface(), theme::text())
     };
-    let label = if active {
-        tr("ui.calls.share.sound_on")
-    } else {
-        tr("ui.calls.share.sound_off")
-    };
+    let label = share_sound_status(active, wanted);
     h_flex()
         .id("share-bar-sound")
         .h(px(STOP_HEIGHT))
