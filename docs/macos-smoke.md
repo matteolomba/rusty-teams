@@ -18,7 +18,8 @@ Run on a real Mac (`.app` from `scripts/build-macos.sh` or a release zip). Unit 
 5. Cancel the window picker: no share, call stays connected, no error toast.
 6. Stop the shared window from the macOS menu bar: the share switches off without an error toast and the call stays connected.
 7. Close the shared window briefly, then reopen it: the share survives the grace period; a window that stays closed ends the share with a notice.
-8. Prefer a second person for 1:1 ring / accept when available (ROADMAP still Partial without that).
+8. Camera on, no blur, standout, auto framing, brightness, or soft focus, and no share, for one minute. The call report (`host load`, every two seconds) names the threads that used CPU, says those effects are off, and states thermal state `nominal`, `fair`, `serious`, or `critical`. The next capture change follows the hottest thread in that report. This minute is the gate; it is not a substitute for guessing a GPU path.
+9. Prefer a second person for 1:1 ring / accept when available (ROADMAP still Partial without that).
 
 ## Desktop integration
 
